@@ -36,13 +36,15 @@ Turn a piece of established physics into an interactive lesson: a self-contained
 6. **Plan the lesson.** 4–6 steps for an explorable, 6–10 for a full lesson. For each step: the state it sets, the prediction (built around a real misconception), what gets unlocked, what the feedback says. End with an explain step and a transfer question.
 7. **Build.** Copy `assets/base.html`. Keep the `LX:` blocks unchanged. Adapt the selected patterns into one page with linked views of one state. Set the badge honestly (exact / computed / schematic), the conventions line and the source line. Add `LX.check` self-tests for every physics fact the widget relies on.
 8. **Check.** Before delivering, verify: limits behave as the physics says; self-tests pass; schematic plots have no numeric ticks; every TeX string renders; the page works at phone width. If the repo's `tests/run.mjs` harness is available, run it on the file.
-9. **Deliver.** Publish as an Artifact when the session supports it; otherwise save the `.html` file (wrapped in a doctype skeleton, see the comment at the top of `base.html`). Give it a short name as title.
+9. **Deliver.** Publish the fragment as an Artifact when the session supports it. Otherwise give the user a standalone `.html` file: the fragment wrapped in a doctype skeleton (see the comment at the top of `base.html`). Keep the unwrapped fragment for testing. Give it a short name as title.
 10. **Follow up in chat.** Ask the learner to explain what they saw in their own words, correct any gap, pose the transfer question, and suggest the next concept.
 
 ## Modes
 
 - **Explorable** (default): one widget for one confusing point, 4–6 steps. Use it in the middle of a conversation when the learner is stuck.
 - **Lesson:** a longer sequence on one page, 6–10 steps, several linked views. Use it when the learner asks to learn a topic.
+
+Choosing: a question about one relationship ("why does the gap close like a square root?") → Explorable. A request to learn or review a topic ("teach me BCS theory") → Lesson. "Make me something interactive" about one confusion → Explorable, extended to a Lesson only if the confusion spans several relationships. When unsure, build the Explorable and offer to extend it.
 
 ## Non-negotiables
 

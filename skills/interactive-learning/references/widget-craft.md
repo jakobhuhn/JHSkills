@@ -12,6 +12,8 @@ Every widget carries one badge in its header, and the badge must be true:
 | Computed | `computed` | Small, checkable numerics (e.g. `LX.eigSym` on a ≤ 200×200 matrix, RK4 of a few ODEs). | Self-test the numerics against known limits. Say what is computed in a caption. |
 | Schematic | `schematic` | Only the qualitative shape is meaningful (e.g. a spectral function's peak structure, a phase diagram's topology). | Plots use `ticks: false`: **no numeric tick labels**. Label only named features with `P.tex` (e.g. \(U_c\), \(\pm U/2\)). Say in a caption which features are meaningful. |
 
+Exact vs computed: closed forms evaluated directly are exact. Anything that needs numerical quadrature, root finding, diagonalisation or ODE integration is computed, even when the underlying equation is exact; say in a caption what is computed and self-test its accuracy.
+
 The schematic rule matters: a cartoon with numbers on its axes reads as data. If a curve's shape is known but its numbers depend on a method or approximation, draw it schematic.
 
 Never draw a feature you cannot justify. Each visible feature of the widget should correspond to something in the source (the user's knowledge base, or a standard textbook result).
@@ -40,7 +42,9 @@ Never draw a feature you cannot justify. Each visible feature of the widget shou
 
 - Start from `assets/base.html`. Keep the three marked blocks (`LX:HEAD`, `LX:STYLE`, `LX:LIB`) unchanged; add page CSS after `/* LX:STYLE-END */` and code in the `PATTERN` script.
 - One state object, one `update()` that redraws everything from it. Controls only change the state and call `update()`.
-- Keep numerics small enough to run on every slider move (aim under ~16 ms). Precompute what does not depend on the control being moved.
+- Keep numerics small enough to run on every slider move (aim under ~16 ms). Precompute what does not depend on the control being moved; keep load-time precomputation under ~200 ms.
+- Choose units that make the key scale 1 (energies in units of \(T_c\), hopping \(t = 1\), lengths in lattice constants) and fix dimensionless couplings at a value where the effect is clearly visible; say so in the conventions line.
+- Display math in the steps panel must fit about 340 px (the panel width on phones and in the side column). Break long equations into several lines or move them into a figure caption.
 - Give every control a stable `id` (lesson steps lock controls by id; slider wrappers are `<id>-wrap`).
 - Add `LX.check(...)` self-tests for every physics fact the widget relies on: normalization, a closed form at a special point, a limit, a symmetry. They run at load and are reported by the test harness. Make anything random use a seeded generator.
 - Library helpers worth knowing beyond plots and sliders: `LX.rng(seed)` (seeded random numbers), `LX.C.exp`/`LX.C.sqrt` (complex), `LX.plot(..., { frame: false })` (bare drawing area for 3D views and diagrams), `LX.limits(parent, items, title, { id })` (a lockable group of limit buttons), a step's `onAnswer(correct, index)` hook, and `LX.isLocked(el)` for custom click or drag handlers that must respect locking.

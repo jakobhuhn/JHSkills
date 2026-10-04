@@ -33,7 +33,9 @@ Then ask for each relationship: *what kind of change is it?* That is its concept
 | 15 | Composition / circuits | operations are built step by step and order matters | gate stepper with state readout per step | `patterns/15-circuits.html` |
 | 16 | Symmetry | an operation leaves something invariant or forces degeneracy | apply-the-operation buttons; what changes, what stays | `patterns/16-symmetry.html` |
 
-Each pattern file starts with a header comment: when to use it, the widget anatomy, the teaching moments, how to adapt it and the physics it implements. Read that header first. The widget code is in the `PATTERN` script at the end of the file; the marked `LX:` blocks are the shared library, identical in every file, so skip them.
+Each pattern file starts with a header comment: when to use it, the widget anatomy, the teaching moments, how to adapt it and the physics it implements. Read that header first. The widget code is in the `PATTERN` script at the end of the file; the marked `LX:` blocks are the shared library, identical in every file, so skip them. Some patterns also have page-specific CSS after `/* LX:STYLE-END */`; copy it along with the code you reuse.
+
+Adapt the view to what the learner must *see*, not just the equation's form. Example: a self-consistency equation with a trivial root, \(\Delta = \Delta\, I(\Delta, T)\), drawn as a cobweb hugs the diagonal at weak coupling and the crossing is invisible. Divide out the trivial root and plot \(I(\Delta, T)\) against 1 instead; keep the cobweb for the iteration story only.
 
 ## Step 3: compose
 
@@ -66,7 +68,7 @@ These are starting points, not rules. Always do Step 1 first.
 - Fermi surfaces, Brillouin zones → 03 (+ 05)
 - Bloch oscillations, wavepacket dynamics in a band → 02 + 07
 - Localisation, correlation lengths, screening → 12
-- Superconducting gap equation (BCS), mean-field magnetism → 10 + 01
+- Superconducting gap equation (BCS), mean-field magnetism → 10 + 01 (for BCS plot \(I(\Delta,T)\) vs 1, see Step 2; \(\Delta^2\) vs \(T\) shows the square-root onset as a straight line)
 - Landau theory, spontaneous symmetry breaking → 01 (+ 16)
 - Degeneracies, selection rules, Kramers → 16 (+ 05)
 
