@@ -44,7 +44,9 @@ MathJax typesets the page once at load. Anything inserted later must be typeset 
 
 - `LX.typeset(el)` queues typesetting of one element. It is safe to call before MathJax has loaded (the element is typeset when it is ready) and it skips elements that were removed in the meantime.
 - The `LX` helpers already call it: slider labels, segmented labels, figure captions, `P.tex(...)` labels and every lesson step.
-- Do **not** typeset in a per-frame loop. Readouts that change on every slider move (`LX.readout(...).set(...)`) take plain text; put the TeX in the readout's fixed label.
+- Do **not** typeset in a per-frame loop, and do not create `P.tex(...)` labels inside an animation or on every slider move: create a label once and move it with `P.placeTex(el, x, y, anchor)`, or re-create it only when its text changes.
+- Avoid TeX commands that MathJax loads as extensions at runtime (e.g. `\boldsymbol`); use `\mathbf` or plain symbols. The extension loads from the CDN online but fails offline.
+- Readouts that change on every slider move (`LX.readout(...).set(...)`) take plain text; put the TeX in the readout's fixed label.
 
 ## Math inside figures
 

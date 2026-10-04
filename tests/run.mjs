@@ -1,6 +1,6 @@
 // Render-and-check harness for interactive-learning widgets.
 //
-//   node tests/run.mjs [file-or-glob-substring ...] [--shots]
+//   node tests/run.mjs [name-substring | path/to/widget.html ...] [--shots]
 //
 // For every widget (skills/interactive-learning/{assets,patterns,examples}/*.html):
 //   - wraps the Artifact-style fragment in the publish skeleton (doctype, meta)
@@ -32,7 +32,9 @@ const filters = args.filter(a => !a.startsWith("--"));
 const files = ["assets", "patterns", "examples"].flatMap(d => {
   const dir = path.join(skill, d);
   return fs.existsSync(dir) ? fs.readdirSync(dir).filter(f => f.endsWith(".html")).map(f => path.join(dir, f)) : [];
-}).filter(f => !filters.length || filters.some(q => f.includes(q))).sort();
+}).filter(f => !filters.length || filters.some(q => f.includes(q)))
+  .concat(filters.filter(q => q.endsWith(".html") && fs.existsSync(q)).map(q => path.resolve(q)))  // explicit paths, e.g. a widget built elsewhere
+  .filter((f, i, a) => a.indexOf(f) === i).sort();
 
 const wrap = src => `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body>${src}</body></html>`;
 const shotDir = path.join(here, "screenshots");

@@ -43,6 +43,7 @@ Never draw a feature you cannot justify. Each visible feature of the widget shou
 - Keep numerics small enough to run on every slider move (aim under ~16 ms). Precompute what does not depend on the control being moved.
 - Give every control a stable `id` (lesson steps lock controls by id; slider wrappers are `<id>-wrap`).
 - Add `LX.check(...)` self-tests for every physics fact the widget relies on: normalization, a closed form at a special point, a limit, a symmetry. They run at load and are reported by the test harness. Make anything random use a seeded generator.
+- Library helpers worth knowing beyond plots and sliders: `LX.rng(seed)` (seeded random numbers), `LX.C.exp`/`LX.C.sqrt` (complex), `LX.plot(..., { frame: false })` (bare drawing area for 3D views and diagrams), `LX.limits(parent, items, title, { id })` (a lockable group of limit buttons), a step's `onAnswer(correct, index)` hook, and `LX.isLocked(el)` for custom click or drag handlers that must respect locking.
 - Do not load extra libraries unless the widget really needs one. Only the CDNs listed in the artifact rules are allowed.
 
 ## Delivery
