@@ -25,7 +25,6 @@ catch { ({ chromium } = require(path.join(execSync("npm root -g").toString().tri
 
 const mathjaxFile = path.join(here, "node_modules/mathjax/es5/tex-svg.js");
 if (!fs.existsSync(mathjaxFile)) { console.error("Run `npm install` in tests/ first (needs mathjax@3.2.2)."); process.exit(2); }
-const mathjax = fs.readFileSync(mathjaxFile);
 
 const args = process.argv.slice(2);
 const shots = args.includes("--shots");
@@ -53,7 +52,12 @@ for (const file of files) {
       page.on("pageerror", e => errors.push("pageerror: " + e.message));
       await page.route("**/*", route => {
         const u = route.request().url();
-        if (u.includes("mathjax") && u.endsWith("tex-svg.js")) return route.fulfill({ body: mathjax, contentType: "application/javascript" });
+        // any MathJax 3.2.2 file (tex-svg.js and extensions it autoloads, e.g. [tex]/boldsymbol) from the local copy
+        const mj = u.match(/mathjax(?:@|\/)3\.2\.2\/es5\/(.+\.js)$/);
+        if (mj) {
+          const local = path.join(here, "node_modules/mathjax/es5", mj[1]);
+          if (fs.existsSync(local)) return route.fulfill({ body: fs.readFileSync(local), contentType: "application/javascript" });
+        }
         if (u.startsWith("https://fonts.")) return route.fulfill({ body: "", contentType: "text/css" });
         if (u === "https://lx.test/") return route.fulfill({ body: html, contentType: "text/html" });
         return route.abort();
