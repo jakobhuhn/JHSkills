@@ -1,0 +1,8 @@
+{
+  "name": "interactive-learning-tests",
+  "private": true,
+  "type": "module",
+  "description": "Render checks for the interactive-learning widgets (uses a global or local Playwright).",
+  "scripts": { "test": "node run.mjs", "shots": "node run.mjs --shots" },
+  "devDependencies": { "mathjax": "3.2.2" }
+}
