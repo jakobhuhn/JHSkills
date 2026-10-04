@@ -1,0 +1,726 @@
+<title>Variational Principle</title>
+<!--
+PATTERN 04 · OPTIMISATION / EXTREMUM
+Concept shape   A principle selects a minimum, maximum or saddle of some functional, and the
+                learner searches the landscape for it: the answer is "where the slope vanishes".
+Use it for      Variational method (Rayleigh–Ritz), Hartree–Fock and mean-field energy minimisation,
+                Ginzburg–Landau / free-energy minimisation, least action, maximum entropy,
+                Fermat's principle, saddle-point (stationary-phase) approximations.
+Widget anatomy  (1) landscape E(α) with a draggable trial point, its tangent and a downhill arrow,
+                    and the exact bound E₀ as a floor;
+                (2) linked plot of the trial object (here the radial density) against the exact one;
+                (3) slider for the trial parameter + a switch between trial families;
+                (4) readouts for the competing terms (⟨T⟩, ⟨V⟩), the virial combination, the error and
+                    the overlap; a "find the minimum" task status.
+Teaching moments  Predict whether any trial can beat E₀; predict which term wins when the trial is too
+                  compact or too diffuse; find the minimum and predict the virial ratio; predict what a
+                  better family does to the bound.
+Adapt by        Replace FAM with your trial families: each needs T(a), V(a) (or just E(a)), a range,
+                the known optimum and the object to plot. Anything with one parameter and a closed-form
+                or quadrature E(a) fits. For two parameters, swap the landscape for a contour plot.
+Physics         Hydrogen atom, atomic units (ħ = mₑ = e = 4πε₀ = 1). Gaussian trial ψ ∝ e^{−αr²}:
+                ⟨T⟩ = 3α/2, ⟨V⟩ = −2√(2α/π), minimum at α* = 8/(9π), E* = −4/(3π) ≈ −0.4244.
+                Slater trial ψ ∝ e^{−βr}: ⟨T⟩ = β²/2, ⟨V⟩ = −β, minimum at β* = 1, E* = −1/2 (exact).
+                Virial theorem for a 1/r potential at any stationary point of a scale family: 2⟨T⟩ = −⟨V⟩.
+-->
+<!-- LX:HEAD-BEGIN -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]],
+    macros: {
+      ket: ["\\left|#1\\right\\rangle", 1], bra: ["\\left\\langle#1\\right|", 1],
+      braket: ["\\left\\langle#1\\middle|#2\\right\\rangle", 2], expval: ["\\left\\langle#1\\right\\rangle", 1],
+      Tr: "\\operatorname{Tr}", dd: "\\mathrm{d}", ii: "\\mathrm{i}", ee: "\\mathrm{e}"
+    }
+  },
+  svg: { fontCache: "global" },
+  startup: {
+    pageReady() {
+      return MathJax.startup.defaultPageReady().then(() => document.dispatchEvent(new Event("lx:mathjax")));
+    }
+  }
+};
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg.js" async></script>
+<!-- LX:HEAD-END -->
+<style>
+/* LX:STYLE-BEGIN */
+/* Layout: a lab-notebook page. Figure stage on the left, lesson steps on the right; one column on phones. */
+:root {
+  --bg: #f5f6f8; --surface: #ffffff; --fg: #17202c; --muted: #5b6676; --line: #d6dce5; --grid: #eaeef3;
+  --accent: #2f5bd3; --c2: #c9700c; --c3: #12857a; --c4: #b0377a; --good: #1f8a4c; --bad: #c2412d;
+  --accent-soft: rgba(47, 91, 211, .10);
+  --f-prose: "Source Serif 4", "Iowan Old Style", Georgia, serif;
+  --f-ui: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0f141b; --surface: #161d27; --fg: #e5eaf1; --muted: #94a0b2; --line: #2b3544; --grid: #1d2531;
+  --accent: #7ea2ff; --c2: #f0a54a; --c3: #45c2b0; --c4: #e47ab4; --good: #4cc184; --bad: #f07a62;
+  --accent-soft: rgba(126, 162, 255, .14); color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --bg: #0f141b; --surface: #161d27; --fg: #e5eaf1; --muted: #94a0b2; --line: #2b3544; --grid: #1d2531;
+  --accent: #7ea2ff; --c2: #f0a54a; --c3: #45c2b0; --c4: #e47ab4; --good: #4cc184; --bad: #f07a62;
+  --accent-soft: rgba(126, 162, 255, .14); color-scheme: dark;
+}
+body { background: var(--bg); color: var(--fg); font: 15px/1.55 var(--f-ui); margin: 0; }
+.lx-page { max-width: 1180px; margin: 0 auto; padding-inline: 16px; padding-block: 20px 40px; display: grid; gap: 20px; }
+.lx-head { display: grid; gap: 6px; }
+.lx-eyebrow { margin: 0; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.lx-head h1 { margin: 0; font: 600 clamp(24px, 3.2vw, 32px)/1.15 var(--f-prose); text-wrap: balance; }
+.lx-lede { margin: 0; max-width: 68ch; font: 17px/1.5 var(--f-prose); color: var(--muted); }
+.lx-meta { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; font-size: 13px; color: var(--muted); }
+.lx-badge { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: 999px; border: 1px solid currentColor; font-weight: 500; font-size: 12px; letter-spacing: .02em; }
+.lx-badge::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.lx-badge[data-kind="exact"] { color: var(--good); }
+.lx-badge[data-kind="schematic"] { color: var(--c2); }
+.lx-badge[data-kind="computed"] { color: var(--accent); }
+.lx-layout { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 860px) { .lx-layout { grid-template-columns: minmax(0, 1fr); } }
+.lx-stage { display: grid; gap: 14px; min-width: 0; }
+.lx-figs { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
+.lx-fig { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px; min-width: 0; display: grid; gap: 6px; }
+.lx-fig > figcaption { font-size: 12.5px; color: var(--muted); }
+.lx-plot { position: relative; width: 100%; }
+.lx-plot > svg { display: block; width: 100%; height: auto; overflow: visible; touch-action: none; }
+.lx-overlay { position: absolute; inset: 0; pointer-events: none; }
+.lx-tex { position: absolute; white-space: nowrap; font-size: 13px; color: var(--fg); line-height: 1; }
+.lx-controls { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: end; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+.lx-slider { display: grid; gap: 2px; min-width: min(100%, 200px); flex: 1 1 200px; }
+.lx-slider .lx-lab { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--muted); }
+.lx-slider output, .lx-readout b { font-family: var(--f-mono); font-variant-numeric: tabular-nums; color: var(--fg); font-weight: 500; }
+.lx-slider input[type=range] { width: 100%; accent-color: var(--accent); }
+.lx-group { display: grid; gap: 4px; }
+.lx-group > span { font-size: 12px; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
+.lx-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.lx-btn { font: 500 13px var(--f-ui); color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; cursor: pointer; }
+.lx-btn:hover { border-color: var(--accent); }
+.lx-btn:focus-visible, .lx-seg input:focus-visible + span, .lx-drag:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.lx-btn[aria-pressed="true"], .lx-btn.lx-primary { background: var(--accent); color: var(--surface); border-color: var(--accent); }
+.lx-btn:disabled { opacity: .45; cursor: not-allowed; }
+.lx-seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.lx-seg label { cursor: pointer; }
+.lx-seg input { position: absolute; opacity: 0; pointer-events: none; }
+.lx-seg span { display: block; padding: 5px 10px; font-size: 13px; }
+.lx-seg input:checked + span { background: var(--accent); color: var(--surface); }
+.lx-readouts { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); }
+.lx-locked { opacity: .5; }
+.lx-locked * { cursor: not-allowed !important; }
+/* steps */
+.lx-steps { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: grid; gap: 12px; min-width: 0; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); }
+@media (max-width: 860px) { .lx-steps { position: static; order: -1; } }  /* phones: read the question, then use the widget below */
+.lx-steps-top { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
+.lx-dots { display: flex; gap: 5px; }
+.lx-dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
+.lx-dots i.on { background: var(--accent); }
+.lx-dots i.done { background: var(--muted); }
+.lx-steps h2 { margin: 0; font: 600 19px/1.3 var(--f-prose); text-wrap: balance; }
+.lx-prose { font: 16px/1.6 var(--f-prose); max-width: 68ch; }
+.lx-prose p { margin: 0 0 .6em; }
+.lx-prose p:last-child { margin-bottom: 0; }
+.lx-predict { display: grid; gap: 8px; border-left: 3px solid var(--accent); padding: 8px 0 8px 12px; background: var(--accent-soft); border-radius: 0 8px 8px 0; }
+.lx-predict > p { margin: 0; font-weight: 500; }
+.lx-opts { display: grid; gap: 6px; padding-right: 10px; }
+.lx-opt { text-align: left; font: 14px/1.4 var(--f-ui); color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; cursor: pointer; }
+.lx-opt:hover:not(:disabled) { border-color: var(--accent); }
+.lx-opt:disabled { cursor: default; }
+.lx-opt.right { border-color: var(--good); box-shadow: inset 3px 0 0 var(--good); }
+.lx-opt.wrong { border-color: var(--bad); box-shadow: inset 3px 0 0 var(--bad); }
+.lx-feedback { font: 15px/1.5 var(--f-prose); padding-right: 10px; }
+.lx-feedback b { font-family: var(--f-ui); }
+.lx-explain { display: grid; gap: 8px; }
+.lx-explain textarea { font: 15px/1.5 var(--f-prose); color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 8px; min-height: 84px; resize: vertical; }
+.lx-model { border: 1px dashed var(--line); border-radius: 8px; padding: 10px; }
+.lx-nav { display: flex; justify-content: space-between; gap: 8px; }
+.lx-foot { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 12px; display: grid; gap: 4px; max-width: 90ch; }
+/* svg marks: color via classes so both themes work */
+.lx-plot text { font: calc(11px * var(--lx-k, 1)) var(--f-mono); fill: var(--muted); }
+.lx-plot path, .lx-plot line, .lx-plot rect, .lx-plot circle, .lx-plot ellipse, .lx-plot polygon { vector-effect: non-scaling-stroke; }
+.ax { stroke: var(--muted); stroke-width: 1; fill: none; }
+.gr { stroke: var(--grid); stroke-width: 1; fill: none; }
+.s1, .s2, .s3, .s4, .sm { fill: none; stroke-width: 2.2; stroke-linejoin: round; stroke-linecap: round; }
+.s1 { stroke: var(--accent); } .s2 { stroke: var(--c2); } .s3 { stroke: var(--c3); } .s4 { stroke: var(--c4); } .sm { stroke: var(--muted); stroke-width: 1.2; }
+.dash { stroke-dasharray: 5 4; }
+.thin { stroke-width: 1.2; }
+.f1 { fill: var(--accent); } .f2 { fill: var(--c2); } .f3 { fill: var(--c3); } .f4 { fill: var(--c4); } .fm { fill: var(--muted); } .fs { fill: var(--surface); }
+.a1 { fill: var(--accent); fill-opacity: .16; stroke: none; } .a2 { fill: var(--c2); fill-opacity: .18; stroke: none; } .a3 { fill: var(--c3); fill-opacity: .18; stroke: none; }
+.g-ghost { opacity: .32; }
+.g-ghost path { stroke-dasharray: 4 3; }
+.lx-drag { cursor: grab; }
+.lx-drag:active { cursor: grabbing; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+/* LX:STYLE-END */
+.task-ok { color: var(--good); }
+</style>
+
+<main class="lx-page">
+  <header class="lx-head">
+    <p class="lx-eyebrow">Quantum mechanics · Variational method</p>
+    <h1>How good is the best wavefunction you can guess?</h1>
+    <p class="lx-lede">Drag the trial point along the energy landscape \(E(\alpha)\) of a Gaussian guess for the hydrogen ground state. Every guess gives an energy above the true one; the best guess sits where the slope vanishes.</p>
+    <div class="lx-meta">
+      <span class="lx-badge" data-kind="exact">Exact formulas</span>
+      <span>Hydrogen, atomic units: \(\hbar = m_e = e = 4\pi\varepsilon_0 = 1\), energies in hartree, \(E_0 = -1/2\)</span>
+    </div>
+  </header>
+  <section class="lx-layout">
+    <div class="lx-stage" id="stage"></div>
+    <aside class="lx-steps" id="steps" aria-live="polite"></aside>
+  </section>
+  <footer class="lx-foot">
+    <span>Source: model knowledge. Standard treatment: Griffiths, <i>Introduction to Quantum Mechanics</i> (2nd ed.), ch. 7; Sakurai &amp; Napolitano, <i>Modern Quantum Mechanics</i>, ch. 5.</span>
+  </footer>
+</main>
+
+<script>/* LX:LIB-BEGIN */
+/* LX — small helper library for interactive-learning widgets. API summary:
+   DOM      LX.h(tag, attrs, parent) · LX.fig(parent, caption) · LX.typeset(el)
+   Numbers  LX.linspace · LX.clamp · LX.sample(f,a,b,n) · LX.C (complex) · LX.eigSym(A) · LX.niceTicks
+   Plots    LX.plot(parent, {xlim, ylim, ticks, xlabel, ylabel, width, height}) → path/fn/dot/line/vline/hline/
+            area/text/tex/arrow/clear/ghost/setLim/X/Y/inv/svg/g · LX.drag(plot, node, {get,set,step})
+   3D       LX.camera({yaw, pitch, scale}) → project([x,y,z]) · rotate by dragging an element
+   Controls LX.controls(parent) · LX.slider · LX.segmented · LX.button · LX.limits · LX.readout · LX.player
+   Lesson   LX.steps(parent, steps) — predict → reveal gating, explain boxes, locking controls
+   Checks   LX.check(name, fn) → window.__lxTests */
+const LX = (() => {
+  const NS = "http://www.w3.org/2000/svg";
+  const reduceMotion = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function h(tag, attrs, parent, svg) {
+    const e = svg ? document.createElementNS(NS, tag) : document.createElement(tag);
+    for (const k in attrs || {}) {
+      const v = attrs[k];
+      if (v == null || v === false) continue;
+      if (k === "text") e.textContent = v;
+      else if (k === "html") e.innerHTML = v;
+      else if (k.startsWith("on") && typeof v === "function") e.addEventListener(k.slice(2), v);
+      else e.setAttribute(k, v === true ? "" : v);
+    }
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+  const s = (tag, attrs, parent) => h(tag, attrs, parent, true);
+
+  /* ---------- MathJax ---------- */
+  let mjReady = false; const mjPending = new Set();
+  document.addEventListener("lx:mathjax", () => { mjReady = true; mjPending.forEach(el => typeset(el)); mjPending.clear(); });
+  /* Typesetting is queued: MathJax must not run concurrently, and labels that were
+     removed while waiting (plots redraw often) are skipped. */
+  let mjChain = Promise.resolve();
+  function typeset(el) {
+    const MJ = window.MathJax;
+    if (!mjReady || !MJ || !MJ.typesetPromise) { if (el) mjPending.add(el); return Promise.resolve(); }
+    mjChain = mjChain.then(() => {
+      if (el && !el.isConnected) return;
+      const els = el ? [el] : undefined;
+      try { MJ.typesetClear(els); } catch (e) {}
+      return MJ.typesetPromise(els);
+    }).catch(err => console.warn("MathJax:", err && err.message));
+    return mjChain;
+  }
+
+  /* ---------- numerics ---------- */
+  const linspace = (a, b, n) => Array.from({ length: n }, (_, i) => a + (b - a) * i / (n - 1));
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+  const sample = (f, a, b, n = 400) => linspace(a, b, n).map(x => [x, f(x)]);
+  const C = {
+    of: (re, im = 0) => ({ re, im }),
+    add: (a, b) => ({ re: a.re + b.re, im: a.im + b.im }),
+    sub: (a, b) => ({ re: a.re - b.re, im: a.im - b.im }),
+    mul: (a, b) => ({ re: a.re * b.re - a.im * b.im, im: a.re * b.im + a.im * b.re }),
+    scale: (a, k) => ({ re: a.re * k, im: a.im * k }),
+    conj: a => ({ re: a.re, im: -a.im }),
+    abs2: a => a.re * a.re + a.im * a.im,
+    abs: a => Math.hypot(a.re, a.im),
+    arg: a => Math.atan2(a.im, a.re),
+    expi: t => ({ re: Math.cos(t), im: Math.sin(t) }),
+    div: (a, b) => { const d = b.re * b.re + b.im * b.im; return { re: (a.re * b.re + a.im * b.im) / d, im: (a.im * b.re - a.re * b.im) / d }; }
+  };
+  /* Real symmetric eigenproblem (cyclic Jacobi). Returns ascending values and matching unit vectors. */
+  function eigSym(M) {
+    const n = M.length, A = M.map(r => r.slice());
+    const V = Array.from({ length: n }, (_, i) => Array.from({ length: n }, (_, j) => +(i === j)));
+    for (let sweep = 0; sweep < 100; sweep++) {
+      let off = 0;
+      for (let p = 0; p < n; p++) for (let q = p + 1; q < n; q++) off += A[p][q] * A[p][q];
+      if (off < 1e-24) break;
+      for (let p = 0; p < n; p++) for (let q = p + 1; q < n; q++) {
+        if (Math.abs(A[p][q]) < 1e-300) continue;
+        const th = (A[q][q] - A[p][p]) / (2 * A[p][q]);
+        const t = (th >= 0 ? 1 : -1) / (Math.abs(th) + Math.sqrt(th * th + 1));
+        const c = 1 / Math.sqrt(t * t + 1), sn = t * c;
+        for (let k = 0; k < n; k++) { const a = A[k][p], b = A[k][q]; A[k][p] = c * a - sn * b; A[k][q] = sn * a + c * b; }
+        for (let k = 0; k < n; k++) { const a = A[p][k], b = A[q][k]; A[p][k] = c * a - sn * b; A[q][k] = sn * a + c * b; }
+        for (let k = 0; k < n; k++) { const a = V[k][p], b = V[k][q]; V[k][p] = c * a - sn * b; V[k][q] = sn * a + c * b; }
+      }
+    }
+    const idx = [...Array(n).keys()].sort((i, j) => A[i][i] - A[j][j]);
+    return { values: idx.map(i => A[i][i]), vectors: idx.map(i => V.map(r => r[i])) };
+  }
+  function niceTicks(a, b, n = 5) {
+    const span = Math.abs(b - a) || 1, raw = span / n, mag = Math.pow(10, Math.floor(Math.log10(raw)));
+    const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(st => span / st <= n) || 10 * mag;
+    const lo = Math.ceil(Math.min(a, b) / step - 1e-9) * step, out = [];
+    for (let v = lo; v <= Math.max(a, b) + 1e-9 * step; v += step) out.push(Math.abs(v) < step * 1e-9 ? 0 : v);
+    const dec = Math.max(0, -Math.floor(Math.log10(step) + 1e-9) + (step / mag === 2.5 ? 1 : 0));
+    return out.map(v => ({ v, label: v.toFixed(dec).replace("-", "−") }));
+  }
+
+  /* ---------- plots ---------- */
+  let uid = 0;
+  function fig(parent, caption) {
+    const f = h("figure", { class: "lx-fig" }, parent);
+    f.style.margin = "0";
+    if (caption) { const c = h("figcaption", { html: caption }, f); typeset(c); }
+    return f;
+  }
+  function plot(parent, o = {}) {
+    const W = o.width || 560, H = o.height || 340, ticks = o.ticks !== false;
+    const m = Object.assign(ticks ? { l: 56, r: 16, t: o.ylabel ? 30 : 14, b: 50 } : { l: 26, r: 22, t: o.ylabel ? 30 : 16, b: o.xlabel ? 34 : 16 }, o.margin || {});
+    let [x0, x1] = o.xlim || [0, 1], [y0, y1] = o.ylim || [0, 1];
+    const wrap = h("div", { class: "lx-plot" }, parent);
+    const svg = s("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": o.aria || "plot" }, wrap);
+    const overlay = h("div", { class: "lx-overlay" }, wrap);
+    /* keep tick text at a constant on-screen size when the SVG is scaled down */
+    if (window.ResizeObserver) new ResizeObserver(() => { const w = wrap.clientWidth; if (w) wrap.style.setProperty("--lx-k", (W / w).toFixed(3)); }).observe(wrap);
+    const id = "lxclip" + (++uid);
+    const defs = s("defs", {}, svg);
+    const clipRect = s("rect", {}, s("clipPath", { id }, defs));
+    const mk = s("marker", { id: id + "a", viewBox: "0 0 10 10", refX: 9, refY: 5, markerWidth: 7, markerHeight: 7, orient: "auto-start-reverse" }, defs);
+    s("path", { d: "M0,0 L10,5 L0,10 z", fill: "context-stroke" }, mk);
+    const g = {};
+    for (const name of ["grid", "axes", "ghost", "fill", "main", "top"]) {
+      g[name] = s("g", name === "ghost" ? { class: "g-ghost", "clip-path": `url(#${id})` } : ["fill", "main"].includes(name) ? { "clip-path": `url(#${id})` } : {}, svg);
+    }
+    const pw = () => W - m.l - m.r, ph = () => H - m.t - m.b;
+    const X = v => m.l + (v - x0) / (x1 - x0) * pw();
+    const Y = v => H - m.b - (v - y0) / (y1 - y0) * ph();
+    const inv = (px, py) => [x0 + (px - m.l) / pw() * (x1 - x0), y0 + (H - m.b - py) / ph() * (y1 - y0)];
+    const cy = v => clamp(v, -1e4, 1e4);
+    const P = {
+      svg, g, overlay, W, H, X, Y, inv, margin: m,
+      get xlim() { return [x0, x1]; }, get ylim() { return [y0, y1]; },
+      setLim(xl, yl) { if (xl) [x0, x1] = xl; if (yl) [y0, y1] = yl; drawAxes(); return P; },
+      clear(layer = "main") {
+        if (layer === "tex") { [...overlay.children].filter(c => !c.dataset.axis).forEach(c => c.remove()); return P; }
+        g[layer].replaceChildren(); return P;
+      },
+      path(pts, opt = {}) {
+        let d = "", pen = false;
+        for (const [x, y] of pts) {
+          if (!isFinite(x) || !isFinite(y)) { pen = false; continue; }
+          d += (pen ? "L" : "M") + X(x).toFixed(2) + "," + cy(Y(y)).toFixed(2); pen = true;
+        }
+        if (opt.close) d += "Z";
+        return s("path", { d, class: opt.cls || "s1" }, g[opt.layer || "main"]);
+      },
+      fn(f, opt = {}) { return P.path(sample(f, opt.a ?? x0, opt.b ?? x1, opt.n || 400), opt); },
+      area(pts, opt = {}) {
+        const base = opt.base ?? 0, first = pts[0], last = pts[pts.length - 1];
+        return P.path([[first[0], base], ...pts, [last[0], base]], { cls: opt.cls || "a1", layer: opt.layer || "fill", close: true });
+      },
+      dot(x, y, opt = {}) { return s("circle", { cx: X(x), cy: cy(Y(y)), r: opt.r || 4.5, class: opt.cls || "f1" }, g[opt.layer || "top"]); },
+      line(xa, ya, xb, yb, opt = {}) { return s("line", { x1: X(xa), y1: cy(Y(ya)), x2: X(xb), y2: cy(Y(yb)), class: opt.cls || "sm" }, g[opt.layer || "main"]); },
+      vline(x, opt = {}) { return P.line(x, y0, x, y1, Object.assign({ cls: "sm dash" }, opt)); },
+      hline(y, opt = {}) { return P.line(x0, y, x1, y, Object.assign({ cls: "sm dash" }, opt)); },
+      arrow(xa, ya, xb, yb, opt = {}) { const l = P.line(xa, ya, xb, yb, Object.assign({ cls: "s1", layer: "top" }, opt)); l.setAttribute("marker-end", `url(#${id}a)`); return l; },
+      text(x, y, str, opt = {}) { return s("text", { x: X(x) + (opt.dx || 0), y: Y(y) + (opt.dy || 0), "text-anchor": opt.anchor || "middle", class: opt.cls || "", text: str }, g[opt.layer || "top"]); },
+      /* TeX label in an HTML overlay. anchor: c, n, s, e, w, ne, nw, se, sw (which side of the label sits on the point). */
+      tex(x, y, src, opt = {}) {
+        const el = h("div", { class: "lx-tex" + (opt.cls ? " " + opt.cls : ""), html: `\\(${src}\\)` }, overlay);
+        P.placeTex(el, x, y, opt.anchor || "c", opt.px);
+        if (opt.axis) el.dataset.axis = "1";
+        if (opt.color) el.style.color = opt.color;
+        typeset(el); return el;
+      },
+      placeTex(el, x, y, anchor = "c", px) {
+        const [ux, uy] = px ? [x, y] : [X(x), Y(y)];
+        el.style.left = (100 * ux / W) + "%"; el.style.top = (100 * uy / H) + "%";
+        const tx = anchor.includes("w") ? "0%" : anchor.includes("e") ? "-100%" : "-50%";
+        const ty = anchor.includes("n") ? "0%" : anchor.includes("s") ? "-100%" : "-50%";
+        el.style.transform = `translate(${tx},${ty})`;
+      },
+      /* Copy the current main layer into the faded ghost layer (compare before/after). */
+      ghost() { g.ghost.replaceChildren(...[...g.main.children].map(n => n.cloneNode(true))); return P; },
+      clearGhost() { g.ghost.replaceChildren(); return P; },
+      /* Client pointer event → data coordinates. */
+      toData(ev) { const pt = svg.createSVGPoint(); pt.x = ev.clientX; pt.y = ev.clientY; const q = pt.matrixTransform(svg.getScreenCTM().inverse()); return inv(q.x, q.y); }
+    };
+    function drawAxes() {
+      clipRect.setAttribute("x", m.l); clipRect.setAttribute("y", m.t); clipRect.setAttribute("width", pw()); clipRect.setAttribute("height", ph());
+      g.grid.replaceChildren(); g.axes.replaceChildren();
+      [...overlay.children].filter(c => c.dataset.axis).forEach(c => c.remove());
+      if (ticks) {
+        for (const t of niceTicks(x0, x1, o.xticks || 6)) {
+          s("line", { x1: X(t.v), x2: X(t.v), y1: m.t, y2: H - m.b, class: "gr" }, g.grid);
+          s("text", { x: X(t.v), y: H - m.b, dy: "1.25em", "text-anchor": "middle", text: t.label }, g.axes);
+        }
+        for (const t of niceTicks(y0, y1, o.yticks || 5)) {
+          s("line", { x1: m.l, x2: W - m.r, y1: Y(t.v), y2: Y(t.v), class: "gr" }, g.grid);
+          s("text", { x: m.l, dx: "-0.45em", y: Y(t.v), dy: "0.35em", "text-anchor": "end", text: t.label }, g.axes);
+        }
+        s("rect", { x: m.l, y: m.t, width: pw(), height: ph(), class: "ax" }, g.axes);
+      } else {
+        /* Schematic: axes with arrowheads, no numbers. Only named marks (P.tex) may label positions. */
+        s("path", { d: `M${m.l},${H - m.b} V${m.t}`, class: "ax", "marker-end": `url(#${id}a)` }, g.axes);
+        s("path", { d: `M${m.l},${H - m.b} H${W - m.r}`, class: "ax", "marker-end": `url(#${id}a)` }, g.axes);
+        if (o.zeroLine && y0 < 0 && y1 > 0) s("line", { x1: m.l, x2: W - m.r, y1: Y(0), y2: Y(0), class: "gr" }, g.grid);
+      }
+      /* axis names sit outside the plotting area: x below the right end, y above the top-left corner */
+      if (o.xlabel) P.tex(W - m.r, H - 2, o.xlabel, { anchor: "se", px: true, axis: true });
+      if (o.ylabel) P.tex(m.l - (ticks ? 4 : 0), m.t - 6, o.ylabel, { anchor: "sw", px: true, axis: true });
+    }
+    drawAxes();
+    return P;
+  }
+  /* Make an SVG node draggable in data coordinates; arrow keys nudge by opt.step. */
+  function drag(P, node, opt) {
+    node.classList.add("lx-drag"); node.setAttribute("tabindex", "0");
+    if (!node.getAttribute("aria-label")) node.setAttribute("aria-label", "draggable point; use arrow keys");
+    let active = false;
+    node.addEventListener("pointerdown", e => { active = true; node.setPointerCapture(e.pointerId); e.preventDefault(); });
+    node.addEventListener("pointermove", e => { if (active) opt.set(...P.toData(e)); });
+    node.addEventListener("pointerup", () => { active = false; if (opt.end) opt.end(); });
+    node.addEventListener("keydown", e => {
+      const [dx, dy] = opt.step || [(P.xlim[1] - P.xlim[0]) / 100, (P.ylim[1] - P.ylim[0]) / 100];
+      const d = { ArrowLeft: [-dx, 0], ArrowRight: [dx, 0], ArrowUp: [0, dy], ArrowDown: [0, -dy] }[e.key];
+      if (!d) return; e.preventDefault(); const [x, y] = opt.get(); opt.set(x + d[0], y + d[1]);
+    });
+    return node;
+  }
+
+  /* ---------- 3D ---------- */
+  /* Orthographic camera. project([x,y,z]) → [u, v, depth] with u right, v up, depth toward viewer. z is "up". */
+  function camera(o = {}) {
+    const cam = { yaw: o.yaw ?? 0.6, pitch: o.pitch ?? 0.35, onChange: o.onChange || (() => {}) };
+    cam.project = ([x, y, z]) => {
+      const cy = Math.cos(cam.yaw), sy = Math.sin(cam.yaw), cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
+      const u = cy * x - sy * y, w = sy * x + cy * y;   // w: horizontal axis pointing away from the viewer
+      return [u, cp * z + sp * w, -cp * w + sp * z];     // pitch > 0 looks down from above; depth: larger = closer
+    };
+    cam.attach = (el) => {
+      let last = null; el.style.touchAction = "none"; el.classList.add("lx-drag");
+      el.addEventListener("pointerdown", e => { last = [e.clientX, e.clientY]; el.setPointerCapture(e.pointerId); });
+      el.addEventListener("pointermove", e => {
+        if (!last) return;
+        cam.yaw += (e.clientX - last[0]) * 0.01; cam.pitch = clamp(cam.pitch + (e.clientY - last[1]) * 0.01, -1.45, 1.45);
+        last = [e.clientX, e.clientY]; cam.onChange();
+      });
+      el.addEventListener("pointerup", () => { last = null; });
+      return cam;
+    };
+    return cam;
+  }
+
+  /* ---------- controls ---------- */
+  const controls = (parent, cls = "") => h("div", { class: "lx-controls " + cls }, parent);
+  function slider(parent, o) {
+    const id = o.id || "lxs" + (++uid);
+    const wrap = h("div", { class: "lx-slider", id: id + "-wrap" }, parent);
+    const lab = h("label", { class: "lx-lab", for: id }, wrap);
+    h("span", { html: o.label }, lab);
+    const out = h("output", { for: id }, lab);
+    const input = h("input", { type: "range", id, min: o.min, max: o.max, step: o.step ?? (o.max - o.min) / 200, value: o.value }, wrap);
+    const fmt = o.fmt || (v => (+v).toFixed(2).replace("-", "−"));
+    const show = () => { out.textContent = fmt(+input.value); };
+    input.addEventListener("input", () => { show(); o.onInput && o.onInput(+input.value); });
+    show(); typeset(lab);
+    return { el: wrap, input, get: () => +input.value, set(v, fire = true) { input.value = v; show(); if (fire && o.onInput) o.onInput(+input.value); } };
+  }
+  function segmented(parent, o) {
+    const id = o.id || "lxg" + (++uid);
+    const grp = h("div", { class: "lx-group", id }, parent);
+    if (o.label) h("span", { html: o.label }, grp);
+    const seg = h("div", { class: "lx-seg", role: "radiogroup" }, grp);
+    let value = o.value ?? o.options[0].value;
+    const inputs = o.options.map((op, i) => {
+      const l = h("label", {}, seg);
+      const inp = h("input", { type: "radio", name: id, id: `${id}-${i}`, value: op.value }, l);
+      inp.checked = op.value === value;
+      h("span", { html: op.label }, l);
+      inp.addEventListener("change", () => { value = op.value; o.onChange && o.onChange(value); });
+      return inp;
+    });
+    typeset(grp);
+    return { el: grp, get: () => value, set(v, fire = true) { value = v; inputs.forEach(i => i.checked = i.value == v); if (fire && o.onChange) o.onChange(v); } };
+  }
+  const button = (parent, label, onClick, o = {}) => h("button", { type: "button", class: "lx-btn" + (o.cls ? " " + o.cls : ""), id: o.id, html: label, onclick: onClick, title: o.title }, parent);
+  /* Limit buttons: one click jumps to a named regime. items: [{label, title, apply}] */
+  function limits(parent, items, title = "Jump to a limit") {
+    const grp = h("div", { class: "lx-group" }, parent);
+    h("span", { text: title }, grp);
+    const row = h("div", { class: "lx-row" }, grp);
+    items.forEach(it => button(row, it.label, it.apply, { title: it.title, cls: "lx-limit" }));
+    typeset(grp); return grp;
+  }
+  function readout(parent, label) {
+    const r = parent.classList && parent.classList.contains("lx-readouts") ? parent : h("div", { class: "lx-readouts" }, parent);
+    const span = h("span", { html: label + " " }, r); const b = h("b", {}, span); typeset(span);
+    return { el: span, set(v) { b.textContent = v; } };
+  }
+  /* Animation loop with a play/pause button. onFrame(dt in seconds). Starts paused under reduced motion. */
+  function player(parent, o) {
+    let playing = false, last = 0, raf = 0;
+    const btn = button(parent, "Play", () => (playing ? pause() : play()), { id: o.id });
+    btn.setAttribute("aria-pressed", "false");
+    function frame(t) { const dt = last ? Math.min(0.05, (t - last) / 1000) : 0; last = t; o.onFrame(dt); if (playing) raf = requestAnimationFrame(frame); }
+    function play() { if (playing) return; playing = true; last = 0; btn.textContent = "Pause"; btn.setAttribute("aria-pressed", "true"); raf = requestAnimationFrame(frame); }
+    function pause() { playing = false; cancelAnimationFrame(raf); btn.textContent = "Play"; btn.setAttribute("aria-pressed", "false"); }
+    if (o.autoplay && !reduceMotion) play();
+    return { btn, play, pause, get playing() { return playing; } };
+  }
+
+  /* ---------- lesson steps ----------
+     step = { title, html,                       // prose (TeX allowed)
+              onEnter(),                         // set the widget into the state this step needs
+              predict: { prompt, options:[...], answer: index, right, wrong },  // commit before reveal
+              lock: ["control-id", ...],         // controls disabled until the prediction is made
+              after: html,                       // revealed after predicting
+              explain: { prompt, model } }       // learner writes, then compares with a model answer */
+  function steps(parent, list, o = {}) {
+    const state = list.map(() => ({ chosen: null, explained: false, text: "" }));
+    let i = 0;
+    const lockEls = ids => (ids || []).map(id => document.getElementById(id)).filter(Boolean);
+    function setLocked(ids, on) {
+      for (const el of lockEls(ids)) {
+        el.classList.toggle("lx-locked", on);
+        el.querySelectorAll("input,button,select,textarea").forEach(c => c.disabled = on);
+        if (el.matches("input,button,select,textarea")) el.disabled = on;
+        if (on) el.title = "Make a prediction first"; else el.removeAttribute("title");
+      }
+    }
+    function render() {
+      const st = list[i], ss = state[i];
+      parent.replaceChildren();
+      const top = h("div", { class: "lx-steps-top" }, parent);
+      h("span", { text: `Step ${i + 1} of ${list.length}` }, top);
+      const dots = h("div", { class: "lx-dots", "aria-hidden": "true" }, top);
+      list.forEach((_, k) => h("i", { class: k === i ? "on" : k < i ? "done" : "" }, dots));
+      h("h2", { html: st.title }, parent);
+      if (st.html) h("div", { class: "lx-prose", html: st.html }, parent);
+      const answered = !st.predict || ss.chosen !== null;
+      if (st.predict) {
+        const box = h("div", { class: "lx-predict" }, parent);
+        h("p", { html: "Predict: " + st.predict.prompt }, box);
+        const opts = h("div", { class: "lx-opts" }, box);
+        st.predict.options.forEach((op, k) => {
+          const b = h("button", { type: "button", class: "lx-opt", html: op }, opts);
+          if (ss.chosen !== null) {
+            b.disabled = true;
+            if (k === st.predict.answer) b.classList.add("right");
+            else if (k === ss.chosen) b.classList.add("wrong");
+          }
+          b.addEventListener("click", () => { ss.chosen = k; render(); });
+        });
+        if (ss.chosen !== null) {
+          const ok = ss.chosen === st.predict.answer;
+          h("div", { class: "lx-feedback", html: `<b>${ok ? "Right." : "Not quite."}</b> ` + ((ok ? st.predict.right : st.predict.wrong) || "") }, box);
+        }
+      }
+      setLocked(st.lock, !answered);
+      if (answered && st.after) h("div", { class: "lx-prose", html: st.after }, parent);
+      if (answered && st.explain) {
+        const ex = h("div", { class: "lx-explain" }, parent);
+        h("label", { for: "lx-explain-" + i, html: st.explain.prompt }, ex);
+        const ta = h("textarea", { id: "lx-explain-" + i, placeholder: "In your own words…" }, ex);
+        ta.value = ss.text; ta.addEventListener("input", () => ss.text = ta.value);
+        if (!ss.explained) button(ex, "Compare with the textbook answer", () => { ss.explained = true; render(); });
+        else h("div", { class: "lx-model lx-prose", html: st.explain.model }, ex);
+      }
+      const nav = h("div", { class: "lx-nav" }, parent);
+      const back = button(nav, "Back", () => go(i - 1)); back.disabled = i === 0;
+      const next = button(nav, i === list.length - 1 ? "Done" : "Next", () => go(i + 1), { cls: "lx-primary" });
+      next.disabled = !answered || i === list.length - 1;
+      typeset(parent);
+    }
+    function go(k) {
+      if (k < 0 || k >= list.length) return;
+      setLocked(list[i].lock, false);
+      i = k; if (list[i].onEnter) list[i].onEnter(); render();
+    }
+    if (list[0] && list[0].onEnter) list[0].onEnter();
+    render();
+    return { go, get index() { return i; } };
+  }
+
+  /* ---------- self-tests ---------- */
+  window.__lxTests = window.__lxTests || [];
+  function check(name, fn) {
+    let pass = false, detail = "";
+    try { const r = fn(); if (typeof r === "object" && r) { pass = !!r.pass; detail = r.detail || ""; } else pass = !!r; }
+    catch (e) { detail = "threw: " + e.message; }
+    window.__lxTests.push({ name, pass, detail });
+    if (!pass) console.warn("LX check failed:", name, detail);
+    return pass;
+  }
+  const near = (a, b, tol = 1e-9) => Math.abs(a - b) <= tol * Math.max(1, Math.abs(a), Math.abs(b));
+
+  return { h, s, typeset, linspace, clamp, sample, C, eigSym, niceTicks, fig, plot, drag, camera,
+           controls, slider, segmented, button, limits, readout, player, steps, check, near, reduceMotion };
+})();
+/* LX:LIB-END */</script>
+
+<script>
+/* PATTERN */
+const E0 = -0.5;
+/* Trial families: kinetic and potential expectation values in closed form, radial density P(r) = 4πr²|ψ|². */
+const FAM = {
+  gauss: { sym: "\\alpha", lim: [0.02, 1.2], step: 0.002, opt: 8 / (9 * Math.PI),
+    T: a => 1.5 * a, V: a => -2 * Math.sqrt(2 * a / Math.PI),
+    psi: (r, a) => Math.pow(2 * a / Math.PI, 0.75) * Math.exp(-a * r * r) },
+  slater: { sym: "\\beta", lim: [0.1, 2], step: 0.002, opt: 1,
+    T: b => b * b / 2, V: b => -b,
+    psi: (r, b) => Math.sqrt(b ** 3 / Math.PI) * Math.exp(-b * r) }
+};
+const S = { fam: "gauss", a: 0.8 };
+const F = () => FAM[S.fam];
+const E = (a, f = F()) => f.T(a) + f.V(a);
+const dE = (a, f = F()) => (E(a + 1e-6, f) - E(a - 1e-6, f)) / 2e-6;
+const psiExact = r => Math.exp(-r) / Math.sqrt(Math.PI);
+const Prad = (psi, r) => 4 * Math.PI * r * r * psi(r) ** 2;
+function simpson(f, a, b, n = 6000) {
+  const h = (b - a) / n; let s = f(a) + f(b);
+  for (let i = 1; i < n; i++) s += (i % 2 ? 4 : 2) * f(a + i * h);
+  return s * h / 3;
+}
+const overlap = (a, f = F()) => simpson(r => 4 * Math.PI * r * r * f.psi(r, a) * psiExact(r), 0, 40);
+const fmt = (v, d = 4) => v.toFixed(d).replace("-", "−");
+
+/* ---- layout ---- */
+const stage = document.getElementById("stage");
+const figs = LX.h("div", { class: "lx-figs" }, stage);
+const figE = LX.fig(figs, "Energy landscape: drag the orange trial point; the arrow points downhill");
+const PW = LX.plot(LX.fig(figs, "Radial density \\(4\\pi r^2|\\psi|^2\\): trial (blue) vs exact \\(1s\\) (orange)"),
+  { xlim: [0, 6], ylim: [0, 1.2], xlabel: "r", ylabel: "4\\pi r^2|\\psi|^2", height: 320 });
+let PE, handle;
+function buildLandscape() {
+  const old = figE.querySelector(".lx-plot"); if (old) old.remove();
+  PE = LX.plot(figE, { xlim: [0, F().lim[1]], ylim: [-0.6, 0.5], xlabel: F().sym, ylabel: "E(" + F().sym + ")", height: 320 });
+  handle = LX.s("circle", { r: 8, class: "f2", "aria-label": "trial parameter; drag or use arrow keys" }, PE.g.top);
+  LX.drag(PE, handle, { get: () => [S.a, E(S.a)], step: [F().step * 5, 0], set: x => { if (!aS.input.disabled) setA(x); } });
+}
+
+const ctl = LX.controls(stage);
+const aS = LX.slider(ctl, { id: "a", label: "trial width \\(\\alpha\\)", min: FAM.gauss.lim[0], max: FAM.gauss.lim[1], step: FAM.gauss.step, value: S.a,
+  fmt: v => v.toFixed(3), onInput: v => { S.a = v; update(); } });
+const famSeg = LX.segmented(ctl, { id: "fam", label: "Trial family", value: "gauss",
+  options: [{ value: "gauss", label: "Gaussian \\(e^{-\\alpha r^2}\\)" }, { value: "slater", label: "Slater \\(e^{-\\beta r}\\)" }],
+  onChange: v => setFam(v) });
+const cmp = LX.h("div", { class: "lx-group" }, ctl);
+LX.h("span", { text: "Compare" }, cmp);
+LX.button(LX.h("div", { class: "lx-row" }, cmp), "Keep a copy", () => PW.ghost(), { id: "ghost" });
+LX.limits(ctl, [
+  { label: "Too compact", title: "large width parameter: electron squeezed near the nucleus", apply: () => setA(F().lim[1]) },
+  { label: "Too diffuse", title: "small width parameter: electron spread far out", apply: () => setA(F().lim[0] * 2) }
+]);
+const ro = LX.h("div", { class: "lx-readouts" }, LX.controls(stage));
+const rE = LX.readout(ro, "\\(E\\) =");
+const rT = LX.readout(ro, "\\(\\langle T\\rangle\\) =");
+const rV = LX.readout(ro, "\\(\\langle V\\rangle\\) =");
+const rVir = LX.readout(ro, "\\(2\\langle T\\rangle + \\langle V\\rangle\\) =");
+const rErr = LX.readout(ro, "\\(E - E_0\\) =");
+const rO = LX.readout(ro, "overlap \\(|\\langle\\psi|1s\\rangle|^2\\) =");
+const rTask = LX.readout(ro, "Task: find the minimum of this family:");
+
+function setA(v) { S.a = LX.clamp(v, F().lim[0], F().lim[1]); aS.set(S.a, false); update(); }
+function setFam(v, a) {
+  S.fam = v; famSeg.set(v, false);
+  aS.input.min = F().lim[0]; aS.input.max = F().lim[1];
+  const lab = aS.el.querySelector(".lx-lab span");
+  lab.innerHTML = v === "gauss" ? "trial width \\(\\alpha\\)" : "trial decay \\(\\beta\\)"; LX.typeset(lab);
+  PW.clearGhost(); buildLandscape(); setA(a ?? (v === "gauss" ? 0.8 : 1.6));
+}
+
+function update() {
+  const f = F(), a = S.a, Ea = E(a), sl = dE(a), span = f.lim[1];
+  PE.clear(); PE.clear("tex");
+  PE.hline(E0, { cls: "s2 dash" });
+  PE.tex(span * 0.98, E0, "E_0 = -\\tfrac12", { anchor: "se" });
+  if (S.fam === "slater") { PE.hline(-4 / (3 * Math.PI), { cls: "sm thin dash" }); PE.tex(span * 0.98, -4 / (3 * Math.PI), "\\text{best Gaussian}", { anchor: "se" }); }
+  PE.fn(x => E(x), { a: f.lim[0] * 0.5, b: span, n: 400 });
+  const h = 0.09 * span;
+  PE.line(a - h, Ea - sl * h, a + h, Ea + sl * h, { cls: "s2 thin" });
+  if (Math.abs(sl) > 0.02) {
+    const L = 0.12 * span * Math.min(1, Math.abs(sl)), dir = -Math.sign(sl);
+    PE.arrow(a, Ea, a + dir * L, Ea - Math.abs(sl) * L, { cls: "s2", layer: "main" });
+  }
+  handle.setAttribute("cx", PE.X(a)); handle.setAttribute("cy", PE.Y(Ea));
+
+  PW.clear(); PW.clear("fill");
+  const pts = LX.sample(r => Prad(x => f.psi(x, a), r), 0, 6, 300);
+  PW.area(pts); PW.path(pts, { cls: "s1" });
+  PW.fn(r => Prad(psiExact, r), { cls: "s2 dash" });
+
+  const T = f.T(a), V = f.V(a), best = E(f.opt);
+  rE.set(fmt(Ea)); rT.set(fmt(T)); rV.set(fmt(V)); rVir.set(fmt(2 * T + V));
+  rErr.set(fmt(Ea - E0)); rO.set(fmt(overlap(a) ** 2, 3));
+  const found = Ea - best < 5e-4;
+  rTask.set(found ? `found: ${F().sym === "\\alpha" ? "α" : "β"} = ${a.toFixed(3)}, slope ≈ 0` : `not yet (slope ${fmt(sl, 2)})`);
+  rTask.el.classList.toggle("task-ok", found);
+}
+setFam("gauss", 0.8);
+
+/* ---- lesson ---- */
+const go = (fam, a) => () => setFam(fam, a);
+LX.steps(document.getElementById("steps"), [
+  { title: "A guess always overshoots",
+    onEnter: go("gauss", 0.8),
+    html: "<p>The variational principle says \\(E[\\psi] = \\langle\\psi|H|\\psi\\rangle/\\langle\\psi|\\psi\\rangle \\ge E_0\\) for any trial state. Here the trial is a Gaussian \\(\\psi \\propto e^{-\\alpha r^2}\\), and the dashed orange line is the exact \\(E_0 = -1/2\\).</p>",
+    predict: { prompt: "Is there a width \\(\\alpha\\) for which the Gaussian energy dips below \\(E_0\\)?",
+      options: ["Yes, for some narrow window of \\(\\alpha\\)", "No: \\(E(\\alpha) \\ge E_0\\) for every \\(\\alpha\\)", "Only if \\(\\alpha\\) is very small"], answer: 1,
+      right: "Expand the trial in eigenstates: \\(E[\\psi] = \\sum_n |c_n|^2 E_n \\ge E_0 \\sum_n |c_n|^2\\). No guess can beat the ground state.",
+      wrong: "Write \\(\\psi = \\sum_n c_n \\phi_n\\); then \\(E[\\psi] = \\sum_n |c_n|^2 E_n\\), a weighted average of energies that are all \\(\\ge E_0\\)." },
+    lock: ["a-wrap"],
+    after: "<p>Drag the point anywhere. The curve never crosses the floor. This is what makes the method useful: every number you compute is an upper bound, so lower is always better.</p>" },
+  { title: "Squeezing costs kinetic energy",
+    onEnter: go("gauss", 0.5),
+    html: "<p>\\(\\alpha\\) sets the size: the Gaussian has width \\(\\sim 1/\\sqrt{\\alpha}\\). Watch the \\(\\langle T\\rangle\\) and \\(\\langle V\\rangle\\) readouts.</p>",
+    predict: { prompt: "Press <i>Too compact</i> (large \\(\\alpha\\)). Why does \\(E\\) rise there?",
+      options: ["\\(\\langle V\\rangle\\) becomes less negative", "\\(\\langle T\\rangle = 3\\alpha/2\\) grows faster than \\(\\langle V\\rangle \\propto -\\sqrt{\\alpha}\\) falls", "The normalisation breaks down"], answer: 1,
+      right: "Confinement costs kinetic energy linearly in \\(\\alpha\\) (an uncertainty-principle cost \\(\\sim 1/\\text{size}^2\\)), while the Coulomb gain only grows like \\(\\sqrt{\\alpha} \\sim 1/\\text{size}\\).",
+      wrong: "Compare the readouts: \\(\\langle V\\rangle\\) actually becomes <i>more</i> negative, but \\(\\langle T\\rangle = 3\\alpha/2\\) grows faster. Too diffuse is the opposite failure: the electron is too far away to gain Coulomb energy." },
+    lock: ["a-wrap"],
+    after: "<p>The minimum is a compromise between a kinetic term \\(\\propto 1/\\text{size}^2\\) and a potential term \\(\\propto -1/\\text{size}\\). That competition is why atoms have a size at all.</p>" },
+  { title: "Find the minimum",
+    onEnter: go("gauss", 0.8),
+    html: "<p>Drag the point until the slope arrow vanishes and the task readout turns green. Then look at \\(\\langle T\\rangle\\) and \\(\\langle V\\rangle\\).</p>",
+    predict: { prompt: "At the minimum, how are \\(\\langle T\\rangle\\) and \\(\\langle V\\rangle\\) related?",
+      options: ["\\(\\langle T\\rangle = -\\langle V\\rangle\\)", "\\(2\\langle T\\rangle = -\\langle V\\rangle\\)", "No fixed relation, it depends on the trial family"], answer: 1,
+      right: "That is the virial theorem for a \\(1/r\\) potential. Scaling \\(r \\to r/\\lambda\\) multiplies \\(T\\) by \\(\\lambda^2\\) and \\(V\\) by \\(\\lambda\\); stationarity in \\(\\lambda\\) gives \\(2T + V = 0\\).",
+      wrong: "Under a stretch \\(r \\to r/\\lambda\\), \\(T \\to \\lambda^2 T\\) and \\(V \\to \\lambda V\\). At the optimum \\(\\dd E/\\dd\\lambda = 2T + V = 0\\), so \\(2\\langle T\\rangle = -\\langle V\\rangle\\), for any family closed under scaling." },
+    lock: ["a-wrap"],
+    after: "<p>The minimum is \\(\\alpha^* = 8/9\\pi \\approx 0.283\\) with \\(E^* = -4/3\\pi \\approx -0.424\\), 15% above \\(E_0\\). The density plot shows why: a Gaussian has no cusp at \\(r=0\\) and dies off too fast at large \\(r\\).</p>" },
+  { title: "A better family",
+    onEnter: go("gauss", 8 / (9 * Math.PI)),
+    html: "<p>Now switch to an exponential (Slater) trial \\(\\psi \\propto e^{-\\beta r}\\). The best Gaussian is marked for comparison.</p>",
+    predict: { prompt: "What is the lowest energy the Slater family can reach?",
+      options: ["Somewhere between \\(-0.424\\) and \\(-0.5\\)", "Exactly \\(-1/2\\)", "Below \\(-1/2\\), since it is a better guess"], answer: 1,
+      right: "The exact \\(1s\\) state \\(e^{-r}\\) is in the family (\\(\\beta = 1\\)), so the bound is saturated. Enlarging the family can only lower the minimum, never below \\(E_0\\).",
+      wrong: "The exact ground state \\(e^{-r}\\) belongs to this family at \\(\\beta = 1\\). A bigger family lowers the bound, but the floor \\(E_0\\) is still the floor." },
+    lock: ["fam"],
+    after: "<p>Find the Slater minimum: \\(E = \\beta^2/2 - \\beta\\) bottoms out at \\(\\beta = 1\\) with overlap 1. Switch back to the best Gaussian: its overlap with \\(1s\\) is \\(\\approx 0.96\\). The missing 4% of weight sits in high-energy components (the cusp at \\(r=0\\) and the slow tail), and each of them costs a lot of energy.</p>" },
+  { title: "Put it in your own words",
+    onEnter: go("gauss", 8 / (9 * Math.PI)),
+    html: "<p>Variational energies are famously better than variational wavefunctions.</p>",
+    explain: { prompt: "Why is the error in \\(E\\) second order in the error of \\(\\psi\\), and why is it always positive?",
+      model: "<p>Write \\(\\psi = \\phi_0 + \\delta\\), with \\(\\delta\\) orthogonal to \\(\\phi_0\\). Then \\(E[\\psi] - E_0 = \\langle\\delta|H - E_0|\\delta\\rangle / \\langle\\psi|\\psi\\rangle\\): there is no linear term because \\(\\phi_0\\) is a stationary point of the energy functional, and the quadratic term is non-negative because \\(H - E_0 \\ge 0\\). Minimising inside a family finds the stationary point of a restricted landscape, which lies on or above the true minimum.</p><p><b>Transfer:</b> for helium with a product of hydrogenic \\(1s\\) orbitals of effective charge \\(\\zeta\\), \\(E(\\zeta) = \\zeta^2 - \\tfrac{27}{8}\\zeta\\). Which \\(\\zeta\\) minimises it, and why is it smaller than the nuclear charge 2?</p>" } }
+]);
+
+/* ---- self-tests ---- */
+LX.check("Gaussian: minimum at α = 8/(9π), E = −4/(3π)", () => {
+  let lo = 0.05, hi = 1; for (let k = 0; k < 200; k++) { const m1 = lo + (hi - lo) / 3, m2 = hi - (hi - lo) / 3; if (E(m1, FAM.gauss) < E(m2, FAM.gauss)) hi = m2; else lo = m1; }
+  return { pass: LX.near(lo, 8 / (9 * Math.PI), 1e-6) && LX.near(E(lo, FAM.gauss), -4 / (3 * Math.PI), 1e-9), detail: lo };
+});
+LX.check("virial 2⟨T⟩ + ⟨V⟩ = 0 at both optima", () => [FAM.gauss, FAM.slater].every(f => Math.abs(2 * f.T(f.opt) + f.V(f.opt)) < 1e-12));
+LX.check("variational bound E(α) ≥ E₀ on a grid, both families", () => [FAM.gauss, FAM.slater].every(f => LX.linspace(0.01, 3, 600).every(a => E(a, f) >= E0 - 1e-12)));
+LX.check("trial states normalised; ⟨V⟩ = −⟨1/r⟩ matches quadrature", () => {
+  const a = 0.37, g = FAM.gauss, sl = FAM.slater;
+  const n1 = simpson(r => Prad(x => g.psi(x, a), r), 0, 40), n2 = simpson(r => Prad(x => sl.psi(x, 1.3), r), 0, 40);
+  const v = -simpson(r => 4 * Math.PI * r * g.psi(r, a) ** 2, 0, 40);
+  return { pass: LX.near(n1, 1, 1e-7) && LX.near(n2, 1, 1e-7) && LX.near(v, g.V(a), 1e-7), detail: [n1, n2, v].join(",") };
+});
+LX.check("Slater β = 1 is the exact 1s: E = −1/2, overlap 1", () => LX.near(E(1, FAM.slater), -0.5) && LX.near(overlap(1, FAM.slater), 1, 1e-7));
+</script>
