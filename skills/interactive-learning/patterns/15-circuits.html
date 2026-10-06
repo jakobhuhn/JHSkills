@@ -6,29 +6,36 @@ Concept shape   A result is built by applying operations one after another; what
 Use it for      Quantum circuits (Bell/GHZ preparation, teleportation, phase kickback, Deutsch), pulse
                 sequences (spin echo, Ramsey), Trotter steps, sequences of symmetry operations, any
                 ordered product of operators acting on a small state.
-Widget anatomy  (1) circuit diagram (SVG wires, gate boxes, CNOT dots) with 4 time slots; pick a tool from
-                    the palette and click a slot to place it; a dashed cursor marks how many steps have run;
-                (2) state panel: one phasor per basis amplitude (length |a|, angle arg a) and probability bars,
-                    with the previous step's probabilities dashed for before/after comparison;
-                (3) step slider + back/forward buttons, preset circuits as limit buttons;
-                (4) readouts: state in Dirac notation, concurrence C, purity Tr ρ_A², entropy S_A.
-Teaching moments  Predict the state after H; predict whether CNOT entangles; predict what happens when the
-                  order is swapped; predict whether local gates can change C; predict how to undo a Bell state.
+Widget anatomy  (1) circuit diagram (SVG wires, gate boxes, CNOT dots) with 4 time slots; applied gates are
+                    filled, an orange dashed line marks how far the circuit has run;
+                (2) state table, one row per basis state, with explicit column headers: amplitude |c| (bar
+                    and number), phase arg c (small dial with an arrow, and degrees), probability |c|²;
+                    below it the state in Dirac notation and the concurrence C;
+                (3) controls: Back / Forward / Reset (the only way to move in time; no step slider), a
+                    "Circuit" switch between three prepared circuits and "Your own", and an Edit palette
+                    (pick a gate, then click a box on the circuit).
+Layout          aside: circuit and state table stacked on the left, where the eye follows time and its
+                result; all controls in one column on the right.
+Teaching moments  Suggestions for the chapter around the widget:
+                  - "What is the state after the H?" (choice: (|00⟩ + |10⟩)/√2; a product state, C = 0);
+                  - "Does the CNOT entangle?" (choice: yes, C = 1, because its control is in superposition);
+                  - "Reversed order: what is C at the end?" (choice: 0, CNOT on |00⟩ does nothing);
+                  - "Build a circuit that makes (|01⟩ + |10⟩)/√2" (set: check the amplitudes);
+                  - "Why can local gates not change C?" (explain).
 Adapt by        Change NQ and the gate set (matrices in GATES; two-qubit gates as functions on the state
-                vector). For 3 qubits the phasor panel has 8 entries; replace concurrence by the purity of a
-                chosen subsystem (reducedPurity generalises directly). For pulse sequences, use a single
-                qubit and add a Bloch-sphere view instead of phasors.
+                vector). For 3 qubits the table has 8 rows; replace concurrence by the purity of a chosen
+                subsystem (reducedPurity generalises directly). For pulse sequences, use a single qubit and
+                add a Bloch-sphere view.
 Physics         Basis |q0 q1⟩ ordered |00⟩, |01⟩, |10⟩, |11⟩ (q0 is the left bit). H = (X + Z)/√2, S = diag(1, i).
                 CNOT(c→t) flips t when c = 1. For a pure state a|00⟩ + b|01⟩ + c|10⟩ + d|11⟩:
-                concurrence C = 2|ad − bc|, Tr ρ_A² = 1 − C²/2, S_A = h((1 + √(1 − C²))/2) in bits.
-                All exact (4-dim complex state vector).
+                concurrence C = 2|ad − bc|, Tr ρ_A² = 1 − C²/2. All exact (4-dim complex state vector).
 -->
 <!-- LX:HEAD-BEGIN -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
 <script>
 window.MathJax = {
   tex: {
-    inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]],
+    inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]], tags: "ams",
     macros: {
       ket: ["\\left|#1\\right\\rangle", 1], bra: ["\\left\\langle#1\\right|", 1],
       braket: ["\\left\\langle#1\\middle|#2\\right\\rangle", 2], expval: ["\\left\\langle#1\\right\\rangle", 1],
@@ -47,7 +54,7 @@ window.MathJax = {
 <!-- LX:HEAD-END -->
 <style>
 /* LX:STYLE-BEGIN */
-/* Layout: a lab-notebook page. Figure stage on the left, lesson steps on the right; one column on phones. */
+/* Theme tokens, page, article typography, widget layouts, inline questions, SVG marks. */
 :root {
   --bg: #f5f6f8; --surface: #ffffff; --fg: #17202c; --muted: #5b6676; --line: #d6dce5; --grid: #eaeef3;
   --accent: #2f5bd3; --c2: #c9700c; --c3: #12857a; --c4: #b0377a; --good: #1f8a4c; --bad: #c2412d;
@@ -78,63 +85,98 @@ body { background: var(--bg); color: var(--fg); font: 15px/1.55 var(--f-ui); mar
 .lx-badge[data-kind="exact"] { color: var(--good); }
 .lx-badge[data-kind="schematic"] { color: var(--c2); }
 .lx-badge[data-kind="computed"] { color: var(--accent); }
-.lx-layout { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr); gap: 20px; align-items: start; }
-@media (max-width: 860px) { .lx-layout { grid-template-columns: minmax(0, 1fr); } }
+/* article: a reading column for text and math; widgets may break out with .lx-wide */
+.lx-article { display: grid; grid-template-columns: minmax(0, 1fr) min(720px, 100%) minmax(0, 1fr); row-gap: 16px; }
+.lx-article > * { grid-column: 2; min-width: 0; margin: 0; }
+.lx-article > .lx-wide { grid-column: 1 / -1; }
+.lx-article > p, .lx-article > ul, .lx-article > ol, .lx-prose { font: 17px/1.65 var(--f-prose); }
+.lx-article > ul, .lx-article > ol { padding-left: 1.3em; }
+.lx-article h2 { font: 600 24px/1.25 var(--f-prose); margin-top: 18px; text-wrap: balance; }
+.lx-article h3 { font: 600 19px/1.3 var(--f-prose); margin-top: 6px; }
+.lx-prose p { margin: 0 0 .6em; } .lx-prose p:last-child { margin-bottom: 0; }
+mjx-container[display="true"] { overflow-x: auto; overflow-y: hidden; max-width: 100%; padding: 2px 0; }
+.lx-callout { border-left: 3px solid var(--c3); padding: 8px 14px; background: var(--surface); border-radius: 0 8px 8px 0; font: 16px/1.6 var(--f-prose); }
+.lx-callout > b:first-child { font-family: var(--f-ui); font-size: 13px; letter-spacing: .04em; text-transform: uppercase; color: var(--c3); display: block; }
+.lx-hook { border: 1px solid var(--line); border-top: 3px solid var(--c2); background: var(--surface); border-radius: 10px; padding: 14px 16px; font: 18px/1.55 var(--f-prose); }
 .lx-stage { display: grid; gap: 14px; min-width: 0; }
-.lx-figs { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
-.lx-fig { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px; min-width: 0; display: grid; gap: 6px; }
+/* widget card: one framed unit of figures + controls; the layout class sets the arrangement */
+.lx-widget { container-type: inline-size; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: grid; gap: 12px; min-width: 0; }
+.lx-w-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px 12px; }
+.lx-w-head h3 { margin: 0; font: 600 16px/1.3 var(--f-ui); }
+.lx-w { display: grid; gap: 12px; min-width: 0; align-items: start; }
+.lx-w > *, .lx-col > * { min-width: 0; }
+.lx-col { display: grid; gap: 12px; align-content: start; min-width: 0; }
+.lx-split { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.lx-grid2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.lx-aside { grid-template-columns: minmax(0, 1fr) minmax(210px, 32%); }
+.lx-aside.lx-left { grid-template-columns: minmax(210px, 32%) minmax(0, 1fr); }
+.lx-hero { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+.lx-hero > :first-child { grid-row: span 3; }
+.lx-span2 { grid-column: 1 / -1; }
+@container (max-width: 620px) {
+  .lx-split, .lx-grid2, .lx-aside, .lx-aside.lx-left, .lx-hero { grid-template-columns: minmax(0, 1fr); }
+  .lx-hero > :first-child { grid-row: auto; }
+}
+.lx-figs { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); }
+.lx-fig { position: relative; min-width: 0; display: grid; gap: 6px; margin: 0; }
 .lx-fig > figcaption { font-size: 12.5px; color: var(--muted); }
 .lx-plot { position: relative; width: 100%; }
 .lx-plot > svg { display: block; width: 100%; height: auto; overflow: visible; touch-action: none; }
 .lx-overlay { position: absolute; inset: 0; pointer-events: none; }
 .lx-tex { position: absolute; white-space: nowrap; font-size: 13px; color: var(--fg); line-height: 1; }
-.lx-controls { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: end; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+.lx-float { position: absolute; top: 4px; right: 4px; z-index: 2; display: flex; flex-wrap: wrap; gap: 6px; justify-content: end; }
+.lx-controls { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: end; background: var(--bg); border-radius: 8px; padding: 10px 12px; }
+:is(.lx-aside, .lx-hero, .lx-grid2) > .lx-controls, .lx-controls.lx-vert { flex-direction: column; flex-wrap: nowrap; align-items: stretch; }
+:is(.lx-aside, .lx-hero, .lx-grid2) > .lx-controls .lx-slider, .lx-controls.lx-vert .lx-slider { flex: none; min-width: 0; }
 .lx-slider { display: grid; gap: 2px; min-width: min(100%, 200px); flex: 1 1 200px; }
 .lx-slider .lx-lab { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--muted); }
-.lx-slider output, .lx-readout b { font-family: var(--f-mono); font-variant-numeric: tabular-nums; color: var(--fg); font-weight: 500; }
+.lx-slider output, .lx-readouts b { font-family: var(--f-mono); font-variant-numeric: tabular-nums; color: var(--fg); font-weight: 500; }
 .lx-slider input[type=range] { width: 100%; accent-color: var(--accent); }
 .lx-group { display: grid; gap: 4px; }
 .lx-group > span { font-size: 12px; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
 .lx-row { display: flex; flex-wrap: wrap; gap: 6px; }
-.lx-btn { font: 500 13px var(--f-ui); color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; cursor: pointer; }
-.lx-btn:hover { border-color: var(--accent); }
+.lx-btn { font: 500 13px var(--f-ui); color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; cursor: pointer; line-height: 1.3; }
+.lx-btn:hover:not(:disabled) { border-color: var(--accent); }
 .lx-btn:focus-visible, .lx-seg input:focus-visible + span, .lx-drag:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .lx-btn[aria-pressed="true"], .lx-btn.lx-primary { background: var(--accent); color: var(--surface); border-color: var(--accent); }
 .lx-btn:disabled { opacity: .45; cursor: not-allowed; }
-.lx-seg { display: inline-flex; flex-wrap: wrap; max-width: 100%; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.lx-btn mjx-container, .lx-seg mjx-container, .lx-opt mjx-container { display: inline-block !important; margin: 0 !important; vertical-align: -0.2em; }
+.lx-seg { display: inline-flex; flex-wrap: wrap; max-width: 100%; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--surface); }
 .lx-seg label { cursor: pointer; }
 .lx-seg input { position: absolute; opacity: 0; pointer-events: none; }
-.lx-seg span { display: block; padding: 5px 10px; font-size: 13px; }
+.lx-seg span { display: block; padding: 5px 10px; font-size: 13px; line-height: 1.3; }
 .lx-seg input:checked + span { background: var(--accent); color: var(--surface); }
 .lx-readouts { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); }
-.lx-locked { opacity: .5; }
-.lx-locked * { cursor: not-allowed !important; }
-/* steps */
-.lx-steps { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: grid; gap: 12px; min-width: 0; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); }
-@media (max-width: 860px) { .lx-steps { position: static; order: -1; } }  /* phones: read the question, then use the widget below */
-.lx-steps-top { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
-.lx-dots { display: flex; gap: 5px; }
-.lx-dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
-.lx-dots i.on { background: var(--accent); }
-.lx-dots i.done { background: var(--muted); }
-.lx-steps h2 { margin: 0; font: 600 19px/1.3 var(--f-prose); text-wrap: balance; }
-.lx-prose { font: 16px/1.6 var(--f-prose); max-width: 68ch; }
-.lx-prose p { margin: 0 0 .6em; }
-.lx-prose p:last-child { margin-bottom: 0; }
-.lx-predict { display: grid; gap: 8px; border-left: 3px solid var(--accent); padding: 8px 0 8px 12px; background: var(--accent-soft); border-radius: 0 8px 8px 0; }
-.lx-predict > p { margin: 0; font-weight: 500; }
-.lx-opts { display: grid; gap: 6px; padding-right: 10px; }
+.lx-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; color: var(--fg); }
+.lx-legend i { display: inline-block; width: 16px; height: 0; border-top: 2.5px solid currentColor; vertical-align: middle; margin-right: 5px; }
+.lx-legend i.dash { border-top-style: dashed; } .lx-legend i.dot { width: 9px; height: 9px; border: none; border-radius: 50%; background: currentColor; }
+/* "What you are looking at" */
+.lx-guide { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 12px; margin: 0; font-size: 13.5px; line-height: 1.45; border-top: 1px solid var(--line); padding-top: 10px; }
+.lx-guide > b { grid-column: 1 / -1; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+.lx-guide dt { font-weight: 600; } .lx-guide dd { margin: 0; color: var(--fg); }
+@container (max-width: 480px) { .lx-guide { grid-template-columns: minmax(0, 1fr); } .lx-guide dd { margin: 0 0 6px; } }
+/* inline questions */
+.lx-ask { display: grid; gap: 8px; border-left: 3px solid var(--accent); padding: 10px 12px; background: var(--accent-soft); border-radius: 0 8px 8px 0; }
+.lx-ask > .lx-kicker { font: 500 12px var(--f-ui); letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
+.lx-ask > .lx-q { font: 500 16px/1.5 var(--f-prose); }
+.lx-opts { display: grid; gap: 6px; }
 .lx-opt { text-align: left; font: 14px/1.4 var(--f-ui); color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; cursor: pointer; }
 .lx-opt:hover:not(:disabled) { border-color: var(--accent); }
 .lx-opt:disabled { cursor: default; }
 .lx-opt.right { border-color: var(--good); box-shadow: inset 3px 0 0 var(--good); }
 .lx-opt.wrong { border-color: var(--bad); box-shadow: inset 3px 0 0 var(--bad); }
-.lx-feedback { font: 15px/1.5 var(--f-prose); padding-right: 10px; }
+.lx-ask input[type=text] { font: 15px var(--f-mono); color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; width: 9em; }
+.lx-ask textarea { font: 15px/1.5 var(--f-prose); color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 8px; min-height: 84px; resize: vertical; }
+.lx-feedback { font: 15px/1.5 var(--f-prose); }
 .lx-feedback b { font-family: var(--f-ui); }
-.lx-explain { display: grid; gap: 8px; }
-.lx-explain textarea { font: 15px/1.5 var(--f-prose); color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 8px; min-height: 84px; resize: vertical; }
-.lx-model { border: 1px dashed var(--line); border-radius: 8px; padding: 10px; }
-.lx-nav { display: flex; justify-content: space-between; gap: 8px; }
+.lx-feedback.good b { color: var(--good); } .lx-feedback.bad b { color: var(--bad); }
+.lx-model { border: 1px dashed var(--line); border-radius: 8px; padding: 10px; background: var(--surface); font: 15px/1.55 var(--f-prose); }
+/* gate: a result stays hidden until its question is answered, then stays visible */
+.lx-gated { position: relative; }
+.lx-gated > * { filter: blur(7px); opacity: .45; pointer-events: none; user-select: none; }
+.lx-gated::after { content: attr(data-gate); position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 4px 8px; font: 500 14px var(--f-ui); color: var(--fg); }
+span.lx-gated { display: inline-block; min-width: 9em; }
+span.lx-gated::after { font-size: 12px; white-space: nowrap; padding: 0; }
 .lx-foot { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 12px; display: grid; gap: 4px; max-width: 90ch; }
 /* svg marks: color via classes so both themes work */
 .lx-plot text { font: calc(11px * var(--lx-k, 1)) var(--f-mono); fill: var(--muted); }
@@ -145,6 +187,8 @@ body { background: var(--bg); color: var(--fg); font: 15px/1.55 var(--f-ui); mar
 .s1 { stroke: var(--accent); } .s2 { stroke: var(--c2); } .s3 { stroke: var(--c3); } .s4 { stroke: var(--c4); } .sm { stroke: var(--muted); stroke-width: 1.2; }
 .dash { stroke-dasharray: 5 4; }
 .thin { stroke-width: 1.2; }
+.faint { opacity: .45; }
+.sk { fill: none; stroke: var(--c4); stroke-width: 2.6; stroke-dasharray: 7 5; stroke-linecap: round; }
 .f1 { fill: var(--accent); } .f2 { fill: var(--c2); } .f3 { fill: var(--c3); } .f4 { fill: var(--c4); } .fm { fill: var(--muted); } .fs { fill: var(--surface); }
 .a1 { fill: var(--accent); fill-opacity: .16; stroke: none; } .a2 { fill: var(--c2); fill-opacity: .18; stroke: none; } .a3 { fill: var(--c3); fill-opacity: .18; stroke: none; }
 .g-ghost { opacity: .32; }
@@ -155,37 +199,44 @@ body { background: var(--bg); color: var(--fg); font: 15px/1.55 var(--f-ui); mar
 /* LX:STYLE-END */
 .svgbox svg { display: block; width: 100%; height: auto; }
 .svgbox text { font: calc(13px * var(--k, 1)) var(--f-mono); fill: var(--fg); }
+.svgbox text.gt { font: 600 calc(17px * var(--k, 1)) var(--f-ui); }
 .svgbox text.mut { fill: var(--muted); font-size: calc(12px * var(--k, 1)); }
 .wire { stroke: var(--muted); stroke-width: 1.5; }
 .gate { fill: var(--surface); stroke: var(--accent); stroke-width: 1.8; }
 .gate-done { fill: var(--accent-soft); }
-.cellhit { fill: transparent; stroke: var(--line); stroke-dasharray: 3 3; cursor: pointer; }
-.cellhit:hover { stroke: var(--accent); }
+.cellhit { fill: transparent; stroke: var(--muted); stroke-opacity: .45; stroke-dasharray: 3 3; cursor: pointer; }
+.cellhit:hover, .cellhit:focus-visible { stroke: var(--accent); stroke-opacity: 1; outline: none; }
 .cursor { stroke: var(--c2); stroke-width: 2; stroke-dasharray: 6 4; }
 .ctrl { fill: var(--accent); }
 .targ { fill: var(--surface); stroke: var(--accent); stroke-width: 1.8; }
-.unit { fill: none; stroke: var(--line); stroke-width: 1; }
-.pbar { fill: var(--c3); }
-.pprev { fill: none; stroke: var(--muted); stroke-width: 1.2; stroke-dasharray: 4 3; }
-.phasor { stroke: var(--accent); stroke-width: 2.4; stroke-linecap: round; }
-#circfig.lx-locked .cellhit { cursor: not-allowed; }
+.amps { width: 100%; border-collapse: collapse; font-size: 14px; color: var(--fg); }
+.amps th { text-align: left; font-weight: 600; padding: 4px 6px 6px; border-bottom: 1px solid var(--line); vertical-align: bottom; }
+.amps td { padding: 6px; border-bottom: 1px solid var(--grid); vertical-align: middle; }
+.amps .num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.amps .cellflex { display: flex; align-items: center; gap: 8px; }
+.abar { flex: 1 1 auto; min-width: 40px; height: 10px; border-radius: 5px; background: var(--grid); overflow: hidden; }
+.abar > i { display: block; height: 100%; background: var(--accent); }
+.dial circle { fill: none; stroke: var(--muted); stroke-width: 1; }
+.dial line.ax0 { stroke: var(--grid); stroke-width: 1; }
+.dial line.arr { stroke: var(--c2); stroke-width: 2.4; stroke-linecap: round; }
+.dial circle.hub { fill: var(--c2); stroke: none; }
+.state-line { margin: 0; font-size: 14px; }
+.state-line b { font-family: var(--f-mono); font-weight: 500; }
+.hint { margin: 0; font-size: 13px; color: var(--fg); }
 #tool .lx-seg { flex-wrap: wrap; }
+#circ .lx-seg { display: grid; }
 </style>
 
 <main class="lx-page">
   <header class="lx-head">
     <p class="lx-eyebrow">Quantum information · Circuits</p>
     <h1>How does a circuit build entanglement one gate at a time?</h1>
-    <p class="lx-lede">Two qubits start in \(\ket{00}\). Step through the gates and watch the four amplitudes change. Only some steps create entanglement.</p>
+    <p class="lx-lede">Two qubits start in \(\ket{00}\). Step through the gates with Forward and Back and watch the four amplitudes and their phases change. Only some steps create entanglement.</p>
     <div class="lx-meta">
-      <span class="lx-badge" data-kind="exact">Exact state-vector simulation</span>
       <span>Basis \(\ket{q_0 q_1}\); \(H = (X+Z)/\sqrt2\), \(S = \mathrm{diag}(1, \ii)\); CNOT flips the target when the control is 1</span>
     </div>
   </header>
-  <section class="lx-layout">
-    <div class="lx-stage" id="stage"></div>
-    <aside class="lx-steps" id="steps" aria-live="polite"></aside>
-  </section>
+  <div class="lx-stage" id="stage"></div>
   <footer class="lx-foot">
     <span>Source: model knowledge. Standard treatment: Nielsen &amp; Chuang, <i>Quantum Computation and Quantum Information</i>, ch. 1, 2 and 4; Preskill, <i>Lecture Notes for Physics 219</i>, ch. 4.</span>
   </footer>
@@ -199,9 +250,12 @@ body { background: var(--bg); color: var(--fg); font: 15px/1.55 var(--f-ui); mar
    Plots    LX.plot(parent, {xlim, ylim, ticks, frame, xlabel, ylabel, width, height}) → path/fn/dot/line/vline/hline/
             area/text/tex/arrow/clear/ghost/setLim/setLabels/X/Y/inv/svg/g · LX.drag(plot, node, {get,set,step})
    3D       LX.camera({yaw, pitch, scale}) → project([x,y,z]) · rotate by dragging an element
+   Widget   LX.widget(mount, {layout: stack|split|grid2|aside|hero, left, title, badge}) → body element
+            LX.guide(widgetOrBody, [[term, description], ...]) — the "What you are looking at" block
+            LX.legend(parent, [[label, colorVar, "line"|"dash"|"dot"], ...])
    Controls LX.controls(parent) · LX.slider · LX.segmented · LX.button · LX.limits · LX.readout · LX.player
-   Lesson   LX.steps(parent, steps) — predict → reveal gating, explain boxes, locking controls, onAnswer hook
-            LX.isLocked(el) — true while a lesson step locks el (use in custom click/drag handlers)
+   Text     LX.ask(parent, {type: choice|number|set|sketch|explain, prompt, ..., reveal}) — inline question
+            LX.gate(el, message) — hide a result until a question that lists it in `reveal` is answered
    Checks   LX.check(name, fn) → window.__lxTests */
 const LX = (() => {
   const NS = "http://www.w3.org/2000/svg";
@@ -298,7 +352,6 @@ const LX = (() => {
   let uid = 0;
   function fig(parent, caption) {
     const f = h("figure", { class: "lx-fig" }, parent);
-    f.style.margin = "0";
     if (caption) { const c = h("figcaption", { html: caption }, f); typeset(c); }
     return f;
   }
@@ -330,6 +383,8 @@ const LX = (() => {
       get xlim() { return [x0, x1]; }, get ylim() { return [y0, y1]; },
       setLim(xl, yl) { if (xl) [x0, x1] = xl; if (yl) [y0, y1] = yl; drawAxes(); return P; },
       setLabels(xl, yl) { if (xl != null) o.xlabel = xl; if (yl != null) o.ylabel = yl; drawAxes(); return P; },
+      /* Clear everything a redraw owns: main, fill, top and the TeX overlay (not grid/axes/ghost). */
+      clearAll() { for (const l of ["main", "fill", "top", "tex"]) P.clear(l); return P; },
       clear(layer = "main") {
         if (layer === "tex") { [...overlay.children].filter(c => !c.dataset.axis).forEach(c => c.remove()); return P; }
         g[layer].replaceChildren(); return P;
@@ -364,6 +419,7 @@ const LX = (() => {
       },
       placeTex(el, x, y, anchor = "c", px) {
         const [ux, uy] = px ? [x, y] : [X(x), Y(y)];
+        el.style.display = isFinite(ux) && isFinite(uy) ? "" : "none";
         el.style.left = (100 * ux / W) + "%"; el.style.top = (100 * uy / H) + "%";
         const tx = anchor.includes("w") ? "0%" : anchor.includes("e") ? "-100%" : "-50%";
         const ty = anchor.includes("n") ? "0%" : anchor.includes("s") ? "-100%" : "-50%";
@@ -474,7 +530,11 @@ const LX = (() => {
     typeset(grp);
     return { el: grp, get: () => value, set(v, fire = true) { value = v; inputs.forEach(i => i.checked = i.value == v); if (fire && o.onChange) o.onChange(v); } };
   }
-  const button = (parent, label, onClick, o = {}) => h("button", { type: "button", class: "lx-btn" + (o.cls ? " " + o.cls : ""), id: o.id, html: label, onclick: onClick, title: o.title }, parent);
+  function button(parent, label, onClick, o = {}) {
+    const b = h("button", { type: "button", class: "lx-btn" + (o.cls ? " " + o.cls : ""), id: o.id, html: label, onclick: onClick, title: o.title }, parent);
+    if (/\\\(/.test(label)) typeset(b);
+    return b;
+  }
   /* Limit buttons: one click jumps to a named regime. items: [{label, title, apply}] */
   function limits(parent, items, title = "Jump to a limit", o = {}) {
     const grp = h("div", { class: "lx-group", id: o.id }, parent);   /* pass {id} to lock the whole group in a step */
@@ -500,81 +560,142 @@ const LX = (() => {
     return { btn, play, pause, get playing() { return playing; } };
   }
 
-  /* ---------- lesson steps ----------
-     step = { title, html,                       // prose (TeX allowed)
-              onEnter(),                         // set the widget into the state this step needs
-              predict: { prompt, options:[...], answer: index, right, wrong },  // commit before reveal
-              lock: ["control-id", ...],         // controls disabled until the prediction is made
-              after: html,                       // revealed after predicting
-              explain: { prompt, model },        // learner writes, then compares with a model answer
-              onAnswer(correct, index) }         // optional: called once the prediction is made (e.g. un-blur a view) */
-  function steps(parent, list, o = {}) {
-    const state = list.map(() => ({ chosen: null, explained: false, text: "" }));
-    let i = 0;
-    const lockEls = ids => (ids || []).map(id => document.getElementById(id)).filter(Boolean);
-    function setLocked(ids, on) {
-      for (const el of lockEls(ids)) {
-        el.classList.toggle("lx-locked", on);
-        el.querySelectorAll("input,button,select,textarea").forEach(c => c.disabled = on);
-        if (el.matches("input,button,select,textarea")) el.disabled = on;
-        if (on) el.title = "Make a prediction first"; else el.removeAttribute("title");
-      }
+  /* ---------- widget card, guide, legend ---------- */
+  const BADGE = { exact: "Exact", computed: "Computed", schematic: "Schematic" };
+  /* A framed widget. Returns the body element to fill; its children are arranged by the layout:
+     stack (one column) · split (two equal columns) · grid2 (2×2; a cell may hold controls)
+     aside (figures + a controls column; {left:true} puts the column first) · hero (big first child + a column)
+     Every layout falls back to one column when the card is narrower than ~620 px. */
+  function widget(parent, o = {}) {
+    const card = h("section", { class: "lx-widget" + (o.cls ? " " + o.cls : ""), id: o.id }, parent);
+    if (o.title || o.badge) {
+      const hd = h("div", { class: "lx-w-head" }, card);
+      if (o.title) h("h3", { html: o.title }, hd);
+      if (o.badge) h("span", { class: "lx-badge", "data-kind": o.badge, text: o.badgeText || BADGE[o.badge] }, hd);
+      typeset(hd);
     }
-    function render() {
-      const st = list[i], ss = state[i];
-      parent.replaceChildren();
-      const top = h("div", { class: "lx-steps-top" }, parent);
-      h("span", { text: `Step ${i + 1} of ${list.length}` }, top);
-      const dots = h("div", { class: "lx-dots", "aria-hidden": "true" }, top);
-      list.forEach((_, k) => h("i", { class: k === i ? "on" : k < i ? "done" : "" }, dots));
-      h("h2", { html: st.title }, parent);
-      if (st.html) h("div", { class: "lx-prose", html: st.html }, parent);
-      const answered = !st.predict || ss.chosen !== null;
-      if (st.predict) {
-        const box = h("div", { class: "lx-predict" }, parent);
-        h("p", { html: "Predict: " + st.predict.prompt }, box);
-        const opts = h("div", { class: "lx-opts" }, box);
-        st.predict.options.forEach((op, k) => {
-          const b = h("button", { type: "button", class: "lx-opt", html: op }, opts);
-          if (ss.chosen !== null) {
-            b.disabled = true;
-            if (k === st.predict.answer) b.classList.add("right");
-            else if (k === ss.chosen) b.classList.add("wrong");
-          }
-          b.addEventListener("click", () => { ss.chosen = k; render(); if (st.onAnswer) st.onAnswer(k === st.predict.answer, k); });
-        });
-        if (ss.chosen !== null) {
-          const ok = ss.chosen === st.predict.answer;
-          h("div", { class: "lx-feedback", html: `<b>${ok ? "Right." : "Not quite."}</b> ` + ((ok ? st.predict.right : st.predict.wrong) || "") }, box);
-        }
-      }
-      setLocked(st.lock, !answered);
-      if (answered && st.after) h("div", { class: "lx-prose", html: st.after }, parent);
-      if (answered && st.explain) {
-        const ex = h("div", { class: "lx-explain" }, parent);
-        h("label", { for: "lx-explain-" + i, html: st.explain.prompt }, ex);
-        const ta = h("textarea", { id: "lx-explain-" + i, placeholder: "In your own words…" }, ex);
-        ta.value = ss.text; ta.addEventListener("input", () => ss.text = ta.value);
-        if (!ss.explained) button(ex, "Compare with the textbook answer", () => { ss.explained = true; render(); });
-        else h("div", { class: "lx-model lx-prose", html: st.explain.model }, ex);
-      }
-      const nav = h("div", { class: "lx-nav" }, parent);
-      const back = button(nav, "Back", () => go(i - 1)); back.disabled = i === 0;
-      const next = button(nav, i === list.length - 1 ? "Done" : "Next", () => go(i + 1), { cls: "lx-primary" });
-      next.disabled = !answered || i === list.length - 1;
-      typeset(parent);
+    const body = h("div", { class: `lx-w lx-${o.layout || "stack"}` + (o.left ? " lx-left" : "") }, card);
+    body.card = card;
+    return body;
+  }
+  /* "What you are looking at": one line per figure and per control. */
+  function guide(parent, items, title = "What you are looking at") {
+    const card = parent.card || parent;
+    const dl = h("dl", { class: "lx-guide" }, card);
+    if (title) h("b", { text: title }, dl);
+    for (const [t, d] of items) { h("dt", { html: t }, dl); h("dd", { html: d }, dl); }
+    typeset(dl); return dl;
+  }
+  function legend(parent, items) {
+    const lg = h("div", { class: "lx-legend" }, parent);
+    for (const [label, color, kind] of items) {
+      const sp = h("span", {}, lg); const i = h("i", { class: kind && kind !== "line" ? kind : "" }, sp);
+      i.style.color = `var(${color})`; h("span", { html: label }, sp);
     }
-    function go(k) {
-      if (k < 0 || k >= list.length) return;
-      setLocked(list[i].lock, false);
-      i = k; if (list[i].onEnter) list[i].onEnter(); render();
-    }
-    if (list[0] && list[0].onEnter) list[0].onEnter();
-    render();
-    return { go, get index() { return i; } };
+    typeset(lg); return lg;
   }
 
-  const isLocked = el => !!(el && el.closest && el.closest(".lx-locked"));
+  /* ---------- gates and inline questions ---------- */
+  /* Hide a result (figure, readout, paragraph) until a question that lists it in `reveal` is answered.
+     A gate only ever opens. Do not gate controls the learner has already used. */
+  function gate(el, message = "Answer the question above to reveal") {
+    el.classList.add("lx-gated"); el.dataset.gate = message; el.setAttribute("aria-hidden", "true");
+    return { el, open: () => openGate(el) };
+  }
+  function openGate(el) { el.classList.remove("lx-gated"); el.removeAttribute("data-gate"); el.removeAttribute("aria-hidden"); }
+
+  /* Inline question in the text. Common options:
+       prompt (html), kicker (small label, defaults by type), reveal: [elements to un-gate],
+       right / wrong (html feedback), onAnswer(correct, value)
+     Types:
+       choice   options: [html], answer: index
+       number   answer: value, tol: relative tolerance (0.1), unit (html after the box)
+       set      the learner sets the widget, then presses Check. check(): {pass, msg}; solve(): optional,
+                puts the widget into the right state (offered after a wrong attempt)
+       sketch   plot: LX.plot, xs: handle positions, y0: start value (or ys), truth: x → y, tol: 0.15
+                (rms error relative to the truth's range); the learner drags handles, then compares
+       explain  model: html model answer, shown after the learner writes */
+  const KICK = { choice: "Predict", number: "Estimate", set: "Try it", sketch: "Sketch", explain: "Explain" };
+  function ask(parent, o) {
+    const type = o.type || "choice";
+    const box = h("div", { class: "lx-ask", "data-type": type }, parent);
+    h("div", { class: "lx-kicker", text: o.kicker || KICK[type] }, box);
+    h("div", { class: "lx-q", html: o.prompt }, box);
+    const body = h("div", { class: "lx-ask-body" }, box);
+    const fb = h("div", { class: "lx-feedback", "aria-live": "polite" }, box);
+    let answered = false;
+    function done(ok, value, extra) {
+      fb.className = "lx-feedback " + (ok == null ? "" : ok ? "good" : "bad");
+      const head = ok == null ? "" : `<b>${ok ? "Right." : "Not quite."}</b> `;
+      fb.innerHTML = head + (extra || "") + ((ok ? o.right : o.wrong) || (ok == null ? o.right || "" : ""));
+      typeset(fb);
+      if (!answered) { answered = true; box.dataset.answered = "1"; (o.reveal || []).forEach(openGate); }
+      if (o.onAnswer) o.onAnswer(ok, value);
+    }
+    if (type === "choice") {
+      const opts = h("div", { class: "lx-opts" }, body);
+      const bs = o.options.map((op, k) => h("button", { type: "button", class: "lx-opt", html: op, onclick: () => {
+        bs.forEach((b, j) => { b.disabled = true; if (j === o.answer) b.classList.add("right"); else if (j === k) b.classList.add("wrong"); });
+        done(k === o.answer, k);
+      } }, opts));
+    } else if (type === "number") {
+      const row = h("div", { class: "lx-row" }, body); row.style.alignItems = "center";
+      const inp = h("input", { type: "text", inputmode: "decimal", "aria-label": "your estimate" }, row);
+      if (o.unit) h("span", { html: o.unit }, row);
+      const go = () => {
+        const v = parseFloat(inp.value.replace(",", ".").replace("−", "-"));
+        if (!isFinite(v)) { fb.className = "lx-feedback"; fb.textContent = "Enter a number."; return; }
+        const tol = o.tol ?? 0.1, err = (v - o.answer) / (Math.abs(o.answer) || 1), ok = Math.abs(err) <= tol;
+        const dir = ok ? "" : `Your estimate is too ${err > 0 ? "high" : "low"}. `;
+        done(ok, v, dir);
+      };
+      button(row, "Check", go, { cls: "lx-primary" });
+      inp.addEventListener("keydown", e => { if (e.key === "Enter") go(); });
+    } else if (type === "set") {
+      const row = h("div", { class: "lx-row" }, body);
+      let solveBtn = null;
+      button(row, o.checkLabel || "Check", () => {
+        const r = o.check(); const ok = typeof r === "object" ? !!r.pass : !!r;
+        done(ok, null, (typeof r === "object" && r.msg ? r.msg + " " : ""));
+        if (!ok && o.solve && !solveBtn) solveBtn = button(row, "Show me", () => { o.solve(); }, {});
+      }, { cls: "lx-primary" });
+    } else if (type === "sketch") {
+      const P = o.plot, n = o.xs.length, ys = o.ys ? o.ys.slice() : o.xs.map(() => o.y0 ?? (P.ylim[0] + P.ylim[1]) / 2);
+      const g = s("g", { class: "lx-sketch" }, P.svg);
+      const tg = s("g", {}, g), line = s("path", { class: "sk" }, g);
+      const dots = o.xs.map((x, i) => {
+        const c = s("circle", { r: 7, class: "f4", "aria-label": `sketch point ${i + 1}; arrow keys move it` }, g);
+        drag(P, c, { get: () => [x, ys[i]], set: (_, y) => { ys[i] = clamp(y, P.ylim[0], P.ylim[1]); draw(); }, step: [0, (P.ylim[1] - P.ylim[0]) / 40] });
+        return c;
+      });
+      function draw() {
+        line.setAttribute("d", o.xs.map((x, i) => (i ? "L" : "M") + P.X(x).toFixed(1) + "," + P.Y(ys[i]).toFixed(1)).join(""));
+        dots.forEach((c, i) => { c.setAttribute("cx", P.X(o.xs[i])); c.setAttribute("cy", P.Y(ys[i])); });
+      }
+      draw();
+      h("p", { html: o.hint || "Drag the pink points to sketch your guess, then compare.", style: "margin:0;font-size:13.5px" }, body);
+      const row = h("div", { class: "lx-row" }, body);
+      button(row, "Compare with the real curve", () => {
+        tg.replaceChildren();
+        const pts = sample(o.truth, P.xlim[0], P.xlim[1], 300);
+        let d = ""; pts.forEach(([x, y], i) => { d += (i ? "L" : "M") + P.X(x).toFixed(1) + "," + P.Y(clamp(y, P.ylim[0] - 10, P.ylim[1] + 10)).toFixed(1); });
+        s("path", { d, class: "s1" }, tg);
+        const tv = o.xs.map(o.truth), span = (Math.max(...tv) - Math.min(...tv)) || 1;
+        const rms = Math.sqrt(o.xs.reduce((a, _, i) => a + (ys[i] - tv[i]) ** 2, 0) / n) / span;
+        done(rms <= (o.tol ?? 0.15), rms, `Your sketch is off by ${(100 * rms).toFixed(0)}% of the curve's range. `);
+      }, { cls: "lx-primary" });
+    } else if (type === "explain") {
+      const ta = h("textarea", { placeholder: "In your own words…", "aria-label": "your explanation" }, body);
+      const row = h("div", { class: "lx-row" }, body);
+      button(row, o.compareLabel || "Compare with a model answer", () => {
+        if (box.querySelector(".lx-model")) return;
+        const m = h("div", { class: "lx-model", html: o.model }, body); typeset(m);
+        done(null, ta.value);
+      });
+    }
+    typeset(box);
+    return { el: box, get answered() { return answered; } };
+  }
 
   /* ---------- self-tests ---------- */
   window.__lxTests = window.__lxTests || [];
@@ -588,8 +709,8 @@ const LX = (() => {
   }
   const near = (a, b, tol = 1e-9) => Math.abs(a - b) <= tol * Math.max(1, Math.abs(a), Math.abs(b));
 
-  return { h, s, typeset, linspace, clamp, sample, C, eigSym, niceTicks, fig, plot, drag, camera,
-           controls, slider, segmented, button, limits, readout, player, steps, isLocked, check, near, rng, reduceMotion };
+  return { h, s, typeset, linspace, clamp, sample, C, eigSym, niceTicks, fig, plot, drag, camera, widget, guide, legend,
+           controls, slider, segmented, button, limits, readout, player, ask, gate, check, near, rng, reduceMotion };
 })();
 /* LX:LIB-END */
 </script>
@@ -634,13 +755,8 @@ function reducedPurity(p) {
   const r01 = C.add(C.mul(p[0], C.conj(p[2])), C.mul(p[1], C.conj(p[3])));
   return r00 * r00 + r11 * r11 + 2 * C.abs2(r01);
 }
-function entropy(p) {
-  const c = Math.min(1, concurrence(p)), l = (1 + Math.sqrt(Math.max(0, 1 - c * c))) / 2;
-  const h = x => (x <= 1e-12 || x >= 1 - 1e-12 ? 0 : -x * Math.log2(x) - (1 - x) * Math.log2(1 - x));
-  return h(l);
-}
 function dirac(p) {
-  const n = v => { const s = Math.abs(v) < 1e-9 ? "0" : Math.abs(v).toFixed(3).replace(/0+$/, "").replace(/\.$/, ""); return s; };
+  const n = v => (Math.abs(v) < 1e-9 ? "0" : Math.abs(v).toFixed(3).replace(/0+$/, "").replace(/\.$/, ""));
   const terms = [];
   ["00", "01", "10", "11"].forEach((b, k) => {
     const a = p[k]; if (C.abs(a) < 1e-9) return;
@@ -654,63 +770,86 @@ function dirac(p) {
   return terms.map((t, i) => (i === 0 ? (t.sign === "−" ? "−" : "") : ` ${t.sign} `) + t.s).join("");
 }
 
+const empty = () => ({ type: "single", g: ["I", "I"] });
 const PRESETS = {
-  bell:   [{ type: "single", g: ["H", "I"] }, { type: "cnot", c: 0 }, { type: "single", g: ["I", "I"] }, { type: "single", g: ["I", "I"] }],
-  swap:   [{ type: "cnot", c: 0 }, { type: "single", g: ["H", "I"] }, { type: "single", g: ["I", "I"] }, { type: "single", g: ["I", "I"] }],
-  local:  [{ type: "single", g: ["H", "I"] }, { type: "cnot", c: 0 }, { type: "single", g: ["Z", "X"] }, { type: "single", g: ["S", "H"] }],
-  undo:   [{ type: "single", g: ["H", "I"] }, { type: "cnot", c: 0 }, { type: "cnot", c: 0 }, { type: "single", g: ["H", "I"] }],
-  empty:  [0, 1, 2, 3].map(() => ({ type: "single", g: ["I", "I"] }))
+  bell:  [{ type: "single", g: ["H", "I"] }, { type: "cnot", c: 0 }, empty(), empty()],
+  swap:  [{ type: "cnot", c: 0 }, { type: "single", g: ["H", "I"] }, empty(), empty()],
+  undo:  [{ type: "single", g: ["H", "I"] }, { type: "cnot", c: 0 }, { type: "cnot", c: 0 }, { type: "single", g: ["H", "I"] }],
+  local: [{ type: "single", g: ["H", "I"] }, { type: "cnot", c: 0 }, { type: "single", g: ["Z", "X"] }, { type: "single", g: ["S", "H"] }],
+  own:   [empty(), empty(), empty(), empty()]
 };
 const clone = c => c.map(col => JSON.parse(JSON.stringify(col)));
-const S = { circ: clone(PRESETS.bell), k: 2, tool: "H" };
+const S = { circ: clone(PRESETS.bell), k: 0, tool: "H" };
 
-/* ---- layout ---- */
-const stage = document.getElementById("stage");
-const cf = LX.fig(stage, "Circuit (time runs left to right). Choose a tool, then click a slot. Orange dashed line: steps applied so far.");
-cf.id = "circfig";
+/* ---- widget ---- */
+const W = LX.widget(document.getElementById("stage"), { layout: "aside", title: "Two qubits, four time steps", badge: "exact" });
+const left = LX.h("div", { class: "lx-col" }, W);
+
+const cf = LX.fig(left, "Circuit: time runs left to right. Filled gates have been applied; the orange dashed line marks where the circuit has got to.");
 const CW = 600, CHh = 150, WY = [48, 108], COLX = j => 160 + j * 100;
 const csvg = LX.s("svg", { viewBox: `0 0 ${CW} ${CHh}`, role: "img", "aria-label": "two-qubit circuit" }, LX.h("div", { class: "svgbox" }, cf));
 
-const sf = LX.fig(stage, "State after the current step: phasors (length \\(|a|\\), angle \\(\\arg a\\)) and probabilities \\(|a|^2\\); dashed: previous step");
-const AW = 600, AH = 210;
-const asvg = LX.s("svg", { viewBox: `0 0 ${AW} ${AH}`, role: "img", "aria-label": "amplitudes" }, LX.h("div", { class: "svgbox" }, sf));
+const sf = LX.fig(left);
+const tbl = LX.h("table", { class: "amps" }, sf);
+const hr = LX.h("tr", {}, LX.h("thead", {}, tbl));
+["basis state", "amplitude \\(|c|\\)", "phase \\(\\arg c\\)", "probability \\(|c|^2\\)"].forEach(t => LX.h("th", { html: t }, hr));
+const tb = LX.h("tbody", {}, tbl);
+const ROWS = ["00", "01", "10", "11"].map(b => {
+  const tr = LX.h("tr", {}, tb);
+  LX.h("td", { html: `\\(\\ket{${b}}\\)` }, tr);
+  const ampTd = LX.h("div", { class: "cellflex" }, LX.h("td", {}, tr));
+  const bar = LX.h("i", {}, LX.h("div", { class: "abar" }, ampTd));
+  const ampN = LX.h("span", { class: "num" }, ampTd);
+  const phTd = LX.h("div", { class: "cellflex" }, LX.h("td", {}, tr));
+  const dial = LX.s("svg", { class: "dial", viewBox: "-15 -15 30 30", width: 28, height: 28, "aria-hidden": "true" }, phTd);
+  LX.s("circle", { r: 13 }, dial); LX.s("line", { class: "ax0", x1: 0, y1: 0, x2: 13, y2: 0 }, dial);
+  const arr = LX.s("line", { class: "arr", x1: 0, y1: 0, x2: 11, y2: 0 }, dial);
+  LX.s("circle", { class: "hub", r: 2 }, dial);
+  const phN = LX.h("span", { class: "num" }, phTd);
+  const prN = LX.h("td", { class: "num" }, tr);
+  return { bar, ampN, arr, phN, prN };
+});
+LX.typeset(tbl);
+const stLine = LX.h("p", { class: "state-line" }, sf);
+const cLine = LX.h("p", { class: "state-line" }, sf);
 
-const ctl = LX.controls(stage);
-const tool = LX.segmented(ctl, { id: "tool", label: "Tool", value: "H",
-  options: ["H", "X", "Z", "S"].map(g => ({ value: g, label: g })).concat([{ value: "C0", label: "CNOT 0→1" }, { value: "C1", label: "CNOT 1→0" }, { value: "E", label: "erase" }]),
+const ctl = LX.controls(W);
+const runG = LX.h("div", { class: "lx-group" }, ctl);
+LX.h("span", { text: "Run the circuit" }, runG);
+const rr = LX.h("div", { class: "lx-row" }, runG);
+const bBack = LX.button(rr, "◀ Back", () => setK(S.k - 1), { id: "back", title: "undo the last applied step" });
+const bFwd = LX.button(rr, "Forward ▶", () => setK(S.k + 1), { id: "fwd", cls: "lx-primary", title: "apply the next step" });
+const bReset = LX.button(rr, "Reset", () => setK(0), { id: "reset", title: "back to |00⟩, no gates applied" });
+const stepTxt = LX.h("p", { class: "hint" }, runG);
+
+const circSeg = LX.segmented(ctl, { id: "circ", label: "Circuit", value: "bell",
+  options: [{ value: "bell", label: "Bell: H, then CNOT" }, { value: "swap", label: "Same gates, reversed" }, { value: "undo", label: "Bell, then undo" },
+            { value: "local", label: "Bell + local gates" }, { value: "own", label: "Your own" }],
+  onChange: v => { S.circ = clone(PRESETS[v]); setK(0); } });
+const tool = LX.segmented(ctl, { id: "tool", label: "Edit: choose a gate", value: "H",
+  options: ["H", "X", "Z", "S"].map(g => ({ value: g, label: g })).concat([{ value: "C0", label: "CNOT ↓" }, { value: "C1", label: "CNOT ↑" }, { value: "E", label: "erase" }]),
   onChange: v => { S.tool = v; } });
-const KS = LX.slider(ctl, { id: "stepk", label: "steps applied", min: 0, max: NCOL, step: 1, value: S.k, fmt: v => `${v} / ${NCOL}`, onInput: v => { S.k = v; update(); } });
-const sg = LX.h("div", { class: "lx-group", id: "stepper" }, ctl);
-LX.h("span", { text: "Step" }, sg);
-const sr = LX.h("div", { class: "lx-row" }, sg);
-LX.button(sr, "◀ Back", () => KS.set(Math.max(0, S.k - 1)), { id: "back" });
-LX.button(sr, "Forward ▶", () => KS.set(Math.min(NCOL, S.k + 1)), { id: "fwd", cls: "lx-primary" });
-/* keep SVG text readable when the 600-unit-wide figures shrink on phones (capped so labels still fit) */
-document.querySelectorAll(".svgbox").forEach(el => { if (window.ResizeObserver) new ResizeObserver(() => { const w = el.clientWidth; if (w) el.style.setProperty("--k", Math.min(1.45, 600 / w).toFixed(3)); }).observe(el); });
-const preset = (name, k = NCOL) => { S.circ = clone(PRESETS[name]); KS.set(k); };
-const pr = LX.limits(ctl, [
-  { label: "Bell: H, CNOT", title: "the standard Bell-state circuit", apply: () => preset("bell", 2) },
-  { label: "Swapped order", title: "CNOT first, then H", apply: () => preset("swap", 2) },
-  { label: "Bell + local gates", title: "local gates after the Bell circuit", apply: () => preset("local") },
-  { label: "Bell, then undo", title: "CNOT and H again", apply: () => preset("undo") },
-  { label: "Clear", title: "empty circuit", apply: () => preset("empty", 0) }
-], "Preset circuits");
-pr.id = "presets";
-const ro = LX.controls(stage);
-const rPsi = LX.readout(ro, "\\(\\ket\\psi\\) =");
-const box = ro.querySelector(".lx-readouts");
-const rC = LX.readout(box, "concurrence \\(C\\) =");
-const rP = LX.readout(box, "purity \\(\\Tr\\rho_A^2\\) =");
-const rS = LX.readout(box, "entropy \\(S_A\\) =");
+LX.h("p", { class: "hint", text: "then click a dashed box on the circuit to put it there. CNOT ↓: control on the top qubit, target below; CNOT ↑: the reverse." }, ctl);
 
+LX.guide(W, [
+  ["Circuit", "Two wires, one per qubit, both starting in \\(\\ket0\\). Each column is one time step. A CNOT is drawn as a dot (control) joined to \\(\\oplus\\) (target)."],
+  ["Basis state", "The four possible results of measuring both qubits, \\(\\ket{q_0 q_1}\\)."],
+  ["Amplitude \\(|c|\\)", "The size of the complex coefficient \\(c\\) of that basis state: the bar and the number."],
+  ["Phase \\(\\arg c\\)", "The angle of \\(c\\) in the complex plane. The arrow points right for \\(0^\\circ\\) (positive real), up for \\(90^\\circ\\) (\\(+\\ii\\)), left for \\(180^\\circ\\) (negative). No arrow when \\(c = 0\\): the phase is undefined."],
+  ["Probability", "\\(|c|^2\\), the chance of that measurement outcome. The four add up to 1."],
+  ["Concurrence \\(C\\)", "Entanglement between the qubits: 0 for a product state, 1 for a Bell state."],
+  ["Buttons", "Forward applies the next column, Back removes the last one, Reset returns to \\(\\ket{00}\\). Circuit loads a prepared example; Edit changes the circuit yourself."]
+]);
+
+function setK(k) { S.k = LX.clamp(k, 0, NCOL); update(); }
 function place(j, q) {
-  if (cf.classList.contains("lx-locked")) return;
   const col = S.circ[j], t = S.tool;
   if (t === "C0" || t === "C1") S.circ[j] = { type: "cnot", c: t === "C0" ? 0 : 1 };
   else {
-    if (col.type === "cnot") S.circ[j] = { type: "single", g: ["I", "I"] };
+    if (col.type === "cnot") S.circ[j] = empty();
     S.circ[j].g[q] = t === "E" ? "I" : t;
   }
+  circSeg.set("own", false);
   update();
 }
 
@@ -719,115 +858,60 @@ function drawCircuit() {
   const s = (tag, a) => LX.s(tag, a, csvg);
   WY.forEach((y, q) => {
     s("line", { x1: 84, x2: CW - 20, y1: y, y2: y, class: "wire" });
-    s("text", { x: 4, y: y + 5, text: `q${q === 0 ? "₀" : "₁"}|0⟩` });
+    const lab = s("text", { x: 4, y: y + 5 }); lab.textContent = "q";
+    LX.s("tspan", { dy: 4, "font-size": "0.8em", text: String(q) }, lab); LX.s("tspan", { dy: -4, text: " |0⟩" }, lab);
   });
   for (let j = 0; j < NCOL; j++) {
     const x = COLX(j), col = S.circ[j], done = j < S.k;
     s("text", { x, y: 142, "text-anchor": "middle", class: "mut", text: `step ${j + 1}` });
-    if (col.type === "cnot") {
-      const yc = WY[col.c], yt = WY[1 - col.c];
-      s("line", { x1: x, x2: x, y1: yc, y2: yt + (yt > yc ? 14 : -14), class: "wire" });
-      s("circle", { cx: x, cy: yc, r: 6, class: "ctrl" });
-      s("circle", { cx: x, cy: yt, r: 14, class: "targ" + (done ? " gate-done" : "") });
-      s("line", { x1: x - 14, x2: x + 14, y1: yt, y2: yt, class: "wire" });
-      s("line", { x1: x, x2: x, y1: yt - 14, y2: yt + 14, class: "wire" });
-    } else col.g.forEach((g, q) => {
-      if (g === "I") return;
-      s("rect", { x: x - 18, y: WY[q] - 18, width: 36, height: 36, rx: 5, class: "gate" + (done ? " gate-done" : "") });
-      s("text", { x, y: WY[q] + 5, "text-anchor": "middle", text: g });
-    });
     WY.forEach((y, q) => {
-      const hit = s("rect", { x: x - 24, y: y - 24, width: 48, height: 48, rx: 6, class: "cellhit", tabindex: 0, role: "button", "aria-label": `step ${j + 1}, qubit ${q}` });
+      const hit = s("rect", { x: x - 24, y: y - 24, width: 48, height: 48, rx: 6, class: "cellhit", tabindex: 0, role: "button", "aria-label": `place the chosen gate at step ${j + 1}, qubit ${q}` });
       hit.addEventListener("click", () => place(j, q));
       hit.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); place(j, q); } });
+    });
+    const deco = { "pointer-events": "none" };
+    if (col.type === "cnot") {
+      const yc = WY[col.c], yt = WY[1 - col.c];
+      s("line", Object.assign({ x1: x, x2: x, y1: yc, y2: yt + (yt > yc ? 14 : -14), class: "wire" }, deco));
+      s("circle", Object.assign({ cx: x, cy: yc, r: 6, class: "ctrl" }, deco));
+      s("circle", Object.assign({ cx: x, cy: yt, r: 14, class: "targ" + (done ? " gate-done" : "") }, deco));
+      s("line", Object.assign({ x1: x - 14, x2: x + 14, y1: yt, y2: yt, class: "wire" }, deco));
+      s("line", Object.assign({ x1: x, x2: x, y1: yt - 14, y2: yt + 14, class: "wire" }, deco));
+    } else col.g.forEach((g, q) => {
+      if (g === "I") return;
+      s("rect", Object.assign({ x: x - 18, y: WY[q] - 18, width: 36, height: 36, rx: 5, class: "gate" + (done ? " gate-done" : "") }, deco));
+      s("text", Object.assign({ x, y: WY[q] + 6, "text-anchor": "middle", class: "gt", text: g }, deco));
     });
   }
   const cx = COLX(S.k) - 50;
   s("line", { x1: cx, x2: cx, y1: 16, y2: 128, class: "cursor" });
 }
 
-function drawState(psi, prev) {
-  asvg.replaceChildren();
-  const s = (tag, a) => LX.s(tag, a, asvg);
-  ["00", "01", "10", "11"].forEach((b, k) => {
-    const cx = 75 + k * 150, cy = 52, r = 38, a = psi[k];
-    s("circle", { cx, cy, r, class: "unit" });
-    s("line", { x1: cx - r, x2: cx + r, y1: cy, y2: cy, class: "unit" });
-    if (C.abs(a) > 1e-9) s("line", { x1: cx, y1: cy, x2: cx + r * a.re, y2: cy - r * a.im, class: "phasor" });
-    s("circle", { cx, cy, r: 2.5, class: "ctrl" });
-    const top = 112, hgt = 70, p = C.abs2(a), pp = C.abs2(prev[k]);
-    s("rect", { x: cx - 22, y: top + hgt * (1 - p), width: 44, height: hgt * p, class: "pbar" });
-    s("rect", { x: cx - 24, y: top + hgt * (1 - pp), width: 48, height: Math.max(0.5, hgt * pp), class: "pprev" });
-    s("line", { x1: cx - 34, x2: cx + 34, y1: top + hgt, y2: top + hgt, class: "wire" });
-    s("text", { x: cx, y: top + hgt + 18, "text-anchor": "middle", text: `|${b}⟩  ${p.toFixed(2)}` });
-  });
-}
-
 function update() {
   drawCircuit();
-  const psi = run(S.circ, S.k), prev = run(S.circ, Math.max(0, S.k - 1));
-  drawState(psi, prev);
-  rPsi.set(dirac(psi));
-  rC.set(concurrence(psi).toFixed(3));
-  rP.set(reducedPurity(psi).toFixed(3));
-  rS.set(entropy(psi).toFixed(3) + " bit");
+  const psi = run(S.circ, S.k);
+  psi.forEach((a, k) => {
+    const r = ROWS[k], m = C.abs(a);
+    r.bar.style.width = (100 * m).toFixed(1) + "%";
+    r.ampN.textContent = m.toFixed(3);
+    if (m < 1e-9) { r.arr.style.display = "none"; r.phN.textContent = "—"; }
+    else {
+      const ph = C.arg(a); r.arr.style.display = "";
+      r.arr.setAttribute("x2", (11 * Math.cos(ph)).toFixed(2)); r.arr.setAttribute("y2", (-11 * Math.sin(ph)).toFixed(2));
+      let deg = Math.round(ph * 180 / Math.PI); if (deg === -180) deg = 180;
+      r.phN.textContent = String(deg).replace("-", "−") + "°";
+    }
+    r.prN.textContent = C.abs2(a).toFixed(3);
+  });
+  stLine.innerHTML = `state: <b>${dirac(psi)}</b>`;
+  const c = concurrence(psi);
+  cLine.innerHTML = `concurrence <b>C = ${c.toFixed(3)}</b> · ${c < 1e-9 ? "product state, not entangled" : c > 1 - 1e-9 ? "maximally entangled" : "partly entangled"}`;
+  stepTxt.textContent = `${S.k} of ${NCOL} steps applied`;
+  bBack.disabled = S.k === 0; bReset.disabled = S.k === 0; bFwd.disabled = S.k === NCOL;
 }
+/* keep SVG text readable when the 600-unit-wide circuit shrinks on phones (capped so labels still fit) */
+document.querySelectorAll(".svgbox").forEach(el => { if (window.ResizeObserver) new ResizeObserver(() => { const w = el.clientWidth; if (w) el.style.setProperty("--k", Math.min(1.45, 600 / w).toFixed(3)); }).observe(el); });
 update();
-
-/* ---- lesson ---- */
-const go = (name, k) => () => { S.circ = clone(PRESETS[name]); KS.set(k); };
-LX.steps(document.getElementById("steps"), [
-  { title: "One Hadamard",
-    onEnter: go("bell", 0),
-    html: "<p>Both qubits start in \\(\\ket{0}\\), so the state is \\(\\ket{00}\\): one phasor of length 1. Step 1 applies \\(H\\) to \\(q_0\\).</p>",
-    predict: { prompt: "What is the state after step 1?",
-      options: ["\\((\\ket{00} + \\ket{10})/\\sqrt2\\)", "\\((\\ket{00} + \\ket{11})/\\sqrt2\\)", "\\((\\ket{00} + \\ket{01} + \\ket{10} + \\ket{11})/2\\)"], answer: 0,
-      right: "\\(H\\ket0 = (\\ket0 + \\ket1)/\\sqrt2\\) on \\(q_0\\) only, so \\(q_1\\) stays \\(\\ket0\\): two equal amplitudes, on \\(\\ket{00}\\) and \\(\\ket{10}\\).",
-      wrong: "\\(H\\) acts on \\(q_0\\) alone: \\(\\ket{0}\\ket{0} \\to \\tfrac{1}{\\sqrt2}(\\ket0 + \\ket1)\\ket0\\). Only \\(\\ket{00}\\) and \\(\\ket{10}\\) get weight." },
-    lock: ["stepper", "stepk-wrap", "presets"],
-    after: "<p>Press Forward once. This is a superposition, but still a product state: \\(C = 0\\) and the reduced state of \\(q_0\\) is pure. Superposition alone is not entanglement.</p>" },
-  { title: "Then a CNOT",
-    onEnter: go("bell", 1),
-    html: "<p>Step 2 is a CNOT with \\(q_0\\) as control. It flips \\(q_1\\) in the branch where \\(q_0 = 1\\).</p>",
-    predict: { prompt: "After the CNOT, is the state entangled?",
-      options: ["Yes: \\((\\ket{00} + \\ket{11})/\\sqrt2\\), with \\(C = 1\\)", "No: CNOT is a classical gate, it cannot entangle", "Partly: \\(C = 1/2\\)"], answer: 0,
-      right: "The \\(\\ket{10}\\) branch becomes \\(\\ket{11}\\). The result \\(\\ket{\\Phi^+}\\) cannot be written as a product: \\(C = 2|ad - bc| = 1\\), maximal.",
-      wrong: "Apply it branch by branch: \\(\\ket{00} \\to \\ket{00}\\), \\(\\ket{10} \\to \\ket{11}\\). Then \\(ad - bc = 1/2\\), so \\(C = 1\\): a maximally entangled Bell state." },
-    lock: ["stepper", "stepk-wrap", "presets"],
-    after: "<p>Now \\(\\Tr\\rho_A^2 = 1/2\\): each qubit alone is maximally mixed, one full bit of entanglement entropy. A classical-looking gate made entanglement because its control was in superposition.</p>" },
-  { title: "Swap the order",
-    onEnter: go("swap", 0),
-    html: "<p>Same two gates, opposite order: CNOT first, then \\(H\\) on \\(q_0\\).</p>",
-    predict: { prompt: "What is \\(C\\) at the end?",
-      options: ["\\(C = 0\\): the CNOT acted on a control in \\(\\ket0\\) and did nothing", "\\(C = 1\\): same gates, same result", "\\(C = 1/\\sqrt2\\)"], answer: 0,
-      right: "On \\(\\ket{00}\\) the control is 0, so CNOT is the identity. Then \\(H\\) makes \\((\\ket{00} + \\ket{10})/\\sqrt2\\), a product state. Gates on shared qubits do not commute.",
-      wrong: "Step through it: CNOT on \\(\\ket{00}\\) does nothing because the control is \\(\\ket0\\). The final \\(H\\) only creates a local superposition, so \\(C = 0\\)." },
-    lock: ["stepper", "stepk-wrap", "presets"],
-    after: "<p>\\(\\mathrm{CNOT}\\,(H \\otimes I) \\neq (H \\otimes I)\\,\\mathrm{CNOT}\\). Order matters for any two operators that share a qubit and do not commute.</p>" },
-  { title: "Local gates and entanglement",
-    onEnter: go("local", 2),
-    html: "<p>Start from the Bell state. Steps 3 and 4 apply only single-qubit gates: \\(Z\\) and \\(X\\), then \\(S\\) and \\(H\\).</p>",
-    predict: { prompt: "What happens to the concurrence during steps 3 and 4?",
-      options: ["It stays exactly 1", "It drops, since the amplitudes are scrambled", "It can go above 1"], answer: 0,
-      right: "Local unitaries \\(U_A \\otimes U_B\\) change the amplitudes and phases (watch the phasors) but not the spectrum of \\(\\rho_A\\), so \\(C\\), purity and entropy are unchanged.",
-      wrong: "Step forward: the amplitudes and phases change, but \\(\\rho_A \\to U_A \\rho_A U_A^\\dagger\\) keeps its eigenvalues. Entanglement is invariant under local unitaries." },
-    lock: ["stepper", "stepk-wrap", "presets"],
-    after: "<p>This is why entanglement is a resource: Alice and Bob acting separately cannot create or destroy it, only move between equivalent Bell states.</p>" },
-  { title: "Running it backwards",
-    onEnter: go("undo", 2),
-    html: "<p>After the Bell circuit, steps 3 and 4 apply CNOT and then \\(H\\) again, the original gates in reverse order.</p>",
-    predict: { prompt: "What is the final state?",
-      options: ["\\(\\ket{00}\\)", "\\((\\ket{00} + \\ket{11})/\\sqrt2\\)", "\\(\\ket{11}\\)"], answer: 0,
-      right: "CNOT and \\(H\\) are their own inverses, so \\(H\\,\\mathrm{CNOT}\\,\\mathrm{CNOT}\\,H = I\\). The entanglement is removed by the same kind of gate that made it.",
-      wrong: "Each gate is its own inverse, and the reverse sequence undoes the forward one: \\((\\mathrm{CNOT}\\,H)^{-1} = H\\,\\mathrm{CNOT}\\). Back to \\(\\ket{00}\\)." },
-    lock: ["stepper", "stepk-wrap", "presets"],
-    after: "<p>This is how Bell measurements are done in practice: undo the Bell circuit, then measure in the computational basis. Use the tools to build your own circuit and check \\(C\\).</p>" },
-  { title: "Put it in your own words",
-    onEnter: go("bell", 2),
-    html: "<p>You have built, reordered, disguised and undone entanglement.</p>",
-    explain: { prompt: "Why does a CNOT entangle the qubits only when its control is in a superposition?",
-      model: "<p>CNOT applies \\(X\\) to the target conditioned on the control. If the control is definitely \\(\\ket0\\) or \\(\\ket1\\), the gate reduces to \\(I\\) or a local \\(X\\) on the target, and local gates cannot entangle. With the control in \\(\\alpha\\ket0 + \\beta\\ket1\\), the two branches leave the target in different states, \\(\\alpha\\ket{0}\\ket{\\phi} + \\beta\\ket1 X\\ket{\\phi}\\), which is a product only if \\(X\\ket\\phi \\propto \\ket\\phi\\).</p><p><b>Transfer:</b> with three qubits, which gates prepare the GHZ state \\((\\ket{000} + \\ket{111})/\\sqrt2\\), and what is the purity of any single qubit in it?</p>" } }
-]);
 
 /* ---- self-tests ---- */
 const nearC = (a, b) => Math.abs(a.re - b.re) < 1e-12 && Math.abs(a.im - b.im) < 1e-12;
@@ -836,7 +920,7 @@ LX.check("Bell circuit gives (|00⟩+|11⟩)/√2 with C = 1, Tr ρ_A² = 1/2", 
   return nearC(p[0], re(R2)) && nearC(p[3], re(R2)) && C.abs(p[1]) < 1e-12 && LX.near(concurrence(p), 1, 1e-12) && LX.near(reducedPurity(p), 0.5, 1e-12);
 });
 LX.check("purity from ρ_A equals 1 − C²/2 and norm is 1 (random seeded circuits)", () => {
-  let seed = 3; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647, opts = ["H", "X", "Z", "S", "I"];
+  const rnd = LX.rng(3), opts = ["H", "X", "Z", "S", "I"];
   for (let n = 0; n < 50; n++) {
     const circ = [0, 1, 2, 3].map(() => rnd() < 0.3 ? { type: "cnot", c: rnd() < 0.5 ? 0 : 1 } : { type: "single", g: [opts[Math.floor(rnd() * 5)], opts[Math.floor(rnd() * 5)]] });
     const p = run(circ, 4), norm = p.reduce((s, a) => s + C.abs2(a), 0);
@@ -845,6 +929,7 @@ LX.check("purity from ρ_A equals 1 − C²/2 and norm is 1 (random seeded circu
   return true;
 });
 LX.check("local gates leave the concurrence of a Bell state at 1", () => { const p = run(PRESETS.local, 4); return { pass: LX.near(concurrence(p), 1, 1e-12), detail: concurrence(p) }; });
-LX.check("H Z H = X", () => { let p = [re(0.6), C.of(0, 0.8), re(0), re(0)]; const a = apply1(apply1(apply1(p, GATES.H, 1), GATES.Z, 1), GATES.H, 1), b = apply1(p, GATES.X, 1); return a.every((v, k) => nearC(v, b[k])); });
+LX.check("H Z H = X", () => { const p = [re(0.6), C.of(0, 0.8), re(0), re(0)]; const a = apply1(apply1(apply1(p, GATES.H, 1), GATES.Z, 1), GATES.H, 1), b = apply1(p, GATES.X, 1); return a.every((v, k) => nearC(v, b[k])); });
 LX.check("CNOT and H⊗I do not commute; reversed Bell circuit returns |00⟩", () => concurrence(run(PRESETS.swap, 2)) < 1e-12 && nearC(run(PRESETS.undo, 4)[0], re(1)));
+LX.check("S gives |1⟩ the phase +90°", () => { const p = apply1(apply1(ket00(), GATES.X, 1), GATES.S, 1); return LX.near(C.arg(p[1]), Math.PI / 2, 1e-12); });
 </script>

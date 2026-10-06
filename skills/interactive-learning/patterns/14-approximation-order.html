@@ -7,30 +7,36 @@ Concept shape   A quantity is approximated by a series in a small parameter; add
 Use it for      Rayleigh–Schrödinger and Brillouin–Wigner perturbation theory, high-temperature and
                 virial expansions, Taylor/Padé approximants, asymptotic series (anharmonic oscillator,
                 QED), Magnus and cumulant expansions, Born series, strong- vs weak-coupling expansions.
-Widget anatomy  (1) exact curve vs the truncated series at the chosen order, with a λ cursor;
-                    "Keep a copy" ghosts one order to compare with another;
-                (2) log-error vs λ for every order (thin) with the current order highlighted: the fan of
-                    curves pivots at the radius of convergence;
-                (3) complex-λ plane: disk of convergence, the singularities that bound it, the cursor;
-                (4) order stepper, λ cursor and the unperturbed gap a; readouts for exact, truncated,
-                    error and |λ|/a.
-Teaching moments  Predict what raising the order does inside the radius; predict what it does outside;
-                  predict how the radius moves with the gap and why nothing on the real axis signals it.
-Adapt by        Replace coef(n) and exact(λ) with your series (any list of Taylor coefficients) and
-                mark its nearest complex singularities in the third panel. For an asymptotic series,
-                keep panel 2: the error first falls then rises, and the optimal truncation order is
-                where the terms are smallest.
+Widget anatomy  (1) exact E₋(λ) vs the series truncated at order λᴺ, with a cursor at the chosen λ;
+                (2) the size of every term of the series at that λ, as bars on a log scale (included terms
+                    solid, omitted ones faint) and the actual error as a dashed line: inside the radius the
+                    bars fall off and the error sits below the last bar; outside they grow;
+                (3) the complex-λ plane: disk of convergence, the two branch points that bound it, the cursor;
+                (4) controls in the fourth cell: order N, coupling λ, unperturbed half-gap a, readouts and a
+                    one-line verdict (inside / outside the radius).
+Layout          grid2 with the controls in the fourth cell: three figures of equal weight, no empty quadrant.
+Teaching moments  Suggestions for the chapter around the widget:
+                  - "At λ = 0.5, what does raising N from 2 to 20 do to the error?" (choice: shrinks by about
+                    (λ/a)² per order; panel 2 shows why);
+                  - "At λ = 1.3, same question" (choice: the error grows; the terms grow);
+                  - "Lower a to 0.5: where does the series stop converging?" (number: λ = a = 0.5);
+                  - "Why can a singularity at imaginary λ ruin a series at real λ?" (explain);
+                  - transfer: Dyson's argument for zero radius of convergence in gx⁴ (explain).
+Adapt by        Replace coef(n) and exact(λ) with your series (any list of Taylor coefficients) and mark its
+                nearest complex singularities in panel 3. For an asymptotic series, panel 2 shows terms that
+                first fall and then grow (factorial coefficients): the optimal truncation is at the smallest
+                bar.
 Physics         H = a σ_z + λ σ_x (unperturbed levels ±a, coupling λ). Ground energy
                 E₋(λ) = −√(a² + λ²) = −a Σₙ C(1/2, n) (λ/a)^{2n} = −a − λ²/2a + λ⁴/8a³ − …
                 The second-order term is the Rayleigh–Schrödinger result |⟨+|V|−⟩|²/(E₋ − E₊) = −λ²/2a.
-                Branch points where E₊ = E₋ at λ = ±ia ⇒ radius of convergence |λ| = a.
+                Branch points where E₊ = E₋ at λ = ±ia ⇒ radius of convergence |λ| = a. All exact.
 -->
 <!-- LX:HEAD-BEGIN -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
 <script>
 window.MathJax = {
   tex: {
-    inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]],
+    inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]], tags: "ams",
     macros: {
       ket: ["\\left|#1\\right\\rangle", 1], bra: ["\\left\\langle#1\\right|", 1],
       braket: ["\\left\\langle#1\\middle|#2\\right\\rangle", 2], expval: ["\\left\\langle#1\\right\\rangle", 1],
@@ -49,7 +55,7 @@ window.MathJax = {
 <!-- LX:HEAD-END -->
 <style>
 /* LX:STYLE-BEGIN */
-/* Layout: a lab-notebook page. Figure stage on the left, lesson steps on the right; one column on phones. */
+/* Theme tokens, page, article typography, widget layouts, inline questions, SVG marks. */
 :root {
   --bg: #f5f6f8; --surface: #ffffff; --fg: #17202c; --muted: #5b6676; --line: #d6dce5; --grid: #eaeef3;
   --accent: #2f5bd3; --c2: #c9700c; --c3: #12857a; --c4: #b0377a; --good: #1f8a4c; --bad: #c2412d;
@@ -80,63 +86,98 @@ body { background: var(--bg); color: var(--fg); font: 15px/1.55 var(--f-ui); mar
 .lx-badge[data-kind="exact"] { color: var(--good); }
 .lx-badge[data-kind="schematic"] { color: var(--c2); }
 .lx-badge[data-kind="computed"] { color: var(--accent); }
-.lx-layout { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr); gap: 20px; align-items: start; }
-@media (max-width: 860px) { .lx-layout { grid-template-columns: minmax(0, 1fr); } }
+/* article: a reading column for text and math; widgets may break out with .lx-wide */
+.lx-article { display: grid; grid-template-columns: minmax(0, 1fr) min(720px, 100%) minmax(0, 1fr); row-gap: 16px; }
+.lx-article > * { grid-column: 2; min-width: 0; margin: 0; }
+.lx-article > .lx-wide { grid-column: 1 / -1; }
+.lx-article > p, .lx-article > ul, .lx-article > ol, .lx-prose { font: 17px/1.65 var(--f-prose); }
+.lx-article > ul, .lx-article > ol { padding-left: 1.3em; }
+.lx-article h2 { font: 600 24px/1.25 var(--f-prose); margin-top: 18px; text-wrap: balance; }
+.lx-article h3 { font: 600 19px/1.3 var(--f-prose); margin-top: 6px; }
+.lx-prose p { margin: 0 0 .6em; } .lx-prose p:last-child { margin-bottom: 0; }
+mjx-container[display="true"] { overflow-x: auto; overflow-y: hidden; max-width: 100%; padding: 2px 0; }
+.lx-callout { border-left: 3px solid var(--c3); padding: 8px 14px; background: var(--surface); border-radius: 0 8px 8px 0; font: 16px/1.6 var(--f-prose); }
+.lx-callout > b:first-child { font-family: var(--f-ui); font-size: 13px; letter-spacing: .04em; text-transform: uppercase; color: var(--c3); display: block; }
+.lx-hook { border: 1px solid var(--line); border-top: 3px solid var(--c2); background: var(--surface); border-radius: 10px; padding: 14px 16px; font: 18px/1.55 var(--f-prose); }
 .lx-stage { display: grid; gap: 14px; min-width: 0; }
-.lx-figs { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
-.lx-fig { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px; min-width: 0; display: grid; gap: 6px; }
+/* widget card: one framed unit of figures + controls; the layout class sets the arrangement */
+.lx-widget { container-type: inline-size; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: grid; gap: 12px; min-width: 0; }
+.lx-w-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px 12px; }
+.lx-w-head h3 { margin: 0; font: 600 16px/1.3 var(--f-ui); }
+.lx-w { display: grid; gap: 12px; min-width: 0; align-items: start; }
+.lx-w > *, .lx-col > * { min-width: 0; }
+.lx-col { display: grid; gap: 12px; align-content: start; min-width: 0; }
+.lx-split { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.lx-grid2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.lx-aside { grid-template-columns: minmax(0, 1fr) minmax(210px, 32%); }
+.lx-aside.lx-left { grid-template-columns: minmax(210px, 32%) minmax(0, 1fr); }
+.lx-hero { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+.lx-hero > :first-child { grid-row: span 3; }
+.lx-span2 { grid-column: 1 / -1; }
+@container (max-width: 620px) {
+  .lx-split, .lx-grid2, .lx-aside, .lx-aside.lx-left, .lx-hero { grid-template-columns: minmax(0, 1fr); }
+  .lx-hero > :first-child { grid-row: auto; }
+}
+.lx-figs { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); }
+.lx-fig { position: relative; min-width: 0; display: grid; gap: 6px; margin: 0; }
 .lx-fig > figcaption { font-size: 12.5px; color: var(--muted); }
 .lx-plot { position: relative; width: 100%; }
 .lx-plot > svg { display: block; width: 100%; height: auto; overflow: visible; touch-action: none; }
 .lx-overlay { position: absolute; inset: 0; pointer-events: none; }
 .lx-tex { position: absolute; white-space: nowrap; font-size: 13px; color: var(--fg); line-height: 1; }
-.lx-controls { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: end; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+.lx-float { position: absolute; top: 4px; right: 4px; z-index: 2; display: flex; flex-wrap: wrap; gap: 6px; justify-content: end; }
+.lx-controls { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: end; background: var(--bg); border-radius: 8px; padding: 10px 12px; }
+:is(.lx-aside, .lx-hero, .lx-grid2) > .lx-controls, .lx-controls.lx-vert { flex-direction: column; flex-wrap: nowrap; align-items: stretch; }
+:is(.lx-aside, .lx-hero, .lx-grid2) > .lx-controls .lx-slider, .lx-controls.lx-vert .lx-slider { flex: none; min-width: 0; }
 .lx-slider { display: grid; gap: 2px; min-width: min(100%, 200px); flex: 1 1 200px; }
 .lx-slider .lx-lab { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--muted); }
-.lx-slider output, .lx-readout b { font-family: var(--f-mono); font-variant-numeric: tabular-nums; color: var(--fg); font-weight: 500; }
+.lx-slider output, .lx-readouts b { font-family: var(--f-mono); font-variant-numeric: tabular-nums; color: var(--fg); font-weight: 500; }
 .lx-slider input[type=range] { width: 100%; accent-color: var(--accent); }
 .lx-group { display: grid; gap: 4px; }
 .lx-group > span { font-size: 12px; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
 .lx-row { display: flex; flex-wrap: wrap; gap: 6px; }
-.lx-btn { font: 500 13px var(--f-ui); color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; cursor: pointer; }
-.lx-btn:hover { border-color: var(--accent); }
+.lx-btn { font: 500 13px var(--f-ui); color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; cursor: pointer; line-height: 1.3; }
+.lx-btn:hover:not(:disabled) { border-color: var(--accent); }
 .lx-btn:focus-visible, .lx-seg input:focus-visible + span, .lx-drag:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .lx-btn[aria-pressed="true"], .lx-btn.lx-primary { background: var(--accent); color: var(--surface); border-color: var(--accent); }
 .lx-btn:disabled { opacity: .45; cursor: not-allowed; }
-.lx-seg { display: inline-flex; flex-wrap: wrap; max-width: 100%; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.lx-btn mjx-container, .lx-seg mjx-container, .lx-opt mjx-container { display: inline-block !important; margin: 0 !important; vertical-align: -0.2em; }
+.lx-seg { display: inline-flex; flex-wrap: wrap; max-width: 100%; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--surface); }
 .lx-seg label { cursor: pointer; }
 .lx-seg input { position: absolute; opacity: 0; pointer-events: none; }
-.lx-seg span { display: block; padding: 5px 10px; font-size: 13px; }
+.lx-seg span { display: block; padding: 5px 10px; font-size: 13px; line-height: 1.3; }
 .lx-seg input:checked + span { background: var(--accent); color: var(--surface); }
 .lx-readouts { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); }
-.lx-locked { opacity: .5; }
-.lx-locked * { cursor: not-allowed !important; }
-/* steps */
-.lx-steps { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: grid; gap: 12px; min-width: 0; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); }
-@media (max-width: 860px) { .lx-steps { position: static; order: -1; } }  /* phones: read the question, then use the widget below */
-.lx-steps-top { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
-.lx-dots { display: flex; gap: 5px; }
-.lx-dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
-.lx-dots i.on { background: var(--accent); }
-.lx-dots i.done { background: var(--muted); }
-.lx-steps h2 { margin: 0; font: 600 19px/1.3 var(--f-prose); text-wrap: balance; }
-.lx-prose { font: 16px/1.6 var(--f-prose); max-width: 68ch; }
-.lx-prose p { margin: 0 0 .6em; }
-.lx-prose p:last-child { margin-bottom: 0; }
-.lx-predict { display: grid; gap: 8px; border-left: 3px solid var(--accent); padding: 8px 0 8px 12px; background: var(--accent-soft); border-radius: 0 8px 8px 0; }
-.lx-predict > p { margin: 0; font-weight: 500; }
-.lx-opts { display: grid; gap: 6px; padding-right: 10px; }
+.lx-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; color: var(--fg); }
+.lx-legend i { display: inline-block; width: 16px; height: 0; border-top: 2.5px solid currentColor; vertical-align: middle; margin-right: 5px; }
+.lx-legend i.dash { border-top-style: dashed; } .lx-legend i.dot { width: 9px; height: 9px; border: none; border-radius: 50%; background: currentColor; }
+/* "What you are looking at" */
+.lx-guide { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 12px; margin: 0; font-size: 13.5px; line-height: 1.45; border-top: 1px solid var(--line); padding-top: 10px; }
+.lx-guide > b { grid-column: 1 / -1; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+.lx-guide dt { font-weight: 600; } .lx-guide dd { margin: 0; color: var(--fg); }
+@container (max-width: 480px) { .lx-guide { grid-template-columns: minmax(0, 1fr); } .lx-guide dd { margin: 0 0 6px; } }
+/* inline questions */
+.lx-ask { display: grid; gap: 8px; border-left: 3px solid var(--accent); padding: 10px 12px; background: var(--accent-soft); border-radius: 0 8px 8px 0; }
+.lx-ask > .lx-kicker { font: 500 12px var(--f-ui); letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
+.lx-ask > .lx-q { font: 500 16px/1.5 var(--f-prose); }
+.lx-opts { display: grid; gap: 6px; }
 .lx-opt { text-align: left; font: 14px/1.4 var(--f-ui); color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; cursor: pointer; }
 .lx-opt:hover:not(:disabled) { border-color: var(--accent); }
 .lx-opt:disabled { cursor: default; }
 .lx-opt.right { border-color: var(--good); box-shadow: inset 3px 0 0 var(--good); }
 .lx-opt.wrong { border-color: var(--bad); box-shadow: inset 3px 0 0 var(--bad); }
-.lx-feedback { font: 15px/1.5 var(--f-prose); padding-right: 10px; }
+.lx-ask input[type=text] { font: 15px var(--f-mono); color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; width: 9em; }
+.lx-ask textarea { font: 15px/1.5 var(--f-prose); color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 8px; min-height: 84px; resize: vertical; }
+.lx-feedback { font: 15px/1.5 var(--f-prose); }
 .lx-feedback b { font-family: var(--f-ui); }
-.lx-explain { display: grid; gap: 8px; }
-.lx-explain textarea { font: 15px/1.5 var(--f-prose); color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 8px; min-height: 84px; resize: vertical; }
-.lx-model { border: 1px dashed var(--line); border-radius: 8px; padding: 10px; }
-.lx-nav { display: flex; justify-content: space-between; gap: 8px; }
+.lx-feedback.good b { color: var(--good); } .lx-feedback.bad b { color: var(--bad); }
+.lx-model { border: 1px dashed var(--line); border-radius: 8px; padding: 10px; background: var(--surface); font: 15px/1.55 var(--f-prose); }
+/* gate: a result stays hidden until its question is answered, then stays visible */
+.lx-gated { position: relative; }
+.lx-gated > * { filter: blur(7px); opacity: .45; pointer-events: none; user-select: none; }
+.lx-gated::after { content: attr(data-gate); position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 4px 8px; font: 500 14px var(--f-ui); color: var(--fg); }
+span.lx-gated { display: inline-block; min-width: 9em; }
+span.lx-gated::after { font-size: 12px; white-space: nowrap; padding: 0; }
 .lx-foot { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 12px; display: grid; gap: 4px; max-width: 90ch; }
 /* svg marks: color via classes so both themes work */
 .lx-plot text { font: calc(11px * var(--lx-k, 1)) var(--f-mono); fill: var(--muted); }
@@ -147,6 +188,8 @@ body { background: var(--bg); color: var(--fg); font: 15px/1.55 var(--f-ui); mar
 .s1 { stroke: var(--accent); } .s2 { stroke: var(--c2); } .s3 { stroke: var(--c3); } .s4 { stroke: var(--c4); } .sm { stroke: var(--muted); stroke-width: 1.2; }
 .dash { stroke-dasharray: 5 4; }
 .thin { stroke-width: 1.2; }
+.faint { opacity: .45; }
+.sk { fill: none; stroke: var(--c4); stroke-width: 2.6; stroke-dasharray: 7 5; stroke-linecap: round; }
 .f1 { fill: var(--accent); } .f2 { fill: var(--c2); } .f3 { fill: var(--c3); } .f4 { fill: var(--c4); } .fm { fill: var(--muted); } .fs { fill: var(--surface); }
 .a1 { fill: var(--accent); fill-opacity: .16; stroke: none; } .a2 { fill: var(--c2); fill-opacity: .18; stroke: none; } .a3 { fill: var(--c3); fill-opacity: .18; stroke: none; }
 .g-ghost { opacity: .32; }
@@ -155,22 +198,20 @@ body { background: var(--bg); color: var(--fg); font: 15px/1.55 var(--f-ui); mar
 .lx-drag:active { cursor: grabbing; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 /* LX:STYLE-END */
+.bar-on { fill: var(--accent); fill-opacity: .85; stroke: none; }
+.bar-off { fill: var(--muted); fill-opacity: .28; stroke: none; }
 </style>
 
 <main class="lx-page">
   <header class="lx-head">
     <p class="lx-eyebrow">Quantum mechanics · Perturbation theory</p>
     <h1>Does adding more orders of perturbation theory always help?</h1>
-    <p class="lx-lede">The ground energy of a two-level system has an exact formula and a perturbation series in the coupling \(\lambda\). Step up the order and watch where the series converges, and where it falls apart.</p>
+    <p class="lx-lede">The ground energy of a two-level system has an exact formula and a perturbation series in the coupling \(\lambda\). Raise the order and see where the series converges and where it falls apart.</p>
     <div class="lx-meta">
-      <span class="lx-badge" data-kind="exact">Exact formulas</span>
-      <span>\(H = a\,\sigma_z + \lambda\,\sigma_x\), \(E_-(\lambda) = -\sqrt{a^2+\lambda^2}\); \(\hbar = 1\), energies in units of the coupling scale</span>
+      <span>\(H = a\,\sigma_z + \lambda\,\sigma_x\), \(E_-(\lambda) = -\sqrt{a^2+\lambda^2}\); energies in arbitrary units</span>
     </div>
   </header>
-  <section class="lx-layout">
-    <div class="lx-stage" id="stage"></div>
-    <aside class="lx-steps" id="steps" aria-live="polite"></aside>
-  </section>
+  <div class="lx-stage" id="stage"></div>
   <footer class="lx-foot">
     <span>Source: model knowledge. Standard treatment: Sakurai &amp; Napolitano, <i>Modern Quantum Mechanics</i>, ch. 5; Bender &amp; Orszag, <i>Advanced Mathematical Methods for Scientists and Engineers</i>, ch. 7–8.</span>
   </footer>
@@ -183,9 +224,12 @@ body { background: var(--bg); color: var(--fg); font: 15px/1.55 var(--f-ui); mar
    Plots    LX.plot(parent, {xlim, ylim, ticks, frame, xlabel, ylabel, width, height}) → path/fn/dot/line/vline/hline/
             area/text/tex/arrow/clear/ghost/setLim/setLabels/X/Y/inv/svg/g · LX.drag(plot, node, {get,set,step})
    3D       LX.camera({yaw, pitch, scale}) → project([x,y,z]) · rotate by dragging an element
+   Widget   LX.widget(mount, {layout: stack|split|grid2|aside|hero, left, title, badge}) → body element
+            LX.guide(widgetOrBody, [[term, description], ...]) — the "What you are looking at" block
+            LX.legend(parent, [[label, colorVar, "line"|"dash"|"dot"], ...])
    Controls LX.controls(parent) · LX.slider · LX.segmented · LX.button · LX.limits · LX.readout · LX.player
-   Lesson   LX.steps(parent, steps) — predict → reveal gating, explain boxes, locking controls, onAnswer hook
-            LX.isLocked(el) — true while a lesson step locks el (use in custom click/drag handlers)
+   Text     LX.ask(parent, {type: choice|number|set|sketch|explain, prompt, ..., reveal}) — inline question
+            LX.gate(el, message) — hide a result until a question that lists it in `reveal` is answered
    Checks   LX.check(name, fn) → window.__lxTests */
 const LX = (() => {
   const NS = "http://www.w3.org/2000/svg";
@@ -282,7 +326,6 @@ const LX = (() => {
   let uid = 0;
   function fig(parent, caption) {
     const f = h("figure", { class: "lx-fig" }, parent);
-    f.style.margin = "0";
     if (caption) { const c = h("figcaption", { html: caption }, f); typeset(c); }
     return f;
   }
@@ -314,6 +357,8 @@ const LX = (() => {
       get xlim() { return [x0, x1]; }, get ylim() { return [y0, y1]; },
       setLim(xl, yl) { if (xl) [x0, x1] = xl; if (yl) [y0, y1] = yl; drawAxes(); return P; },
       setLabels(xl, yl) { if (xl != null) o.xlabel = xl; if (yl != null) o.ylabel = yl; drawAxes(); return P; },
+      /* Clear everything a redraw owns: main, fill, top and the TeX overlay (not grid/axes/ghost). */
+      clearAll() { for (const l of ["main", "fill", "top", "tex"]) P.clear(l); return P; },
       clear(layer = "main") {
         if (layer === "tex") { [...overlay.children].filter(c => !c.dataset.axis).forEach(c => c.remove()); return P; }
         g[layer].replaceChildren(); return P;
@@ -348,6 +393,7 @@ const LX = (() => {
       },
       placeTex(el, x, y, anchor = "c", px) {
         const [ux, uy] = px ? [x, y] : [X(x), Y(y)];
+        el.style.display = isFinite(ux) && isFinite(uy) ? "" : "none";
         el.style.left = (100 * ux / W) + "%"; el.style.top = (100 * uy / H) + "%";
         const tx = anchor.includes("w") ? "0%" : anchor.includes("e") ? "-100%" : "-50%";
         const ty = anchor.includes("n") ? "0%" : anchor.includes("s") ? "-100%" : "-50%";
@@ -458,7 +504,11 @@ const LX = (() => {
     typeset(grp);
     return { el: grp, get: () => value, set(v, fire = true) { value = v; inputs.forEach(i => i.checked = i.value == v); if (fire && o.onChange) o.onChange(v); } };
   }
-  const button = (parent, label, onClick, o = {}) => h("button", { type: "button", class: "lx-btn" + (o.cls ? " " + o.cls : ""), id: o.id, html: label, onclick: onClick, title: o.title }, parent);
+  function button(parent, label, onClick, o = {}) {
+    const b = h("button", { type: "button", class: "lx-btn" + (o.cls ? " " + o.cls : ""), id: o.id, html: label, onclick: onClick, title: o.title }, parent);
+    if (/\\\(/.test(label)) typeset(b);
+    return b;
+  }
   /* Limit buttons: one click jumps to a named regime. items: [{label, title, apply}] */
   function limits(parent, items, title = "Jump to a limit", o = {}) {
     const grp = h("div", { class: "lx-group", id: o.id }, parent);   /* pass {id} to lock the whole group in a step */
@@ -484,81 +534,142 @@ const LX = (() => {
     return { btn, play, pause, get playing() { return playing; } };
   }
 
-  /* ---------- lesson steps ----------
-     step = { title, html,                       // prose (TeX allowed)
-              onEnter(),                         // set the widget into the state this step needs
-              predict: { prompt, options:[...], answer: index, right, wrong },  // commit before reveal
-              lock: ["control-id", ...],         // controls disabled until the prediction is made
-              after: html,                       // revealed after predicting
-              explain: { prompt, model },        // learner writes, then compares with a model answer
-              onAnswer(correct, index) }         // optional: called once the prediction is made (e.g. un-blur a view) */
-  function steps(parent, list, o = {}) {
-    const state = list.map(() => ({ chosen: null, explained: false, text: "" }));
-    let i = 0;
-    const lockEls = ids => (ids || []).map(id => document.getElementById(id)).filter(Boolean);
-    function setLocked(ids, on) {
-      for (const el of lockEls(ids)) {
-        el.classList.toggle("lx-locked", on);
-        el.querySelectorAll("input,button,select,textarea").forEach(c => c.disabled = on);
-        if (el.matches("input,button,select,textarea")) el.disabled = on;
-        if (on) el.title = "Make a prediction first"; else el.removeAttribute("title");
-      }
+  /* ---------- widget card, guide, legend ---------- */
+  const BADGE = { exact: "Exact", computed: "Computed", schematic: "Schematic" };
+  /* A framed widget. Returns the body element to fill; its children are arranged by the layout:
+     stack (one column) · split (two equal columns) · grid2 (2×2; a cell may hold controls)
+     aside (figures + a controls column; {left:true} puts the column first) · hero (big first child + a column)
+     Every layout falls back to one column when the card is narrower than ~620 px. */
+  function widget(parent, o = {}) {
+    const card = h("section", { class: "lx-widget" + (o.cls ? " " + o.cls : ""), id: o.id }, parent);
+    if (o.title || o.badge) {
+      const hd = h("div", { class: "lx-w-head" }, card);
+      if (o.title) h("h3", { html: o.title }, hd);
+      if (o.badge) h("span", { class: "lx-badge", "data-kind": o.badge, text: o.badgeText || BADGE[o.badge] }, hd);
+      typeset(hd);
     }
-    function render() {
-      const st = list[i], ss = state[i];
-      parent.replaceChildren();
-      const top = h("div", { class: "lx-steps-top" }, parent);
-      h("span", { text: `Step ${i + 1} of ${list.length}` }, top);
-      const dots = h("div", { class: "lx-dots", "aria-hidden": "true" }, top);
-      list.forEach((_, k) => h("i", { class: k === i ? "on" : k < i ? "done" : "" }, dots));
-      h("h2", { html: st.title }, parent);
-      if (st.html) h("div", { class: "lx-prose", html: st.html }, parent);
-      const answered = !st.predict || ss.chosen !== null;
-      if (st.predict) {
-        const box = h("div", { class: "lx-predict" }, parent);
-        h("p", { html: "Predict: " + st.predict.prompt }, box);
-        const opts = h("div", { class: "lx-opts" }, box);
-        st.predict.options.forEach((op, k) => {
-          const b = h("button", { type: "button", class: "lx-opt", html: op }, opts);
-          if (ss.chosen !== null) {
-            b.disabled = true;
-            if (k === st.predict.answer) b.classList.add("right");
-            else if (k === ss.chosen) b.classList.add("wrong");
-          }
-          b.addEventListener("click", () => { ss.chosen = k; render(); if (st.onAnswer) st.onAnswer(k === st.predict.answer, k); });
-        });
-        if (ss.chosen !== null) {
-          const ok = ss.chosen === st.predict.answer;
-          h("div", { class: "lx-feedback", html: `<b>${ok ? "Right." : "Not quite."}</b> ` + ((ok ? st.predict.right : st.predict.wrong) || "") }, box);
-        }
-      }
-      setLocked(st.lock, !answered);
-      if (answered && st.after) h("div", { class: "lx-prose", html: st.after }, parent);
-      if (answered && st.explain) {
-        const ex = h("div", { class: "lx-explain" }, parent);
-        h("label", { for: "lx-explain-" + i, html: st.explain.prompt }, ex);
-        const ta = h("textarea", { id: "lx-explain-" + i, placeholder: "In your own words…" }, ex);
-        ta.value = ss.text; ta.addEventListener("input", () => ss.text = ta.value);
-        if (!ss.explained) button(ex, "Compare with the textbook answer", () => { ss.explained = true; render(); });
-        else h("div", { class: "lx-model lx-prose", html: st.explain.model }, ex);
-      }
-      const nav = h("div", { class: "lx-nav" }, parent);
-      const back = button(nav, "Back", () => go(i - 1)); back.disabled = i === 0;
-      const next = button(nav, i === list.length - 1 ? "Done" : "Next", () => go(i + 1), { cls: "lx-primary" });
-      next.disabled = !answered || i === list.length - 1;
-      typeset(parent);
+    const body = h("div", { class: `lx-w lx-${o.layout || "stack"}` + (o.left ? " lx-left" : "") }, card);
+    body.card = card;
+    return body;
+  }
+  /* "What you are looking at": one line per figure and per control. */
+  function guide(parent, items, title = "What you are looking at") {
+    const card = parent.card || parent;
+    const dl = h("dl", { class: "lx-guide" }, card);
+    if (title) h("b", { text: title }, dl);
+    for (const [t, d] of items) { h("dt", { html: t }, dl); h("dd", { html: d }, dl); }
+    typeset(dl); return dl;
+  }
+  function legend(parent, items) {
+    const lg = h("div", { class: "lx-legend" }, parent);
+    for (const [label, color, kind] of items) {
+      const sp = h("span", {}, lg); const i = h("i", { class: kind && kind !== "line" ? kind : "" }, sp);
+      i.style.color = `var(${color})`; h("span", { html: label }, sp);
     }
-    function go(k) {
-      if (k < 0 || k >= list.length) return;
-      setLocked(list[i].lock, false);
-      i = k; if (list[i].onEnter) list[i].onEnter(); render();
-    }
-    if (list[0] && list[0].onEnter) list[0].onEnter();
-    render();
-    return { go, get index() { return i; } };
+    typeset(lg); return lg;
   }
 
-  const isLocked = el => !!(el && el.closest && el.closest(".lx-locked"));
+  /* ---------- gates and inline questions ---------- */
+  /* Hide a result (figure, readout, paragraph) until a question that lists it in `reveal` is answered.
+     A gate only ever opens. Do not gate controls the learner has already used. */
+  function gate(el, message = "Answer the question above to reveal") {
+    el.classList.add("lx-gated"); el.dataset.gate = message; el.setAttribute("aria-hidden", "true");
+    return { el, open: () => openGate(el) };
+  }
+  function openGate(el) { el.classList.remove("lx-gated"); el.removeAttribute("data-gate"); el.removeAttribute("aria-hidden"); }
+
+  /* Inline question in the text. Common options:
+       prompt (html), kicker (small label, defaults by type), reveal: [elements to un-gate],
+       right / wrong (html feedback), onAnswer(correct, value)
+     Types:
+       choice   options: [html], answer: index
+       number   answer: value, tol: relative tolerance (0.1), unit (html after the box)
+       set      the learner sets the widget, then presses Check. check(): {pass, msg}; solve(): optional,
+                puts the widget into the right state (offered after a wrong attempt)
+       sketch   plot: LX.plot, xs: handle positions, y0: start value (or ys), truth: x → y, tol: 0.15
+                (rms error relative to the truth's range); the learner drags handles, then compares
+       explain  model: html model answer, shown after the learner writes */
+  const KICK = { choice: "Predict", number: "Estimate", set: "Try it", sketch: "Sketch", explain: "Explain" };
+  function ask(parent, o) {
+    const type = o.type || "choice";
+    const box = h("div", { class: "lx-ask", "data-type": type }, parent);
+    h("div", { class: "lx-kicker", text: o.kicker || KICK[type] }, box);
+    h("div", { class: "lx-q", html: o.prompt }, box);
+    const body = h("div", { class: "lx-ask-body" }, box);
+    const fb = h("div", { class: "lx-feedback", "aria-live": "polite" }, box);
+    let answered = false;
+    function done(ok, value, extra) {
+      fb.className = "lx-feedback " + (ok == null ? "" : ok ? "good" : "bad");
+      const head = ok == null ? "" : `<b>${ok ? "Right." : "Not quite."}</b> `;
+      fb.innerHTML = head + (extra || "") + ((ok ? o.right : o.wrong) || (ok == null ? o.right || "" : ""));
+      typeset(fb);
+      if (!answered) { answered = true; box.dataset.answered = "1"; (o.reveal || []).forEach(openGate); }
+      if (o.onAnswer) o.onAnswer(ok, value);
+    }
+    if (type === "choice") {
+      const opts = h("div", { class: "lx-opts" }, body);
+      const bs = o.options.map((op, k) => h("button", { type: "button", class: "lx-opt", html: op, onclick: () => {
+        bs.forEach((b, j) => { b.disabled = true; if (j === o.answer) b.classList.add("right"); else if (j === k) b.classList.add("wrong"); });
+        done(k === o.answer, k);
+      } }, opts));
+    } else if (type === "number") {
+      const row = h("div", { class: "lx-row" }, body); row.style.alignItems = "center";
+      const inp = h("input", { type: "text", inputmode: "decimal", "aria-label": "your estimate" }, row);
+      if (o.unit) h("span", { html: o.unit }, row);
+      const go = () => {
+        const v = parseFloat(inp.value.replace(",", ".").replace("−", "-"));
+        if (!isFinite(v)) { fb.className = "lx-feedback"; fb.textContent = "Enter a number."; return; }
+        const tol = o.tol ?? 0.1, err = (v - o.answer) / (Math.abs(o.answer) || 1), ok = Math.abs(err) <= tol;
+        const dir = ok ? "" : `Your estimate is too ${err > 0 ? "high" : "low"}. `;
+        done(ok, v, dir);
+      };
+      button(row, "Check", go, { cls: "lx-primary" });
+      inp.addEventListener("keydown", e => { if (e.key === "Enter") go(); });
+    } else if (type === "set") {
+      const row = h("div", { class: "lx-row" }, body);
+      let solveBtn = null;
+      button(row, o.checkLabel || "Check", () => {
+        const r = o.check(); const ok = typeof r === "object" ? !!r.pass : !!r;
+        done(ok, null, (typeof r === "object" && r.msg ? r.msg + " " : ""));
+        if (!ok && o.solve && !solveBtn) solveBtn = button(row, "Show me", () => { o.solve(); }, {});
+      }, { cls: "lx-primary" });
+    } else if (type === "sketch") {
+      const P = o.plot, n = o.xs.length, ys = o.ys ? o.ys.slice() : o.xs.map(() => o.y0 ?? (P.ylim[0] + P.ylim[1]) / 2);
+      const g = s("g", { class: "lx-sketch" }, P.svg);
+      const tg = s("g", {}, g), line = s("path", { class: "sk" }, g);
+      const dots = o.xs.map((x, i) => {
+        const c = s("circle", { r: 7, class: "f4", "aria-label": `sketch point ${i + 1}; arrow keys move it` }, g);
+        drag(P, c, { get: () => [x, ys[i]], set: (_, y) => { ys[i] = clamp(y, P.ylim[0], P.ylim[1]); draw(); }, step: [0, (P.ylim[1] - P.ylim[0]) / 40] });
+        return c;
+      });
+      function draw() {
+        line.setAttribute("d", o.xs.map((x, i) => (i ? "L" : "M") + P.X(x).toFixed(1) + "," + P.Y(ys[i]).toFixed(1)).join(""));
+        dots.forEach((c, i) => { c.setAttribute("cx", P.X(o.xs[i])); c.setAttribute("cy", P.Y(ys[i])); });
+      }
+      draw();
+      h("p", { html: o.hint || "Drag the pink points to sketch your guess, then compare.", style: "margin:0;font-size:13.5px" }, body);
+      const row = h("div", { class: "lx-row" }, body);
+      button(row, "Compare with the real curve", () => {
+        tg.replaceChildren();
+        const pts = sample(o.truth, P.xlim[0], P.xlim[1], 300);
+        let d = ""; pts.forEach(([x, y], i) => { d += (i ? "L" : "M") + P.X(x).toFixed(1) + "," + P.Y(clamp(y, P.ylim[0] - 10, P.ylim[1] + 10)).toFixed(1); });
+        s("path", { d, class: "s1" }, tg);
+        const tv = o.xs.map(o.truth), span = (Math.max(...tv) - Math.min(...tv)) || 1;
+        const rms = Math.sqrt(o.xs.reduce((a, _, i) => a + (ys[i] - tv[i]) ** 2, 0) / n) / span;
+        done(rms <= (o.tol ?? 0.15), rms, `Your sketch is off by ${(100 * rms).toFixed(0)}% of the curve's range. `);
+      }, { cls: "lx-primary" });
+    } else if (type === "explain") {
+      const ta = h("textarea", { placeholder: "In your own words…", "aria-label": "your explanation" }, body);
+      const row = h("div", { class: "lx-row" }, body);
+      button(row, o.compareLabel || "Compare with a model answer", () => {
+        if (box.querySelector(".lx-model")) return;
+        const m = h("div", { class: "lx-model", html: o.model }, body); typeset(m);
+        done(null, ta.value);
+      });
+    }
+    typeset(box);
+    return { el: box, get answered() { return answered; } };
+  }
 
   /* ---------- self-tests ---------- */
   window.__lxTests = window.__lxTests || [];
@@ -572,125 +683,96 @@ const LX = (() => {
   }
   const near = (a, b, tol = 1e-9) => Math.abs(a - b) <= tol * Math.max(1, Math.abs(a), Math.abs(b));
 
-  return { h, s, typeset, linspace, clamp, sample, C, eigSym, niceTicks, fig, plot, drag, camera,
-           controls, slider, segmented, button, limits, readout, player, steps, isLocked, check, near, rng, reduceMotion };
+  return { h, s, typeset, linspace, clamp, sample, C, eigSym, niceTicks, fig, plot, drag, camera, widget, guide, legend,
+           controls, slider, segmented, button, limits, readout, player, ask, gate, check, near, rng, reduceMotion };
 })();
 /* LX:LIB-END */</script>
 
 <script>
 /* PATTERN */
-const NMAX = 20;
-const S = { N: 2, lam: 0.5, a: 1 };
+const NMAX = 20, YB = -14;                       // highest order shown; floor of the log-scale term plot
+const S = { N: 4, lam: 0.6, a: 1 };
 /* Taylor coefficients of √(1+x): C(1/2, n), by recursion. E₋ = −a Σ coef(n) (λ/a)^{2n}. */
 const COEF = [1]; for (let n = 0; n < 400; n++) COEF.push(COEF[n] * (0.5 - n) / (n + 1));
 const exact = (l, a = S.a) => -Math.sqrt(a * a + l * l);
 function series(l, N = S.N, a = S.a) { let s = 0, x = (l / a) ** 2, p = 1; for (let n = 0; 2 * n <= N; n++) { s += COEF[n] * p; p *= x; } return -a * s; }
 const err = (l, N = S.N, a = S.a) => Math.abs(series(l, N, a) - exact(l, a));
-const lerr = (l, N, a) => Math.max(-16, Math.log10(err(l, N, a)));
+const term = (n, l = S.lam, a = S.a) => a * Math.abs(COEF[n]) * Math.pow(l / a, 2 * n);   // size of the λ^{2n} term
 const fmt = (v, d = 4) => v.toFixed(d).replace("-", "−");
-const fmtE = v => (v === 0 ? "0" : v.toExponential(2).replace("-", "−"));
+const fmtE = v => (v === 0 ? "0" : v.toExponential(1).replace("-", "−"));
 
-/* ---- layout ---- */
-const stage = document.getElementById("stage");
-const figs = LX.h("div", { class: "lx-figs" }, stage);
-const PE = LX.plot(LX.fig(figs, "Exact \\(E_-(\\lambda)\\) (orange) vs the series truncated at order \\(\\lambda^N\\) (blue)"),
-  { xlim: [0, 2], ylim: [-2.6, -0.4], xlabel: "\\lambda", ylabel: "E_-", height: 340 });
-const PR = LX.plot(LX.fig(figs, "Error \\(\\log_{10}|E_N - E_-|\\): every even order (grey), current order (blue)"),
-  { xlim: [0, 2], ylim: [-16, 2], xlabel: "\\lambda", ylabel: "\\log_{10}|\\text{error}|", height: 340 });
-const PC = LX.plot(LX.fig(figs, "Complex \\(\\lambda\\) plane: the series converges inside the disk; the magenta points are where the two levels become degenerate"),
-  { xlim: [-2, 2], ylim: [-2, 2], xlabel: "\\mathrm{Re}\\,\\lambda", ylabel: "\\mathrm{Im}\\,\\lambda", width: 320, height: 328 });
+/* ---- widget ---- */
+const W = LX.widget(document.getElementById("stage"), { layout: "grid2", title: "Exact energy vs its perturbation series", badge: "exact" });
 
-const ctl = LX.controls(stage);
+const fE = LX.fig(W, "Ground energy: exact (orange) and the series up to \\(\\lambda^N\\) (blue)");
+const PE = LX.plot(fE, { xlim: [0, 2], ylim: [-2.6, -0.3], xlabel: "\\lambda", ylabel: "E_-", height: 340, aria: "exact and truncated energy" });
+const texA = PE.tex(1, -0.36, "\\lambda = a", { anchor: "nw" });
+
+const fT = LX.fig(W, "Size of each term at the chosen \\(\\lambda\\): solid = kept, faint = dropped; dashed: the actual error");
+const PT = LX.plot(fT, { xlim: [-1, 21], ylim: [YB, 4], xlabel: "\\text{power of }\\lambda", ylabel: "\\log_{10}|\\text{term}|", height: 340, xticks: 11, aria: "size of each term" });
+const texErr = PT.tex(20.6, 0, "\\text{error}", { anchor: "se" });
+
+const fC = LX.fig(W, "Complex \\(\\lambda\\) plane: the series converges inside the shaded disk; pink: where the two levels meet");
+const PC = LX.plot(fC, { xlim: [-3.38, 3.38], ylim: [-1.8, 1.8], xlabel: "\\mathrm{Re}\\,\\lambda", ylabel: "\\mathrm{Im}\\,\\lambda", height: 340, aria: "complex coupling plane" });
+const texP = PC.tex(0.3, 1, "+\\ii a", { anchor: "w" }), texM = PC.tex(0.3, -1, "-\\ii a", { anchor: "w" });
+
+const ctl = LX.controls(W);
 const nS = LX.slider(ctl, { id: "order", label: "order \\(N\\) (highest power \\(\\lambda^N\\))", min: 0, max: NMAX, step: 2, value: S.N, fmt: v => String(v), onInput: v => { S.N = v; update(); } });
 const lS = LX.slider(ctl, { id: "lam", label: "coupling \\(\\lambda\\)", min: 0, max: 2, step: 0.01, value: S.lam, onInput: v => { S.lam = v; update(); } });
 const aS = LX.slider(ctl, { id: "a", label: "unperturbed half-gap \\(a\\)", min: 0.5, max: 1.5, step: 0.01, value: S.a, onInput: v => { S.a = v; update(); } });
-const cmp = LX.h("div", { class: "lx-group" }, ctl);
-LX.h("span", { text: "Compare" }, cmp);
-const cmpRow = LX.h("div", { class: "lx-row" }, cmp);
-LX.button(cmpRow, "Keep a copy", () => PE.ghost(), { id: "ghost" });
-LX.button(cmpRow, "Clear copy", () => PE.clearGhost(), { id: "unghost" });
-LX.limits(ctl, [
-  { label: "Weak coupling", title: "λ = 0.3 a", apply: () => lS.set(0.3 * S.a) },
-  { label: "Just inside", title: "λ = 0.9 a", apply: () => lS.set(0.9 * S.a) },
-  { label: "Just outside", title: "λ = 1.1 a", apply: () => lS.set(Math.min(2, 1.1 * S.a)) },
-  { label: "Strong coupling", title: "λ = 1.8", apply: () => lS.set(1.8) }
-]);
-const ro = LX.h("div", { class: "lx-readouts" }, LX.controls(stage));
+const ro = LX.h("div", { class: "lx-readouts" }, ctl);
 const rEx = LX.readout(ro, "exact \\(E_-\\) =");
 const rSe = LX.readout(ro, "series \\(E_N\\) =");
 const rEr = LX.readout(ro, "error =");
 const rR = LX.readout(ro, "\\(|\\lambda|/a\\) =");
+const verdict = LX.h("p", { style: "margin:0;font-size:14px" }, ctl);
+
+LX.guide(W, [
+  ["Energy", "The exact ground energy and the series cut off at \\(\\lambda^N\\). The dots mark the chosen \\(\\lambda\\); the dashed line is \\(\\lambda = a\\)."],
+  ["Term sizes", "How big each term of the series is at the chosen \\(\\lambda\\), on a log scale. Each term is about \\((\\lambda/a)^2\\) times the previous one. Below \\(\\lambda = a\\) the bars fall and the error (dashed) is about the size of the first omitted bar; above it the bars grow and every extra order adds a larger error."],
+  ["Complex plane", "Coupling \\(\\lambda\\) as a complex number. The two levels \\(\\pm\\sqrt{a^2+\\lambda^2}\\) meet at \\(\\lambda = \\pm\\ii a\\) (pink). A power series converges in the largest disk around 0 that avoids them, so the radius is \\(a\\)."],
+  ["Sliders", "\\(N\\): how many orders are kept. \\(\\lambda\\): where the series is evaluated (orange dot). \\(a\\): the unperturbed half-gap, which sets the radius."]
+]);
 
 function update() {
   const { N, lam, a } = S;
-  PE.clear(); PE.clear("top"); PE.clear("tex");
-  PE.vline(a, { cls: "sm dash" }); PE.tex(a, -0.45, "\\lambda = a", { anchor: "nw" });
+  /* energy */
+  PE.clear(); PE.clear("top");   /* not clearAll: the TeX labels are created once and moved */
+  PE.vline(a, { cls: "sm dash" }); PE.placeTex(texA, Math.min(a, 1.62) + 0.03, -0.36, "nw");
   PE.fn(l => exact(l), { cls: "s2" });
   PE.fn(l => series(l), { cls: "s1", n: 500 });
-  PE.dot(lam, exact(lam), { cls: "f2" }); PE.dot(lam, series(lam), { cls: "f1" });
-
-  PR.clear(); PR.clear("top"); PR.clear("tex");
-  PR.vline(a, { cls: "sm dash" });
-  for (let k = 2; k <= NMAX; k += 2) if (k !== N) PR.fn(l => lerr(l, k, a), { cls: "sm thin", n: 300 });
-  PR.fn(l => lerr(l, N, a), { cls: "s1", n: 400 });
-  PR.vline(lam, { cls: "sm", layer: "top" });
-  PR.dot(lam, lerr(lam, N, a), { cls: "f1" });
-  PR.tex(a, 1.6, "|\\lambda| = a", { anchor: "nw" });
-
-  PC.clear(); PC.clear("fill"); PC.clear("top"); PC.clear("tex");
+  PE.vline(lam, { cls: "sm thin" });
+  PE.dot(lam, exact(lam), { cls: "f2" }); PE.dot(lam, LX.clamp(series(lam), -2.7, -0.2), { cls: "f1" });
+  /* terms */
+  PT.clear();
+  for (let n = 0; 2 * n <= NMAX; n++) {
+    const v = Math.log10(term(n)); if (!isFinite(v)) continue;
+    const x = 2 * n, top = Math.min(4.5, v);
+    if (top > YB) PT.path([[x - 0.65, YB], [x - 0.65, top], [x + 0.65, top], [x + 0.65, YB]], { cls: 2 * n <= N ? "bar-on" : "bar-off", close: true });
+  }
+  const e = err(lam), le = Math.log10(e);
+  if (isFinite(le) && le > YB) { PT.hline(le, { cls: "s2 dash" }); PT.placeTex(texErr, 20.6, Math.min(le, 3.6), "se"); }
+  else PT.placeTex(texErr, NaN, NaN);
+  /* complex plane */
+  PC.clear(); PC.clear("fill"); PC.clear("top");
   PC.hline(0, { cls: "gr" }); PC.vline(0, { cls: "gr" });
   const circ = LX.linspace(0, 2 * Math.PI, 200).map(t => [a * Math.cos(t), a * Math.sin(t)]);
   PC.path(circ, { cls: "a1", layer: "fill", close: true }); PC.path(circ, { cls: "s1 dash" });
   PC.dot(0, a, { r: 6, cls: "f4" }); PC.dot(0, -a, { r: 6, cls: "f4" });
-  PC.tex(0.2, a, "+\\ii a", { anchor: "w" }); PC.tex(0.2, -a, "-\\ii a", { anchor: "w" });
-  PC.dot(lam, 0, { r: 5.5, cls: "f2" });
-
-  const e = err(lam);
-  rEx.set(fmt(exact(lam))); rSe.set(fmt(series(lam))); rEr.set(fmtE(e)); rR.set(fmt(lam / a, 2));
+  PC.placeTex(texP, 0.3, a, "w"); PC.placeTex(texM, 0.3, -a, "w");
+  PC.dot(lam, 0, { r: 6, cls: "f2" });
+  /* readouts */
+  rEx.set(fmt(exact(lam))); rSe.set(Math.abs(series(lam)) < 1e5 ? fmt(series(lam)) : fmtE(series(lam))); rEr.set(fmtE(e)); rR.set(fmt(lam / a, 2));
+  verdict.innerHTML = lam / a < 0.995 ? "<b>Inside the radius:</b> each extra order makes the error smaller."
+    : lam / a > 1.005 ? "<b>Outside the radius:</b> each extra order makes the error larger." : "<b>On the radius:</b> the terms neither shrink nor grow geometrically.";
 }
 update();
-
-/* ---- lesson ---- */
-const go = (N, lam, a = 1) => () => { PE.clearGhost(); aS.set(a, false); S.a = a; nS.set(N, false); S.N = N; lS.set(lam); };
-LX.steps(document.getElementById("steps"), [
-  { title: "Second order is already good",
-    onEnter: go(2, 0.5),
-    html: "<p>At order 2 the series is \\(E_- \\approx -a - \\lambda^2/2a\\), the textbook second-order shift \\(|\\langle + |V| - \\rangle|^2/(E_- - E_+)\\). At \\(\\lambda = 0.5\\) its error is a few parts in a thousand.</p>",
-    predict: { prompt: "Step the order up from 2 to 20 at \\(\\lambda = 0.5\\). What happens to the error?",
-      options: ["It shrinks by many orders of magnitude, roughly a factor \\((\\lambda/a)^2\\) per step", "It shrinks a little, then saturates", "It grows: high orders amplify errors"], answer: 0,
-      right: "Each new term is smaller by about \\((\\lambda/a)^2 = 0.25\\), so ten more steps gain about six decades. Inside the radius, more orders always pay.",
-      wrong: "Read the error readout as you step: each order multiplies the error by roughly \\((\\lambda/a)^2 = 0.25\\). That is geometric convergence." },
-    lock: ["order-wrap"],
-    after: "<p>In the error plot, the curves for higher order lie lower everywhere to the left of the dashed line.</p>" },
-  { title: "Past the radius",
-    onEnter: go(2, 1.3),
-    html: "<p>Now \\(\\lambda = 1.3\\), larger than the unperturbed half-gap \\(a = 1\\). The exact curve is perfectly smooth here.</p>",
-    predict: { prompt: "What does raising the order do now?",
-      options: ["The error keeps shrinking, just more slowly", "The error grows with every order: the series diverges", "Nothing: the error is already zero"], answer: 1,
-      right: "The terms scale like \\((\\lambda/a)^{2n}\\) with \\(\\lambda/a > 1\\), so they grow without bound. Adding orders makes the approximation worse.",
-      wrong: "Step the order and watch the blue truncation peel away from the orange exact curve: for \\(|\\lambda| > a\\) the terms grow like \\((\\lambda/a)^{2n}\\) and the series diverges." },
-    lock: ["order-wrap"],
-    after: "<p>Look at the error plot: all the grey curves cross near \\(\\lambda = a\\). Left of it higher order is better, right of it higher order is worse.</p>" },
-  { title: "What sets the radius?",
-    onEnter: go(10, 0.8),
-    html: "<p>Nothing special happens to \\(E_-(\\lambda)\\) at \\(\\lambda = a\\) on the real axis. Look at the complex-\\(\\lambda\\) panel instead.</p>",
-    predict: { prompt: "Lower the gap \\(a\\) to 0.5. Where does the boundary of convergence move, and why?",
-      options: ["It stays at \\(\\lambda = 1\\), since the coupling has not changed", "To \\(\\lambda = a = 0.5\\): the levels become degenerate at complex \\(\\lambda = \\pm\\ii a\\), and that distance sets the radius", "To \\(\\lambda = 2a\\), where the exact energy has a kink"], answer: 1,
-      right: "\\(E_\\pm = \\pm\\sqrt{a^2+\\lambda^2}\\) has branch points where \\(a^2 + \\lambda^2 = 0\\). A power series converges in the largest disk free of singularities, so the radius is \\(a\\).",
-      wrong: "The singularities of \\(\\sqrt{a^2+\\lambda^2}\\) sit at \\(\\lambda = \\pm\\ii a\\), where the two levels cross in the complex plane. The disk of convergence reaches exactly to them: radius \\(a\\)." },
-    lock: ["a-wrap"],
-    after: "<p>This is general: perturbation series in quantum mechanics converge up to the nearest complex coupling where the level you follow becomes degenerate with another. Small gaps mean small radii.</p><p>Some series have zero radius. For the anharmonic oscillator \\(H = p^2/2 + x^2/2 + g x^4\\), the coefficients grow like \\(n!\\): the series is only asymptotic. At fixed \\(g\\) the error first falls and then rises with order, so the best you can do is truncate near the smallest term.</p>" },
-  { title: "Put it in your own words",
-    onEnter: go(20, 1.1),
-    html: "<p>The series is the same function written differently, and yet it fails at a perfectly ordinary real \\(\\lambda\\).</p>",
-    explain: { prompt: "Why can a singularity at imaginary \\(\\lambda\\) ruin a series for real \\(\\lambda\\)?",
-      model: "<p>A power series in \\(\\lambda\\) does not know which direction in the complex plane you care about: it converges in a disk \\(|\\lambda| < R\\) and diverges outside, with \\(R\\) the distance to the nearest singularity. For \\(H = a\\sigma_z + \\lambda\\sigma_x\\) the energies \\(\\pm\\sqrt{a^2+\\lambda^2}\\) have branch points at \\(\\lambda = \\pm\\ii a\\), where the two levels meet. So the real-axis series stops converging at \\(|\\lambda| = a\\), even though the real function is smooth there.</p><p><b>Transfer:</b> Dyson's argument says the series for \\(E(g)\\) in \\(H = p^2/2 + x^2/2 + gx^4\\) has zero radius of convergence. What goes wrong physically for small negative \\(g\\), and why does that rule out any disk of convergence?</p>" } }
-]);
 
 /* ---- self-tests ---- */
 LX.check("coefficients of √(1+x): 1, 1/2, −1/8, 1/16, −5/128", () => [1, 0.5, -1 / 8, 1 / 16, -5 / 128].every((c, i) => LX.near(COEF[i], c, 1e-15)));
 LX.check("second-order RS shift −λ²/2a matches the exact energy", () => { const a = 0.7, l = 1e-3; return LX.near((exact(l, a) + a) / (l * l), -1 / (2 * a), 1e-5); });
 LX.check("inside the radius: order 20 at λ = 0.3a is accurate to 1e-11", () => err(0.3, 20, 1) < 1e-11 && err(0.3, 20, 1) < err(0.3, 10, 1));
 LX.check("outside the radius: error grows with order at λ = 1.3a", () => err(1.3, 20, 1) > err(1.3, 10, 1) && err(1.3, 10, 1) > err(1.3, 2, 1));
+LX.check("inside the radius the error is about the first omitted term (within ×3)", () => { const r = err(0.6, 8, 1) / term(5, 0.6, 1); return { pass: r > 1 / 3 && r < 3, detail: r }; });
 LX.check("ratio test: |c_n / c_{n+1}| → 1, so radius in (λ/a)² is 1", () => { const n = 300, r = Math.abs(COEF[n] / COEF[n + 1]); return { pass: Math.abs(r - 1) < 0.01, detail: r }; });
 </script>

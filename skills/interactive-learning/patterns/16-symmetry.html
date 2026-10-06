@@ -5,32 +5,40 @@ Concept shape   An operation leaves the Hamiltonian invariant, so eigenstates ca
                 (and may be forced into degeneracies or pairs); breaking the symmetry mixes them.
 Use it for      Parity and the double well, tunnelling splitting, ammonia inversion, chirality
                 (Hund's paradox), translation and Bloch states, rotation and angular momentum,
-                time reversal and Kramers pairs, spontaneous symmetry breaking in small systems,
-                selection rules.
-Widget anatomy  (1) the potential with the lowest four eigenfunctions drawn at their energies;
-                (2) an "Apply P" button that mirrors the picture (the unmirrored picture stays as a
-                    ghost) so each state visibly maps to ± itself;
-                (3) sliders for the barrier height and a symmetry-breaking tilt ε; limit buttons;
-                (4) readouts: ⟨P⟩ of each state, the splitting E₁ − E₀, the tilt energy, the weight of
-                    ψ₀ in the right well.
-Teaching moments  Predict what P does to each state; predict how the splitting depends on the barrier;
-                  predict that a tiny tilt localises the states when the barrier is high; predict that
-                  the same tilt does little when the barrier is low.
+                time reversal and Kramers pairs, selection rules.
+Widget anatomy  (1)+(2) one panel per state, ψ₀ and ψ₁, each drawn over the potential (grey) with its
+                    energy level (dashed). "Apply parity P" animates the mirror x → −x (the graph folds
+                    through x = 0) and leaves the original dashed behind; the label then reads
+                    Pψ₀ = +ψ₀ and Pψ₁ = −ψ₁. Pressing again applies P a second time (P² = 1);
+                (3) the tunnelling splitting ΔE = E₁ − E₀ against the barrier height (log scale), with a dot
+                    at the current barrier;
+                (4) controls in the fourth cell: the P button, one barrier slider, readouts of the parity
+                    eigenvalues and ΔE.
+                One thing changes per control: P mirrors the states, the slider moves the barrier (and the
+                dot on the ΔE curve). No tilt, no extra toggles.
+Layout          grid2 with the controls in the fourth cell: the two states side by side so P's effect on
+                each can be compared at a glance.
+Teaching moments  Suggestions for the chapter around the widget:
+                  - "Press P. What happens to each state?" (choice: ψ₀ unchanged, ψ₁ flips sign);
+                  - "Why must a non-degenerate eigenstate be a parity eigenstate?" (explain: [H, P] = 0);
+                  - "Raise the barrier from 2 to 10. What does ΔE do?" (choice: falls roughly exponentially);
+                  - "A particle starts in the left well. How long until it is in the right?" (number: π/ΔE);
+                  - transfer: a small tilt εx localises the states once 2εx₀ ≫ ΔE; chiral molecules
+                    (explain). That is a second widget, not an extra slider here.
 Adapt by        Replace V(x) and the symmetry operation (here i → N−1−i on a symmetric grid). Any operator
-                that permutes grid points works the same way: translation by one well in a periodic
-                chain, reflection in 2D. Keep N ≤ 120: LX.eigSym is a dense Jacobi solver.
-Physics         H = −½ d²/dx² + V(x), V(x) = V₀((x/x₀)² − 1)² + εx, x₀ = 1.5, ħ = m = 1, hard walls at
-                x = ±3.2, three-point finite differences on N = 100 interior points. For ε = 0, [H, P] = 0
-                and ⟨P⟩ = ±1, alternating in energy. The tunnelling splitting Δ = E₁ − E₀ falls roughly
-                like exp(−∫√(2V) dx) with the barrier. Two-level estimate for the tilted case:
-                ⟨P⟩₀ ≈ Δ/√(Δ² + (2εx₀)²).
+                that permutes grid points works the same way: translation by one well in a periodic chain,
+                reflection in 2D. Keep N ≤ 120: LX.eigSym is a dense Jacobi solver (≈ 50 ms for N = 100).
+Physics         H = −½ d²/dx² + V(x), V(x) = V₀((x/x₀)² − 1)², x₀ = 1.5, ħ = m = 1, hard walls at x = ±3.2,
+                three-point finite differences on N = 100 interior points, diagonalised with LX.eigSym.
+                [H, P] = 0, so ⟨P⟩ = ±1, alternating in energy. The tunnelling splitting ΔE = E₁ − E₀ falls
+                roughly like exp(−∫√(2(V − E)) dx) through the barrier.
 -->
 <!-- LX:HEAD-BEGIN -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
 <script>
 window.MathJax = {
   tex: {
-    inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]],
+    inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]], tags: "ams",
     macros: {
       ket: ["\\left|#1\\right\\rangle", 1], bra: ["\\left\\langle#1\\right|", 1],
       braket: ["\\left\\langle#1\\middle|#2\\right\\rangle", 2], expval: ["\\left\\langle#1\\right\\rangle", 1],
@@ -49,7 +57,7 @@ window.MathJax = {
 <!-- LX:HEAD-END -->
 <style>
 /* LX:STYLE-BEGIN */
-/* Layout: a lab-notebook page. Figure stage on the left, lesson steps on the right; one column on phones. */
+/* Theme tokens, page, article typography, widget layouts, inline questions, SVG marks. */
 :root {
   --bg: #f5f6f8; --surface: #ffffff; --fg: #17202c; --muted: #5b6676; --line: #d6dce5; --grid: #eaeef3;
   --accent: #2f5bd3; --c2: #c9700c; --c3: #12857a; --c4: #b0377a; --good: #1f8a4c; --bad: #c2412d;
@@ -80,63 +88,98 @@ body { background: var(--bg); color: var(--fg); font: 15px/1.55 var(--f-ui); mar
 .lx-badge[data-kind="exact"] { color: var(--good); }
 .lx-badge[data-kind="schematic"] { color: var(--c2); }
 .lx-badge[data-kind="computed"] { color: var(--accent); }
-.lx-layout { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr); gap: 20px; align-items: start; }
-@media (max-width: 860px) { .lx-layout { grid-template-columns: minmax(0, 1fr); } }
+/* article: a reading column for text and math; widgets may break out with .lx-wide */
+.lx-article { display: grid; grid-template-columns: minmax(0, 1fr) min(720px, 100%) minmax(0, 1fr); row-gap: 16px; }
+.lx-article > * { grid-column: 2; min-width: 0; margin: 0; }
+.lx-article > .lx-wide { grid-column: 1 / -1; }
+.lx-article > p, .lx-article > ul, .lx-article > ol, .lx-prose { font: 17px/1.65 var(--f-prose); }
+.lx-article > ul, .lx-article > ol { padding-left: 1.3em; }
+.lx-article h2 { font: 600 24px/1.25 var(--f-prose); margin-top: 18px; text-wrap: balance; }
+.lx-article h3 { font: 600 19px/1.3 var(--f-prose); margin-top: 6px; }
+.lx-prose p { margin: 0 0 .6em; } .lx-prose p:last-child { margin-bottom: 0; }
+mjx-container[display="true"] { overflow-x: auto; overflow-y: hidden; max-width: 100%; padding: 2px 0; }
+.lx-callout { border-left: 3px solid var(--c3); padding: 8px 14px; background: var(--surface); border-radius: 0 8px 8px 0; font: 16px/1.6 var(--f-prose); }
+.lx-callout > b:first-child { font-family: var(--f-ui); font-size: 13px; letter-spacing: .04em; text-transform: uppercase; color: var(--c3); display: block; }
+.lx-hook { border: 1px solid var(--line); border-top: 3px solid var(--c2); background: var(--surface); border-radius: 10px; padding: 14px 16px; font: 18px/1.55 var(--f-prose); }
 .lx-stage { display: grid; gap: 14px; min-width: 0; }
-.lx-figs { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
-.lx-fig { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px; min-width: 0; display: grid; gap: 6px; }
+/* widget card: one framed unit of figures + controls; the layout class sets the arrangement */
+.lx-widget { container-type: inline-size; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: grid; gap: 12px; min-width: 0; }
+.lx-w-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px 12px; }
+.lx-w-head h3 { margin: 0; font: 600 16px/1.3 var(--f-ui); }
+.lx-w { display: grid; gap: 12px; min-width: 0; align-items: start; }
+.lx-w > *, .lx-col > * { min-width: 0; }
+.lx-col { display: grid; gap: 12px; align-content: start; min-width: 0; }
+.lx-split { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.lx-grid2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.lx-aside { grid-template-columns: minmax(0, 1fr) minmax(210px, 32%); }
+.lx-aside.lx-left { grid-template-columns: minmax(210px, 32%) minmax(0, 1fr); }
+.lx-hero { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+.lx-hero > :first-child { grid-row: span 3; }
+.lx-span2 { grid-column: 1 / -1; }
+@container (max-width: 620px) {
+  .lx-split, .lx-grid2, .lx-aside, .lx-aside.lx-left, .lx-hero { grid-template-columns: minmax(0, 1fr); }
+  .lx-hero > :first-child { grid-row: auto; }
+}
+.lx-figs { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); }
+.lx-fig { position: relative; min-width: 0; display: grid; gap: 6px; margin: 0; }
 .lx-fig > figcaption { font-size: 12.5px; color: var(--muted); }
 .lx-plot { position: relative; width: 100%; }
 .lx-plot > svg { display: block; width: 100%; height: auto; overflow: visible; touch-action: none; }
 .lx-overlay { position: absolute; inset: 0; pointer-events: none; }
 .lx-tex { position: absolute; white-space: nowrap; font-size: 13px; color: var(--fg); line-height: 1; }
-.lx-controls { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: end; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+.lx-float { position: absolute; top: 4px; right: 4px; z-index: 2; display: flex; flex-wrap: wrap; gap: 6px; justify-content: end; }
+.lx-controls { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: end; background: var(--bg); border-radius: 8px; padding: 10px 12px; }
+:is(.lx-aside, .lx-hero, .lx-grid2) > .lx-controls, .lx-controls.lx-vert { flex-direction: column; flex-wrap: nowrap; align-items: stretch; }
+:is(.lx-aside, .lx-hero, .lx-grid2) > .lx-controls .lx-slider, .lx-controls.lx-vert .lx-slider { flex: none; min-width: 0; }
 .lx-slider { display: grid; gap: 2px; min-width: min(100%, 200px); flex: 1 1 200px; }
 .lx-slider .lx-lab { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--muted); }
-.lx-slider output, .lx-readout b { font-family: var(--f-mono); font-variant-numeric: tabular-nums; color: var(--fg); font-weight: 500; }
+.lx-slider output, .lx-readouts b { font-family: var(--f-mono); font-variant-numeric: tabular-nums; color: var(--fg); font-weight: 500; }
 .lx-slider input[type=range] { width: 100%; accent-color: var(--accent); }
 .lx-group { display: grid; gap: 4px; }
 .lx-group > span { font-size: 12px; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
 .lx-row { display: flex; flex-wrap: wrap; gap: 6px; }
-.lx-btn { font: 500 13px var(--f-ui); color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; cursor: pointer; }
-.lx-btn:hover { border-color: var(--accent); }
+.lx-btn { font: 500 13px var(--f-ui); color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; cursor: pointer; line-height: 1.3; }
+.lx-btn:hover:not(:disabled) { border-color: var(--accent); }
 .lx-btn:focus-visible, .lx-seg input:focus-visible + span, .lx-drag:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .lx-btn[aria-pressed="true"], .lx-btn.lx-primary { background: var(--accent); color: var(--surface); border-color: var(--accent); }
 .lx-btn:disabled { opacity: .45; cursor: not-allowed; }
-.lx-seg { display: inline-flex; flex-wrap: wrap; max-width: 100%; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.lx-btn mjx-container, .lx-seg mjx-container, .lx-opt mjx-container { display: inline-block !important; margin: 0 !important; vertical-align: -0.2em; }
+.lx-seg { display: inline-flex; flex-wrap: wrap; max-width: 100%; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--surface); }
 .lx-seg label { cursor: pointer; }
 .lx-seg input { position: absolute; opacity: 0; pointer-events: none; }
-.lx-seg span { display: block; padding: 5px 10px; font-size: 13px; }
+.lx-seg span { display: block; padding: 5px 10px; font-size: 13px; line-height: 1.3; }
 .lx-seg input:checked + span { background: var(--accent); color: var(--surface); }
 .lx-readouts { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); }
-.lx-locked { opacity: .5; }
-.lx-locked * { cursor: not-allowed !important; }
-/* steps */
-.lx-steps { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: grid; gap: 12px; min-width: 0; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); }
-@media (max-width: 860px) { .lx-steps { position: static; order: -1; } }  /* phones: read the question, then use the widget below */
-.lx-steps-top { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
-.lx-dots { display: flex; gap: 5px; }
-.lx-dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
-.lx-dots i.on { background: var(--accent); }
-.lx-dots i.done { background: var(--muted); }
-.lx-steps h2 { margin: 0; font: 600 19px/1.3 var(--f-prose); text-wrap: balance; }
-.lx-prose { font: 16px/1.6 var(--f-prose); max-width: 68ch; }
-.lx-prose p { margin: 0 0 .6em; }
-.lx-prose p:last-child { margin-bottom: 0; }
-.lx-predict { display: grid; gap: 8px; border-left: 3px solid var(--accent); padding: 8px 0 8px 12px; background: var(--accent-soft); border-radius: 0 8px 8px 0; }
-.lx-predict > p { margin: 0; font-weight: 500; }
-.lx-opts { display: grid; gap: 6px; padding-right: 10px; }
+.lx-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; color: var(--fg); }
+.lx-legend i { display: inline-block; width: 16px; height: 0; border-top: 2.5px solid currentColor; vertical-align: middle; margin-right: 5px; }
+.lx-legend i.dash { border-top-style: dashed; } .lx-legend i.dot { width: 9px; height: 9px; border: none; border-radius: 50%; background: currentColor; }
+/* "What you are looking at" */
+.lx-guide { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 12px; margin: 0; font-size: 13.5px; line-height: 1.45; border-top: 1px solid var(--line); padding-top: 10px; }
+.lx-guide > b { grid-column: 1 / -1; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+.lx-guide dt { font-weight: 600; } .lx-guide dd { margin: 0; color: var(--fg); }
+@container (max-width: 480px) { .lx-guide { grid-template-columns: minmax(0, 1fr); } .lx-guide dd { margin: 0 0 6px; } }
+/* inline questions */
+.lx-ask { display: grid; gap: 8px; border-left: 3px solid var(--accent); padding: 10px 12px; background: var(--accent-soft); border-radius: 0 8px 8px 0; }
+.lx-ask > .lx-kicker { font: 500 12px var(--f-ui); letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
+.lx-ask > .lx-q { font: 500 16px/1.5 var(--f-prose); }
+.lx-opts { display: grid; gap: 6px; }
 .lx-opt { text-align: left; font: 14px/1.4 var(--f-ui); color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; cursor: pointer; }
 .lx-opt:hover:not(:disabled) { border-color: var(--accent); }
 .lx-opt:disabled { cursor: default; }
 .lx-opt.right { border-color: var(--good); box-shadow: inset 3px 0 0 var(--good); }
 .lx-opt.wrong { border-color: var(--bad); box-shadow: inset 3px 0 0 var(--bad); }
-.lx-feedback { font: 15px/1.5 var(--f-prose); padding-right: 10px; }
+.lx-ask input[type=text] { font: 15px var(--f-mono); color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; width: 9em; }
+.lx-ask textarea { font: 15px/1.5 var(--f-prose); color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 8px; min-height: 84px; resize: vertical; }
+.lx-feedback { font: 15px/1.5 var(--f-prose); }
 .lx-feedback b { font-family: var(--f-ui); }
-.lx-explain { display: grid; gap: 8px; }
-.lx-explain textarea { font: 15px/1.5 var(--f-prose); color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 8px; min-height: 84px; resize: vertical; }
-.lx-model { border: 1px dashed var(--line); border-radius: 8px; padding: 10px; }
-.lx-nav { display: flex; justify-content: space-between; gap: 8px; }
+.lx-feedback.good b { color: var(--good); } .lx-feedback.bad b { color: var(--bad); }
+.lx-model { border: 1px dashed var(--line); border-radius: 8px; padding: 10px; background: var(--surface); font: 15px/1.55 var(--f-prose); }
+/* gate: a result stays hidden until its question is answered, then stays visible */
+.lx-gated { position: relative; }
+.lx-gated > * { filter: blur(7px); opacity: .45; pointer-events: none; user-select: none; }
+.lx-gated::after { content: attr(data-gate); position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 4px 8px; font: 500 14px var(--f-ui); color: var(--fg); }
+span.lx-gated { display: inline-block; min-width: 9em; }
+span.lx-gated::after { font-size: 12px; white-space: nowrap; padding: 0; }
 .lx-foot { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 12px; display: grid; gap: 4px; max-width: 90ch; }
 /* svg marks: color via classes so both themes work */
 .lx-plot text { font: calc(11px * var(--lx-k, 1)) var(--f-mono); fill: var(--muted); }
@@ -147,6 +190,8 @@ body { background: var(--bg); color: var(--fg); font: 15px/1.55 var(--f-ui); mar
 .s1 { stroke: var(--accent); } .s2 { stroke: var(--c2); } .s3 { stroke: var(--c3); } .s4 { stroke: var(--c4); } .sm { stroke: var(--muted); stroke-width: 1.2; }
 .dash { stroke-dasharray: 5 4; }
 .thin { stroke-width: 1.2; }
+.faint { opacity: .45; }
+.sk { fill: none; stroke: var(--c4); stroke-width: 2.6; stroke-dasharray: 7 5; stroke-linecap: round; }
 .f1 { fill: var(--accent); } .f2 { fill: var(--c2); } .f3 { fill: var(--c3); } .f4 { fill: var(--c4); } .fm { fill: var(--muted); } .fs { fill: var(--surface); }
 .a1 { fill: var(--accent); fill-opacity: .16; stroke: none; } .a2 { fill: var(--c2); fill-opacity: .18; stroke: none; } .a3 { fill: var(--c3); fill-opacity: .18; stroke: none; }
 .g-ghost { opacity: .32; }
@@ -155,22 +200,19 @@ body { background: var(--bg); color: var(--fg); font: 15px/1.55 var(--f-ui); mar
 .lx-drag:active { cursor: grabbing; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 /* LX:STYLE-END */
+.vfill { fill: var(--muted); fill-opacity: .14; stroke: var(--muted); stroke-opacity: .6; stroke-width: 1.2; }
 </style>
 
 <main class="lx-page">
   <header class="lx-head">
     <p class="lx-eyebrow">Quantum mechanics · Symmetry</p>
     <h1>What does a mirror symmetry tell you about the eigenstates?</h1>
-    <p class="lx-lede">A particle in a symmetric double well. Apply the parity operation to the eigenstates, raise the barrier, then tilt the potential by a tiny amount and watch the states decide which well to live in.</p>
+    <p class="lx-lede">A particle in a symmetric double well. Mirror the two lowest eigenstates and each one comes back as plus or minus itself. Raise the barrier and the two energies squeeze together.</p>
     <div class="lx-meta">
-      <span class="lx-badge" data-kind="computed">Computed: finite differences, 100 points</span>
-      <span>\(H = -\tfrac12\partial_x^2 + V_0\big((x/x_0)^2-1\big)^2 + \varepsilon x\), \(x_0 = 1.5\), \(\hbar = m = 1\), hard walls at \(x = \pm 3.2\)</span>
+      <span>\(H = -\tfrac12\partial_x^2 + V_0\big((x/x_0)^2-1\big)^2\), \(x_0 = 1.5\), \(\hbar = m = 1\), hard walls at \(x = \pm 3.2\); finite differences, 100 points</span>
     </div>
   </header>
-  <section class="lx-layout">
-    <div class="lx-stage" id="stage"></div>
-    <aside class="lx-steps" id="steps" aria-live="polite"></aside>
-  </section>
+  <div class="lx-stage" id="stage"></div>
   <footer class="lx-foot">
     <span>Source: model knowledge. Standard treatment: Sakurai &amp; Napolitano, <i>Modern Quantum Mechanics</i>, ch. 4 (symmetry in quantum mechanics); Landau &amp; Lifshitz, <i>Quantum Mechanics</i>, ch. VII (the quasi-classical case).</span>
   </footer>
@@ -183,9 +225,12 @@ body { background: var(--bg); color: var(--fg); font: 15px/1.55 var(--f-ui); mar
    Plots    LX.plot(parent, {xlim, ylim, ticks, frame, xlabel, ylabel, width, height}) → path/fn/dot/line/vline/hline/
             area/text/tex/arrow/clear/ghost/setLim/setLabels/X/Y/inv/svg/g · LX.drag(plot, node, {get,set,step})
    3D       LX.camera({yaw, pitch, scale}) → project([x,y,z]) · rotate by dragging an element
+   Widget   LX.widget(mount, {layout: stack|split|grid2|aside|hero, left, title, badge}) → body element
+            LX.guide(widgetOrBody, [[term, description], ...]) — the "What you are looking at" block
+            LX.legend(parent, [[label, colorVar, "line"|"dash"|"dot"], ...])
    Controls LX.controls(parent) · LX.slider · LX.segmented · LX.button · LX.limits · LX.readout · LX.player
-   Lesson   LX.steps(parent, steps) — predict → reveal gating, explain boxes, locking controls, onAnswer hook
-            LX.isLocked(el) — true while a lesson step locks el (use in custom click/drag handlers)
+   Text     LX.ask(parent, {type: choice|number|set|sketch|explain, prompt, ..., reveal}) — inline question
+            LX.gate(el, message) — hide a result until a question that lists it in `reveal` is answered
    Checks   LX.check(name, fn) → window.__lxTests */
 const LX = (() => {
   const NS = "http://www.w3.org/2000/svg";
@@ -282,7 +327,6 @@ const LX = (() => {
   let uid = 0;
   function fig(parent, caption) {
     const f = h("figure", { class: "lx-fig" }, parent);
-    f.style.margin = "0";
     if (caption) { const c = h("figcaption", { html: caption }, f); typeset(c); }
     return f;
   }
@@ -314,6 +358,8 @@ const LX = (() => {
       get xlim() { return [x0, x1]; }, get ylim() { return [y0, y1]; },
       setLim(xl, yl) { if (xl) [x0, x1] = xl; if (yl) [y0, y1] = yl; drawAxes(); return P; },
       setLabels(xl, yl) { if (xl != null) o.xlabel = xl; if (yl != null) o.ylabel = yl; drawAxes(); return P; },
+      /* Clear everything a redraw owns: main, fill, top and the TeX overlay (not grid/axes/ghost). */
+      clearAll() { for (const l of ["main", "fill", "top", "tex"]) P.clear(l); return P; },
       clear(layer = "main") {
         if (layer === "tex") { [...overlay.children].filter(c => !c.dataset.axis).forEach(c => c.remove()); return P; }
         g[layer].replaceChildren(); return P;
@@ -348,6 +394,7 @@ const LX = (() => {
       },
       placeTex(el, x, y, anchor = "c", px) {
         const [ux, uy] = px ? [x, y] : [X(x), Y(y)];
+        el.style.display = isFinite(ux) && isFinite(uy) ? "" : "none";
         el.style.left = (100 * ux / W) + "%"; el.style.top = (100 * uy / H) + "%";
         const tx = anchor.includes("w") ? "0%" : anchor.includes("e") ? "-100%" : "-50%";
         const ty = anchor.includes("n") ? "0%" : anchor.includes("s") ? "-100%" : "-50%";
@@ -458,7 +505,11 @@ const LX = (() => {
     typeset(grp);
     return { el: grp, get: () => value, set(v, fire = true) { value = v; inputs.forEach(i => i.checked = i.value == v); if (fire && o.onChange) o.onChange(v); } };
   }
-  const button = (parent, label, onClick, o = {}) => h("button", { type: "button", class: "lx-btn" + (o.cls ? " " + o.cls : ""), id: o.id, html: label, onclick: onClick, title: o.title }, parent);
+  function button(parent, label, onClick, o = {}) {
+    const b = h("button", { type: "button", class: "lx-btn" + (o.cls ? " " + o.cls : ""), id: o.id, html: label, onclick: onClick, title: o.title }, parent);
+    if (/\\\(/.test(label)) typeset(b);
+    return b;
+  }
   /* Limit buttons: one click jumps to a named regime. items: [{label, title, apply}] */
   function limits(parent, items, title = "Jump to a limit", o = {}) {
     const grp = h("div", { class: "lx-group", id: o.id }, parent);   /* pass {id} to lock the whole group in a step */
@@ -484,81 +535,142 @@ const LX = (() => {
     return { btn, play, pause, get playing() { return playing; } };
   }
 
-  /* ---------- lesson steps ----------
-     step = { title, html,                       // prose (TeX allowed)
-              onEnter(),                         // set the widget into the state this step needs
-              predict: { prompt, options:[...], answer: index, right, wrong },  // commit before reveal
-              lock: ["control-id", ...],         // controls disabled until the prediction is made
-              after: html,                       // revealed after predicting
-              explain: { prompt, model },        // learner writes, then compares with a model answer
-              onAnswer(correct, index) }         // optional: called once the prediction is made (e.g. un-blur a view) */
-  function steps(parent, list, o = {}) {
-    const state = list.map(() => ({ chosen: null, explained: false, text: "" }));
-    let i = 0;
-    const lockEls = ids => (ids || []).map(id => document.getElementById(id)).filter(Boolean);
-    function setLocked(ids, on) {
-      for (const el of lockEls(ids)) {
-        el.classList.toggle("lx-locked", on);
-        el.querySelectorAll("input,button,select,textarea").forEach(c => c.disabled = on);
-        if (el.matches("input,button,select,textarea")) el.disabled = on;
-        if (on) el.title = "Make a prediction first"; else el.removeAttribute("title");
-      }
+  /* ---------- widget card, guide, legend ---------- */
+  const BADGE = { exact: "Exact", computed: "Computed", schematic: "Schematic" };
+  /* A framed widget. Returns the body element to fill; its children are arranged by the layout:
+     stack (one column) · split (two equal columns) · grid2 (2×2; a cell may hold controls)
+     aside (figures + a controls column; {left:true} puts the column first) · hero (big first child + a column)
+     Every layout falls back to one column when the card is narrower than ~620 px. */
+  function widget(parent, o = {}) {
+    const card = h("section", { class: "lx-widget" + (o.cls ? " " + o.cls : ""), id: o.id }, parent);
+    if (o.title || o.badge) {
+      const hd = h("div", { class: "lx-w-head" }, card);
+      if (o.title) h("h3", { html: o.title }, hd);
+      if (o.badge) h("span", { class: "lx-badge", "data-kind": o.badge, text: o.badgeText || BADGE[o.badge] }, hd);
+      typeset(hd);
     }
-    function render() {
-      const st = list[i], ss = state[i];
-      parent.replaceChildren();
-      const top = h("div", { class: "lx-steps-top" }, parent);
-      h("span", { text: `Step ${i + 1} of ${list.length}` }, top);
-      const dots = h("div", { class: "lx-dots", "aria-hidden": "true" }, top);
-      list.forEach((_, k) => h("i", { class: k === i ? "on" : k < i ? "done" : "" }, dots));
-      h("h2", { html: st.title }, parent);
-      if (st.html) h("div", { class: "lx-prose", html: st.html }, parent);
-      const answered = !st.predict || ss.chosen !== null;
-      if (st.predict) {
-        const box = h("div", { class: "lx-predict" }, parent);
-        h("p", { html: "Predict: " + st.predict.prompt }, box);
-        const opts = h("div", { class: "lx-opts" }, box);
-        st.predict.options.forEach((op, k) => {
-          const b = h("button", { type: "button", class: "lx-opt", html: op }, opts);
-          if (ss.chosen !== null) {
-            b.disabled = true;
-            if (k === st.predict.answer) b.classList.add("right");
-            else if (k === ss.chosen) b.classList.add("wrong");
-          }
-          b.addEventListener("click", () => { ss.chosen = k; render(); if (st.onAnswer) st.onAnswer(k === st.predict.answer, k); });
-        });
-        if (ss.chosen !== null) {
-          const ok = ss.chosen === st.predict.answer;
-          h("div", { class: "lx-feedback", html: `<b>${ok ? "Right." : "Not quite."}</b> ` + ((ok ? st.predict.right : st.predict.wrong) || "") }, box);
-        }
-      }
-      setLocked(st.lock, !answered);
-      if (answered && st.after) h("div", { class: "lx-prose", html: st.after }, parent);
-      if (answered && st.explain) {
-        const ex = h("div", { class: "lx-explain" }, parent);
-        h("label", { for: "lx-explain-" + i, html: st.explain.prompt }, ex);
-        const ta = h("textarea", { id: "lx-explain-" + i, placeholder: "In your own words…" }, ex);
-        ta.value = ss.text; ta.addEventListener("input", () => ss.text = ta.value);
-        if (!ss.explained) button(ex, "Compare with the textbook answer", () => { ss.explained = true; render(); });
-        else h("div", { class: "lx-model lx-prose", html: st.explain.model }, ex);
-      }
-      const nav = h("div", { class: "lx-nav" }, parent);
-      const back = button(nav, "Back", () => go(i - 1)); back.disabled = i === 0;
-      const next = button(nav, i === list.length - 1 ? "Done" : "Next", () => go(i + 1), { cls: "lx-primary" });
-      next.disabled = !answered || i === list.length - 1;
-      typeset(parent);
+    const body = h("div", { class: `lx-w lx-${o.layout || "stack"}` + (o.left ? " lx-left" : "") }, card);
+    body.card = card;
+    return body;
+  }
+  /* "What you are looking at": one line per figure and per control. */
+  function guide(parent, items, title = "What you are looking at") {
+    const card = parent.card || parent;
+    const dl = h("dl", { class: "lx-guide" }, card);
+    if (title) h("b", { text: title }, dl);
+    for (const [t, d] of items) { h("dt", { html: t }, dl); h("dd", { html: d }, dl); }
+    typeset(dl); return dl;
+  }
+  function legend(parent, items) {
+    const lg = h("div", { class: "lx-legend" }, parent);
+    for (const [label, color, kind] of items) {
+      const sp = h("span", {}, lg); const i = h("i", { class: kind && kind !== "line" ? kind : "" }, sp);
+      i.style.color = `var(${color})`; h("span", { html: label }, sp);
     }
-    function go(k) {
-      if (k < 0 || k >= list.length) return;
-      setLocked(list[i].lock, false);
-      i = k; if (list[i].onEnter) list[i].onEnter(); render();
-    }
-    if (list[0] && list[0].onEnter) list[0].onEnter();
-    render();
-    return { go, get index() { return i; } };
+    typeset(lg); return lg;
   }
 
-  const isLocked = el => !!(el && el.closest && el.closest(".lx-locked"));
+  /* ---------- gates and inline questions ---------- */
+  /* Hide a result (figure, readout, paragraph) until a question that lists it in `reveal` is answered.
+     A gate only ever opens. Do not gate controls the learner has already used. */
+  function gate(el, message = "Answer the question above to reveal") {
+    el.classList.add("lx-gated"); el.dataset.gate = message; el.setAttribute("aria-hidden", "true");
+    return { el, open: () => openGate(el) };
+  }
+  function openGate(el) { el.classList.remove("lx-gated"); el.removeAttribute("data-gate"); el.removeAttribute("aria-hidden"); }
+
+  /* Inline question in the text. Common options:
+       prompt (html), kicker (small label, defaults by type), reveal: [elements to un-gate],
+       right / wrong (html feedback), onAnswer(correct, value)
+     Types:
+       choice   options: [html], answer: index
+       number   answer: value, tol: relative tolerance (0.1), unit (html after the box)
+       set      the learner sets the widget, then presses Check. check(): {pass, msg}; solve(): optional,
+                puts the widget into the right state (offered after a wrong attempt)
+       sketch   plot: LX.plot, xs: handle positions, y0: start value (or ys), truth: x → y, tol: 0.15
+                (rms error relative to the truth's range); the learner drags handles, then compares
+       explain  model: html model answer, shown after the learner writes */
+  const KICK = { choice: "Predict", number: "Estimate", set: "Try it", sketch: "Sketch", explain: "Explain" };
+  function ask(parent, o) {
+    const type = o.type || "choice";
+    const box = h("div", { class: "lx-ask", "data-type": type }, parent);
+    h("div", { class: "lx-kicker", text: o.kicker || KICK[type] }, box);
+    h("div", { class: "lx-q", html: o.prompt }, box);
+    const body = h("div", { class: "lx-ask-body" }, box);
+    const fb = h("div", { class: "lx-feedback", "aria-live": "polite" }, box);
+    let answered = false;
+    function done(ok, value, extra) {
+      fb.className = "lx-feedback " + (ok == null ? "" : ok ? "good" : "bad");
+      const head = ok == null ? "" : `<b>${ok ? "Right." : "Not quite."}</b> `;
+      fb.innerHTML = head + (extra || "") + ((ok ? o.right : o.wrong) || (ok == null ? o.right || "" : ""));
+      typeset(fb);
+      if (!answered) { answered = true; box.dataset.answered = "1"; (o.reveal || []).forEach(openGate); }
+      if (o.onAnswer) o.onAnswer(ok, value);
+    }
+    if (type === "choice") {
+      const opts = h("div", { class: "lx-opts" }, body);
+      const bs = o.options.map((op, k) => h("button", { type: "button", class: "lx-opt", html: op, onclick: () => {
+        bs.forEach((b, j) => { b.disabled = true; if (j === o.answer) b.classList.add("right"); else if (j === k) b.classList.add("wrong"); });
+        done(k === o.answer, k);
+      } }, opts));
+    } else if (type === "number") {
+      const row = h("div", { class: "lx-row" }, body); row.style.alignItems = "center";
+      const inp = h("input", { type: "text", inputmode: "decimal", "aria-label": "your estimate" }, row);
+      if (o.unit) h("span", { html: o.unit }, row);
+      const go = () => {
+        const v = parseFloat(inp.value.replace(",", ".").replace("−", "-"));
+        if (!isFinite(v)) { fb.className = "lx-feedback"; fb.textContent = "Enter a number."; return; }
+        const tol = o.tol ?? 0.1, err = (v - o.answer) / (Math.abs(o.answer) || 1), ok = Math.abs(err) <= tol;
+        const dir = ok ? "" : `Your estimate is too ${err > 0 ? "high" : "low"}. `;
+        done(ok, v, dir);
+      };
+      button(row, "Check", go, { cls: "lx-primary" });
+      inp.addEventListener("keydown", e => { if (e.key === "Enter") go(); });
+    } else if (type === "set") {
+      const row = h("div", { class: "lx-row" }, body);
+      let solveBtn = null;
+      button(row, o.checkLabel || "Check", () => {
+        const r = o.check(); const ok = typeof r === "object" ? !!r.pass : !!r;
+        done(ok, null, (typeof r === "object" && r.msg ? r.msg + " " : ""));
+        if (!ok && o.solve && !solveBtn) solveBtn = button(row, "Show me", () => { o.solve(); }, {});
+      }, { cls: "lx-primary" });
+    } else if (type === "sketch") {
+      const P = o.plot, n = o.xs.length, ys = o.ys ? o.ys.slice() : o.xs.map(() => o.y0 ?? (P.ylim[0] + P.ylim[1]) / 2);
+      const g = s("g", { class: "lx-sketch" }, P.svg);
+      const tg = s("g", {}, g), line = s("path", { class: "sk" }, g);
+      const dots = o.xs.map((x, i) => {
+        const c = s("circle", { r: 7, class: "f4", "aria-label": `sketch point ${i + 1}; arrow keys move it` }, g);
+        drag(P, c, { get: () => [x, ys[i]], set: (_, y) => { ys[i] = clamp(y, P.ylim[0], P.ylim[1]); draw(); }, step: [0, (P.ylim[1] - P.ylim[0]) / 40] });
+        return c;
+      });
+      function draw() {
+        line.setAttribute("d", o.xs.map((x, i) => (i ? "L" : "M") + P.X(x).toFixed(1) + "," + P.Y(ys[i]).toFixed(1)).join(""));
+        dots.forEach((c, i) => { c.setAttribute("cx", P.X(o.xs[i])); c.setAttribute("cy", P.Y(ys[i])); });
+      }
+      draw();
+      h("p", { html: o.hint || "Drag the pink points to sketch your guess, then compare.", style: "margin:0;font-size:13.5px" }, body);
+      const row = h("div", { class: "lx-row" }, body);
+      button(row, "Compare with the real curve", () => {
+        tg.replaceChildren();
+        const pts = sample(o.truth, P.xlim[0], P.xlim[1], 300);
+        let d = ""; pts.forEach(([x, y], i) => { d += (i ? "L" : "M") + P.X(x).toFixed(1) + "," + P.Y(clamp(y, P.ylim[0] - 10, P.ylim[1] + 10)).toFixed(1); });
+        s("path", { d, class: "s1" }, tg);
+        const tv = o.xs.map(o.truth), span = (Math.max(...tv) - Math.min(...tv)) || 1;
+        const rms = Math.sqrt(o.xs.reduce((a, _, i) => a + (ys[i] - tv[i]) ** 2, 0) / n) / span;
+        done(rms <= (o.tol ?? 0.15), rms, `Your sketch is off by ${(100 * rms).toFixed(0)}% of the curve's range. `);
+      }, { cls: "lx-primary" });
+    } else if (type === "explain") {
+      const ta = h("textarea", { placeholder: "In your own words…", "aria-label": "your explanation" }, body);
+      const row = h("div", { class: "lx-row" }, body);
+      button(row, o.compareLabel || "Compare with a model answer", () => {
+        if (box.querySelector(".lx-model")) return;
+        const m = h("div", { class: "lx-model", html: o.model }, body); typeset(m);
+        done(null, ta.value);
+      });
+    }
+    typeset(box);
+    return { el: box, get answered() { return answered; } };
+  }
 
   /* ---------- self-tests ---------- */
   window.__lxTests = window.__lxTests || [];
@@ -572,138 +684,111 @@ const LX = (() => {
   }
   const near = (a, b, tol = 1e-9) => Math.abs(a - b) <= tol * Math.max(1, Math.abs(a), Math.abs(b));
 
-  return { h, s, typeset, linspace, clamp, sample, C, eigSym, niceTicks, fig, plot, drag, camera,
-           controls, slider, segmented, button, limits, readout, player, steps, isLocked, check, near, rng, reduceMotion };
+  return { h, s, typeset, linspace, clamp, sample, C, eigSym, niceTicks, fig, plot, drag, camera, widget, guide, legend,
+           controls, slider, segmented, button, limits, readout, player, ask, gate, check, near, rng, reduceMotion };
 })();
 /* LX:LIB-END */</script>
 
 <script>
 /* PATTERN */
-const N = 100, L = 3.2, X0 = 1.5, NS = 4, h = 2 * L / (N + 1);
+const N = 100, L = 3.2, X0 = 1.5, h = 2 * L / (N + 1);
 const xs = Array.from({ length: N }, (_, i) => -L + (i + 1) * h);   // symmetric grid: x[N-1-i] = -x[i]
-const S = { V0: 4, eps: 0, mirror: false };
-const Vfun = (x, V0 = S.V0, eps = S.eps) => V0 * ((x / X0) ** 2 - 1) ** 2 + eps * x;
+const S = { V0: 4, mirrored: false };
+const Vfun = (x, V0 = S.V0) => V0 * ((x / X0) ** 2 - 1) ** 2;
 function hamiltonian(V = x => Vfun(x)) {
   const t = 0.5 / (h * h);
   return xs.map((x, i) => xs.map((_, j) => (i === j ? 2 * t + V(x) : Math.abs(i - j) === 1 ? -t : 0)));
 }
 const parityOf = v => v.reduce((s, c, i) => s + c * v[N - 1 - i], 0);   // <psi|P|psi>, vectors are unit norm
-/* Lowest NS states, sign fixed so the largest component in the right half is positive. */
-function solve(V0 = S.V0, eps = S.eps) {
-  const r = LX.eigSym(hamiltonian(x => Vfun(x, V0, eps)));
-  const vecs = r.vectors.slice(0, NS).map(v => {
+/* Lowest two states, sign fixed so the largest component in the right half is positive. */
+function solve(V0 = S.V0) {
+  const r = LX.eigSym(hamiltonian(x => Vfun(x, V0)));
+  const vecs = r.vectors.slice(0, 2).map(v => {
     let k = N / 2; for (let i = N / 2; i < N; i++) if (Math.abs(v[i]) > Math.abs(v[k])) k = i;
     return v[k] < 0 ? v.map(c => -c) : v;
   });
-  return { E: r.values.slice(0, NS), vecs, P: vecs.map(parityOf) };
+  return { E: r.values.slice(0, 2), vecs, P: vecs.map(parityOf) };
 }
-const fmt = (v, d = 3) => (v >= 0 ? "+" : "") + v.toFixed(d).replace("-", "−");
+const sgn = p => (p > 0 ? "+" : "−");
 
-/* ---- layout ---- */
-const stage = document.getElementById("stage");
-const figs = LX.h("div", { class: "lx-figs" }, stage);
-const PL = LX.plot(LX.fig(figs, "Potential (grey) and the four lowest eigenfunctions, each drawn on a baseline at its energy"),
-  { xlim: [-L, L], ylim: [0, 6], xlabel: "x", ylabel: "E,\\ \\psi_n", width: 720, height: 400 });
+/* ---- widget ---- */
+const W = LX.widget(document.getElementById("stage"), { layout: "grid2", title: "Parity of the two lowest states in a double well", badge: "computed" });
+const VS = 0.2, YB = -1.35;                       // potential drawn as y = YB + VS·V (energy scale), ψ scaled to max 1
+const panels = [0, 1].map(n => {
+  const f = LX.fig(W, n === 0 ? "Ground state \\(\\psi_0\\) (blue) over the potential" : "First excited state \\(\\psi_1\\) (orange) over the potential");
+  const P = LX.plot(f, { xlim: [-L, L], ylim: [YB, 1.35], ticks: false, xlabel: "x", width: 520, height: 300, margin: { t: 34 }, aria: `eigenstate ${n}` });
+  P.vline(0, { cls: "gr", layer: "grid" });
+  return { n, P, lab: P.tex(-L + 0.15, 1.35, `\\psi_${n}(x)`, { anchor: "sw", px: false }), labSrc: `\\psi_${n}(x)` };
+});
+const fD = LX.fig(W, "Tunnelling splitting \\(\\Delta E = E_1 - E_0\\) against barrier height; the dot is the current barrier");
+const PD = LX.plot(fD, { xlim: [0, 10], ylim: [-2.5, -0.3], xlabel: "V_0", ylabel: "\\log_{10}\\Delta E", width: 520, height: 300, aria: "splitting vs barrier" });
 
-const ctl = LX.controls(stage);
+const ctl = LX.controls(W);
+const pBtn = LX.button(ctl, "Apply parity \\(P\\)", () => applyP(), { id: "parity", cls: "lx-primary", title: "mirror both states: x → −x" });
 const vS = LX.slider(ctl, { id: "V0", label: "barrier height \\(V_0\\)", min: 0, max: 10, step: 0.1, value: S.V0, fmt: v => v.toFixed(1), onInput: v => { S.V0 = v; recompute(); } });
-const eS = LX.slider(ctl, { id: "eps", label: "tilt \\(\\varepsilon\\) (breaks parity)", min: -0.2, max: 0.2, step: 0.005, value: S.eps, onInput: v => { S.eps = v; recompute(); } });
-const sym = LX.h("div", { class: "lx-group" }, ctl);
-LX.h("span", { text: "Symmetry operation" }, sym);
-const pBtn = LX.button(LX.h("div", { class: "lx-row" }, sym), "Apply parity \\(P\\)", () => setMirror(!S.mirror), { id: "parity" });
-pBtn.setAttribute("aria-pressed", "false"); LX.typeset(pBtn);
-LX.limits(ctl, [
-  { label: "No barrier", title: "V₀ = 0, ε = 0: a box", apply: () => setVE(0, 0) },
-  { label: "Low barrier", title: "V₀ = 1", apply: () => setVE(1, S.eps) },
-  { label: "High barrier", title: "V₀ = 8", apply: () => setVE(8, S.eps) },
-  { label: "Restore symmetry", title: "ε = 0", apply: () => setVE(S.V0, 0) }
+const ro = LX.h("div", { class: "lx-readouts" }, ctl);
+const rP0 = LX.readout(ro, "parity of \\(\\psi_0\\):");
+const rP1 = LX.readout(ro, "parity of \\(\\psi_1\\):");
+const rD = LX.readout(ro, "\\(\\Delta E = E_1 - E_0\\) =");
+
+LX.guide(W, [
+  ["State panels", "Each coloured curve is an eigenstate \\(\\psi_n(x)\\) (height in arbitrary units). Behind it, in grey, the potential \\(V(x)\\) and, dashed, the energy \\(E_n\\) of that state on the same energy scale. The thin vertical line is the mirror, \\(x = 0\\)."],
+  ["Apply parity \\(P\\)", "Replaces \\(\\psi(x)\\) by \\(\\psi(-x)\\): the graph folds over through \\(x = 0\\). The dashed curve is the state before. \\(\\psi_0\\) comes back unchanged (eigenvalue \\(+1\\)); \\(\\psi_1\\) comes back upside down (eigenvalue \\(-1\\)). Press again: \\(P^2 = 1\\)."],
+  ["Barrier slider", "Raises the hump between the wells. Both states stay exactly even or odd at any height, but their energies approach each other."],
+  ["Splitting plot", "\\(\\Delta E\\) on a log scale, computed at whole-number barrier heights; the dot is the current one. A straight-ish falling line means exponential suppression of tunnelling."]
 ]);
-const ro = LX.h("div", { class: "lx-readouts" }, LX.controls(stage));
-const rP = LX.readout(ro, "\\(\\langle P\\rangle\\) for \\(n = 0,1,2,3\\):");
-const rD = LX.readout(ro, "splitting \\(\\Delta = E_1 - E_0\\) =");
-const rT = LX.readout(ro, "tilt energy \\(2\\varepsilon x_0\\) =");
-const rR = LX.readout(ro, "weight of \\(\\psi_0\\) in the right well:");
 
-let sol = solve();
-function setVE(V0, eps) { vS.set(V0, false); eS.set(eps, false); S.V0 = V0; S.eps = eps; recompute(); }
-function recompute() { sol = solve(); if (S.mirror) setMirror(false); else draw(); }
-function setMirror(on) {
-  S.mirror = on; pBtn.setAttribute("aria-pressed", String(on));
-  if (on) { draw(false); PL.ghost(); } else PL.clearGhost();
-  draw();
-}
+/* static: the splitting curve, computed once (11 diagonalisations) */
+const DCURVE = LX.linspace(0, 10, 11).map(V0 => { const s = solve(V0); return [V0, Math.log10(s.E[1] - s.E[0])]; });
+PD.path(DCURVE, { cls: "s3", layer: "fill" });
+DCURVE.forEach(([x, y]) => PD.dot(x, y, { r: 2.5, cls: "f3", layer: "fill" }));
+const dDot = PD.dot(S.V0, 0, { r: 6.5, cls: "f2" });
 
-function draw(mirror = S.mirror) {
-  const { E, vecs } = sol, m = i => (mirror ? N - 1 - i : i);
-  const Vg = xs.map((_, i) => Vfun(xs[m(i)]));
-  const lo = Math.min(...Vg), hi = E[NS - 1], span = Math.max(hi - lo, 0.5);
-  PL.setLim(null, [lo - 0.08 * span, hi + 0.3 * span]);
-  PL.clear(); PL.clear("tex");
-  PL.path(xs.map((x, i) => [x, Vg[i]]), { cls: "sm" });
-  const amp = 0.16 * span;
-  vecs.forEach((v, n) => {
-    const mx = Math.max(...v.map(Math.abs));
-    PL.hline(E[n], { cls: "sm thin dash" });
-    PL.path([[-L, E[n]], ...xs.map((x, i) => [x, E[n] + amp * v[m(i)] / mx]), [L, E[n]]], { cls: "s" + (n + 1) });
+let sol = solve(), anim = 0;
+function setLabel(p, src) { if (p.labSrc === src) return; p.labSrc = src; p.lab.innerHTML = `\\(${src}\\)`; LX.typeset(p.lab); }
+/* draw with fold parameter s ∈ [0, 1]: the point (x, ψ(x)) is drawn at (x·cos πs, ψ(x)); s = 1 is the graph of ψ(−x) */
+function draw(s = S.mirrored ? 1 : 0) {
+  const c = Math.cos(Math.PI * s);
+  panels.forEach(p => {
+    const v = sol.vecs[p.n], mx = Math.max(...v.map(Math.abs)), E = sol.E[p.n];
+    p.P.clear(); p.P.clear("fill");
+    const Vpts = LX.linspace(-L, L, 300).map(x => [x, YB + VS * Vfun(x)]);
+    p.P.area(Vpts, { cls: "vfill", base: YB });
+    p.P.hline(YB + VS * E, { cls: "sm dash" });
+    const pts = [[-L, 0], ...xs.map((x, i) => [x, v[i] / mx]), [L, 0]];
+    if (s > 0) p.P.path(pts, { cls: "sm dash" });                             // the state before P
+    p.P.path(pts.map(([x, y]) => [x * c, y]), { cls: p.n === 0 ? "s1" : "s2" });
+    const ev = sgn(sol.P[p.n]);
+    setLabel(p, s === 1 ? `P\\psi_${p.n}(x) = \\psi_${p.n}(-x) = ${ev}\\psi_${p.n}(x)` : `\\psi_${p.n}(x)`);
   });
-  if (mirror) PL.tex(0, hi + 0.27 * span, "\\text{showing } P\\psi_n(x) = \\psi_n(-x)", { anchor: "n" });
-  const w = sol.vecs[0].reduce((s, c, i) => s + (i >= N / 2 ? c * c : 0), 0);
-  rP.set(sol.P.map(p => fmt(p, 2)).join(", "));
-  rD.set((E[1] - E[0]).toExponential(2).replace("-", "−"));
-  rT.set(Math.abs(2 * S.eps * X0).toFixed(3));
-  rR.set(w.toFixed(2));
 }
-draw();
-
-/* ---- lesson ---- */
-const go = (V0, eps) => () => setVE(V0, eps);
-LX.steps(document.getElementById("steps"), [
-  { title: "What parity does to an eigenstate",
-    onEnter: go(4, 0),
-    html: "<p>The potential is mirror symmetric, \\(V(-x) = V(x)\\), so the parity operator \\(P: \\psi(x) \\mapsto \\psi(-x)\\) commutes with \\(H\\). Colours: \\(\\psi_0\\) blue, \\(\\psi_1\\) orange, \\(\\psi_2\\) green, \\(\\psi_3\\) magenta.</p>",
-    predict: { prompt: "Press <i>Apply parity P</i>. What happens to each eigenstate?",
-      options: ["Nothing changes at all", "Each state maps onto plus or minus itself: \\(\\psi_0, \\psi_2\\) unchanged, \\(\\psi_1, \\psi_3\\) flip sign", "The states turn into different eigenstates"], answer: 1,
-      right: "Since \\([H, P] = 0\\) and the levels are non-degenerate, each eigenstate is also an eigenstate of \\(P\\), with eigenvalue \\(\\pm1\\) because \\(P^2 = 1\\).",
-      wrong: "If \\(H\\psi = E\\psi\\) then \\(H(P\\psi) = E(P\\psi)\\). With a non-degenerate level, \\(P\\psi\\) must be \\(\\psi\\) times a number, and \\(P^2 = 1\\) makes it \\(\\pm 1\\). The ghost shows the original for comparison." },
-    lock: ["parity"],
-    after: "<p>The readout \\(\\langle P\\rangle\\) shows \\(+1, -1, +1, -1\\): parity alternates with energy, as the node count does. Parity is a good quantum number.</p>" },
-  { title: "Tunnelling splitting",
-    onEnter: go(4, 0),
-    html: "<p>The lowest two states are the even and odd combinations of a state in each well. Their energy difference \\(\\Delta\\) is the tunnelling splitting.</p>",
-    predict: { prompt: "Raise the barrier from 4 to 10. What does \\(\\Delta\\) do?",
-      options: ["It shrinks roughly in proportion to \\(1/V_0\\)", "It shrinks roughly exponentially, and the pair becomes nearly degenerate", "It grows, because the wells get deeper"], answer: 1,
-      right: "Tunnelling amplitudes go like \\(e^{-\\int\\sqrt{2(V-E)}\\,\\dd x}\\) through the barrier. Watch \\(\\Delta\\) drop by about a decade every few units of \\(V_0\\).",
-      wrong: "The splitting is set by tunnelling through the barrier, which is exponentially suppressed: \\(\\Delta \\sim e^{-\\int\\sqrt{2(V-E)}\\,\\dd x}\\). The readout drops by orders of magnitude." },
-    lock: ["V0-wrap"],
-    after: "<p>Even at \\(V_0 = 10\\) the states are still exactly even and odd: each is spread equally over both wells. A particle placed in one well oscillates between them at the frequency \\(\\Delta\\).</p>" },
-  { title: "Break the symmetry, a little",
-    onEnter: go(8, 0),
-    html: "<p>High barrier, so \\(\\Delta\\) is small. Now tilt the potential with \\(\\varepsilon\\). Compare the tilt energy \\(2\\varepsilon x_0\\), the energy difference between the two well bottoms, with \\(\\Delta\\).</p>",
-    predict: { prompt: "Set a small tilt, \\(\\varepsilon = 0.02\\). What happens to \\(\\psi_0\\)?",
-      options: ["Almost nothing: the tilt is tiny compared with \\(V_0\\)", "It localises in the lower well and \\(\\langle P\\rangle_0\\) drops far below 1", "It splits into two separate states"], answer: 1,
-      right: "What matters is the tilt compared with \\(\\Delta\\), not with \\(V_0\\). Once \\(2\\varepsilon x_0 \\gg \\Delta\\), the eigenstates are the left and right well states, and parity is no longer a good quantum number.",
-      wrong: "Compare \\(2\\varepsilon x_0 = 0.06\\) with \\(\\Delta \\approx 0.012\\). The tilt wins, so the eigenstates become localised well states. Watch the right-well weight readout." },
-    lock: ["eps-wrap"],
-    after: "<p>The two-level picture gives \\(\\langle P\\rangle_0 \\approx \\Delta/\\sqrt{\\Delta^2 + (2\\varepsilon x_0)^2}\\). The higher states, with their larger splittings, stay closer to \\(\\pm1\\).</p>" },
-  { title: "Same tilt, lower barrier",
-    onEnter: go(8, 0.02),
-    html: "<p>The ground state is localised. Keep \\(\\varepsilon = 0.02\\) fixed.</p>",
-    predict: { prompt: "Lower the barrier to \\(V_0 = 1\\). What happens to \\(\\psi_0\\)?",
-      options: ["It stays localised: the tilt has not changed", "It spreads over both wells again and \\(\\langle P\\rangle_0\\) returns close to 1", "It localises in the other well"], answer: 1,
-      right: "At low barrier \\(\\Delta\\) is large, so \\(\\Delta \\gg 2\\varepsilon x_0\\) and the tilt is only a weak perturbation of a parity eigenstate.",
-      wrong: "Lowering the barrier raises \\(\\Delta\\) exponentially. Once \\(\\Delta \\gg 2\\varepsilon x_0\\), the tilt barely mixes the even and odd states and \\(\\langle P\\rangle_0\\) is near 1." },
-    lock: ["V0-wrap"],
-    after: "<p>Whether a symmetry is visible in the eigenstates depends on a competition: the symmetry-breaking perturbation against the energy splitting the symmetry produces.</p>" },
-  { title: "Put it in your own words",
-    onEnter: go(6, 0),
-    html: "<p>A symmetric Hamiltonian gave you good quantum numbers, but a tiny perturbation could take them away.</p>",
-    explain: { prompt: "Why does an exponentially small splitting make the parity eigenstates so fragile?",
-      model: "<p>In the subspace of the two lowest states, \\(H \\approx \\begin{pmatrix} -\\Delta/2 & 0 \\\\ 0 & \\Delta/2 \\end{pmatrix}\\) in the even/odd basis, and a tilt couples even to odd with matrix element \\(\\approx \\varepsilon x_0\\). Mixing is controlled by \\(\\varepsilon x_0/\\Delta\\). Because \\(\\Delta\\) falls exponentially with the barrier, an arbitrarily small asymmetry localises the states once the barrier is high. Symmetry fixes which states can exist; energetics decide whether they survive perturbations.</p><p><b>Transfer:</b> a chiral molecule has two mirror-image forms separated by a high barrier. Why are real molecules found in a definite handed form, not in the parity eigenstates that the symmetric Hamiltonian predicts?</p>" } }
-]);
+function applyP() {
+  cancelAnimationFrame(anim);
+  const from = S.mirrored ? 1 : 0, to = 1 - from, T = LX.reduceMotion ? 0 : 900, t0 = performance.now();
+  S.mirrored = !S.mirrored;
+  const step = now => {
+    const u = T ? Math.min(1, (now - t0) / T) : 1, e = u * u * (3 - 2 * u);
+    draw(u < 1 ? from + (to - from) * e : to);
+    if (u < 1) anim = requestAnimationFrame(step);
+  };
+  /* return trip (P applied twice) folds back from 1 to 0 */
+  if (to === 0) { S.mirrored = false; }
+  anim = requestAnimationFrame(step);
+  pBtn.innerHTML = S.mirrored ? "Apply \\(P\\) again" : "Apply parity \\(P\\)"; LX.typeset(pBtn);
+}
+function recompute() { cancelAnimationFrame(anim); sol = solve(); draw(); readouts(); }
+function readouts() {
+  rP0.set((sol.P[0] > 0 ? "+" : "−") + Math.abs(sol.P[0]).toFixed(3));
+  rP1.set((sol.P[1] > 0 ? "+" : "−") + Math.abs(sol.P[1]).toFixed(3));
+  const d = sol.E[1] - sol.E[0];
+  rD.set(d.toFixed(4));
+  dDot.setAttribute("cx", PD.X(S.V0)); dDot.setAttribute("cy", PD.Y(Math.log10(d)));
+}
+draw(); readouts();
 
 /* ---- self-tests ---- */
-LX.check("[H, P] = 0 for ε = 0: H is symmetric under i → N−1−i", () => {
-  const H = hamiltonian(x => Vfun(x, 5, 0));
+LX.check("[H, P] = 0: H is symmetric under i → N−1−i", () => {
+  const H = hamiltonian(x => Vfun(x, 5));
   for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) if (Math.abs(H[i][j] - H[N - 1 - i][N - 1 - j]) > 1e-9) return false;
   return true;
 });
@@ -711,10 +796,13 @@ LX.check("finite differences reproduce the oscillator: V = 8x² gives E = 2, 6, 
   const E = LX.eigSym(hamiltonian(x => 8 * x * x)).values;
   return { pass: [2, 6, 10].every((e, n) => Math.abs(E[n] / e - 1) < 1e-2), detail: E.slice(0, 3).join(",") };
 });
-LX.check("ε = 0: ⟨P⟩ = +1, −1, +1, −1", () => { const s = solve(4, 0); return { pass: s.P.every((p, n) => Math.abs(p - (n % 2 ? -1 : 1)) < 1e-8), detail: s.P.join(",") }; });
-LX.check("tunnelling splitting falls with the barrier", () => { const d = V0 => { const s = solve(V0, 0); return s.E[1] - s.E[0]; }; return d(2) > 2 * d(4) && d(4) > 2 * d(8); });
-LX.check("tilt localises the ground state: ⟨P⟩₀ ≈ Δ/√(Δ² + (2εx₀)²) within 0.1", () => {
-  const s0 = solve(6, 0), D = s0.E[1] - s0.E[0], s = solve(6, 0.02), pred = D / Math.hypot(D, 2 * 0.02 * X0);
-  return { pass: Math.abs(s.P[0] - pred) < 0.1 && s.P[0] < 0.7, detail: [s.P[0], pred].join(",") };
+LX.check("P ψ₀ = +ψ₀ and P ψ₁ = −ψ₁ componentwise (V₀ = 4)", () => {
+  const s = solve(4); const [a, b] = s.vecs;
+  return a.every((c, i) => Math.abs(a[N - 1 - i] - c) < 1e-8) && b.every((c, i) => Math.abs(b[N - 1 - i] + c) < 1e-8);
+});
+LX.check("ε = 0: ⟨P⟩ = +1, −1 at every barrier height tested", () => [0, 3, 8].every(V0 => { const s = solve(V0); return Math.abs(s.P[0] - 1) < 1e-8 && Math.abs(s.P[1] + 1) < 1e-8; }));
+LX.check("tunnelling splitting falls with the barrier, roughly exponentially", () => {
+  const d = V0 => 10 ** DCURVE[V0][1];
+  return { pass: d(2) > 2 * d(4) && d(4) > 2 * d(8) && d(8) > 1.5 * d(10), detail: [2, 4, 8, 10].map(d).join(",") };
 });
 </script>
