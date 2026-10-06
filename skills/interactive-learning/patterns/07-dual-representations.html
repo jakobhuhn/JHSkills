@@ -1,30 +1,42 @@
 <title>Position and Momentum</title>
 <!--
 PATTERN 07 · DUAL REPRESENTATIONS
-Concept shape   One object seen in two bases at once (here position and momentum). Each knob acts
+When to use     One object seen in two bases at once (here position and momentum). Each change acts
                 simply in one view and in a less obvious way in the other; the insight is the dictionary.
-Use it for      Fourier pairs (x ↔ k, t ↔ ω), uncertainty relations, real space ↔ reciprocal space,
+                Use it for Fourier pairs (x ↔ k, t ↔ ω), uncertainty relations, real ↔ reciprocal space,
                 Wannier ↔ Bloch states, site ↔ momentum occupation, Wigner functions, number ↔ phase,
                 any change of basis where "local in one" means "spread in the other".
-Widget anatomy  (1) two side-by-side plots of the same state: |ψ(x)|² (filled) with Re ψ(x), and
-                    |φ(k)|² (filled) with Re φ(k); the ±Δ spreads marked on both;
-                (2) one slider per natural parameter (width, position, momentum, chirp);
-                (3) readouts Δx, Δk and the product; limit buttons for the extremes;
-                (4) "Keep a copy" ghosts both curves to compare before and after.
-Teaching moments  Predict what squeezing in x does in k; predict the product Δx·Δk; predict what a shift
-                  in x does to |φ(k)|² (nothing: a phase); predict what a chirp does to the product.
+Widget anatomy  (1) position space: |ψ(x)|² (filled) and Re ψ(x), the 2Δx bracket; two pink handles:
+                    the centre x₀ (on the axis) and the width (end of the bracket, sets σ);
+                (2) momentum space: |φ(k)|² and Re φ(k), the 2Δk bracket; handles for the centre k₀ and
+                    the width (dragging it sets σ through Δk = √(1+β²)/(2σ));
+                (3) uncertainty plane: the state as a point (Δx, Δk) and a rectangle of area Δx·Δk; the
+                    shaded region below the hyperbola Δx·Δk = 1/2 is forbidden;
+                (4) one toggle, chirp off/on; readouts; a "What you are looking at" guide.
+                Direct manipulation replaces the four sliders of the earlier version: the learner drags
+                the thing they want to change, in the view where it is simple, and watches the other view.
+Layout          grid2: x-space | k-space on top (the dual pair side by side), uncertainty plane |
+                controls below. The plane sits under position space; all four cells are used.
+Teaching moments  Suggestions for the chapter around the widget:
+                - choice: squeeze |ψ|² by 3; what happens to |φ|²? (widens by 3, not narrows)
+                - sketch: Δk as a function of Δx (a hyperbola), before revealing the plane.
+                - number: the product Δx·Δk for any unchirped Gaussian (1/2).
+                - choice: shift x₀; what happens to |φ(k)|²? (nothing; only the phase of φ)
+                - set: "give the packet a local wavelength of π" (k₀ = 2), checked from S.k0.
+                - choice/explain: turn the chirp on; why does the product rise above 1/2 while Δx stays?
 Adapt by        Replace psi()/phi() with your transform pair (closed form if possible, otherwise a direct
                 sum over a grid). Keep both modulus and real part on screen: phases only show in Re.
+                Put each parameter's handle in the view where it acts simply.
 Physics         ψ(x) = (2πσ²)^{−1/4} exp[−(1 + iβ)(x − x₀)²/(4σ²) + i k₀ x],  φ(k) = (2π)^{−1/2} ∫ψ e^{−ikx} dx
                 = (2πσ²)^{−1/4} (2a)^{−1/2} exp[−(k − k₀)²/(4a) − i(k − k₀)x₀],  a = (1 + iβ)/(4σ²).
-                Δx = σ,  Δk = √(1 + β²)/(2σ),  Δx·Δk = √(1 + β²)/2 ≥ 1/2 (equality for β = 0).
+                Δx = σ,  Δk = √(1 + β²)/(2σ),  Δx·Δk = √(1 + β²)/2 ≥ 1/2 (equality for β = 0). Chirp on: β = 2.
 -->
 <!-- LX:HEAD-BEGIN -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
 <script>
 window.MathJax = {
   tex: {
-    inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]],
+    inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]], tags: "ams",
     macros: {
       ket: ["\\left|#1\\right\\rangle", 1], bra: ["\\left\\langle#1\\right|", 1],
       braket: ["\\left\\langle#1\\middle|#2\\right\\rangle", 2], expval: ["\\left\\langle#1\\right\\rangle", 1],
@@ -43,7 +55,7 @@ window.MathJax = {
 <!-- LX:HEAD-END -->
 <style>
 /* LX:STYLE-BEGIN */
-/* Layout: a lab-notebook page. Figure stage on the left, lesson steps on the right; one column on phones. */
+/* Theme tokens, page, article typography, widget layouts, inline questions, SVG marks. */
 :root {
   --bg: #f5f6f8; --surface: #ffffff; --fg: #17202c; --muted: #5b6676; --line: #d6dce5; --grid: #eaeef3;
   --accent: #2f5bd3; --c2: #c9700c; --c3: #12857a; --c4: #b0377a; --good: #1f8a4c; --bad: #c2412d;
@@ -74,63 +86,98 @@ body { background: var(--bg); color: var(--fg); font: 15px/1.55 var(--f-ui); mar
 .lx-badge[data-kind="exact"] { color: var(--good); }
 .lx-badge[data-kind="schematic"] { color: var(--c2); }
 .lx-badge[data-kind="computed"] { color: var(--accent); }
-.lx-layout { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr); gap: 20px; align-items: start; }
-@media (max-width: 860px) { .lx-layout { grid-template-columns: minmax(0, 1fr); } }
+/* article: a reading column for text and math; widgets may break out with .lx-wide */
+.lx-article { display: grid; grid-template-columns: minmax(0, 1fr) min(720px, 100%) minmax(0, 1fr); row-gap: 16px; }
+.lx-article > * { grid-column: 2; min-width: 0; margin: 0; }
+.lx-article > .lx-wide { grid-column: 1 / -1; }
+.lx-article > p, .lx-article > ul, .lx-article > ol, .lx-prose { font: 17px/1.65 var(--f-prose); }
+.lx-article > ul, .lx-article > ol { padding-left: 1.3em; }
+.lx-article h2 { font: 600 24px/1.25 var(--f-prose); margin-top: 18px; text-wrap: balance; }
+.lx-article h3 { font: 600 19px/1.3 var(--f-prose); margin-top: 6px; }
+.lx-prose p { margin: 0 0 .6em; } .lx-prose p:last-child { margin-bottom: 0; }
+mjx-container[display="true"] { overflow-x: auto; overflow-y: hidden; max-width: 100%; padding: 2px 0; }
+.lx-callout { border-left: 3px solid var(--c3); padding: 8px 14px; background: var(--surface); border-radius: 0 8px 8px 0; font: 16px/1.6 var(--f-prose); }
+.lx-callout > b:first-child { font-family: var(--f-ui); font-size: 13px; letter-spacing: .04em; text-transform: uppercase; color: var(--c3); display: block; }
+.lx-hook { border: 1px solid var(--line); border-top: 3px solid var(--c2); background: var(--surface); border-radius: 10px; padding: 14px 16px; font: 18px/1.55 var(--f-prose); }
 .lx-stage { display: grid; gap: 14px; min-width: 0; }
-.lx-figs { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
-.lx-fig { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px; min-width: 0; display: grid; gap: 6px; }
+/* widget card: one framed unit of figures + controls; the layout class sets the arrangement */
+.lx-widget { container-type: inline-size; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: grid; gap: 12px; min-width: 0; }
+.lx-w-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px 12px; }
+.lx-w-head h3 { margin: 0; font: 600 16px/1.3 var(--f-ui); }
+.lx-w { display: grid; gap: 12px; min-width: 0; align-items: start; }
+.lx-w > *, .lx-col > * { min-width: 0; }
+.lx-col { display: grid; gap: 12px; align-content: start; min-width: 0; }
+.lx-split { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.lx-grid2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.lx-aside { grid-template-columns: minmax(0, 1fr) minmax(210px, 32%); }
+.lx-aside.lx-left { grid-template-columns: minmax(210px, 32%) minmax(0, 1fr); }
+.lx-hero { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+.lx-hero > :first-child { grid-row: span 3; }
+.lx-span2 { grid-column: 1 / -1; }
+@container (max-width: 620px) {
+  .lx-split, .lx-grid2, .lx-aside, .lx-aside.lx-left, .lx-hero { grid-template-columns: minmax(0, 1fr); }
+  .lx-hero > :first-child { grid-row: auto; }
+}
+.lx-figs { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); }
+.lx-fig { position: relative; min-width: 0; display: grid; gap: 6px; margin: 0; }
 .lx-fig > figcaption { font-size: 12.5px; color: var(--muted); }
 .lx-plot { position: relative; width: 100%; }
 .lx-plot > svg { display: block; width: 100%; height: auto; overflow: visible; touch-action: none; }
 .lx-overlay { position: absolute; inset: 0; pointer-events: none; }
 .lx-tex { position: absolute; white-space: nowrap; font-size: 13px; color: var(--fg); line-height: 1; }
-.lx-controls { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: end; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+.lx-float { position: absolute; top: 4px; right: 4px; z-index: 2; display: flex; flex-wrap: wrap; gap: 6px; justify-content: end; }
+.lx-controls { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: end; background: var(--bg); border-radius: 8px; padding: 10px 12px; }
+:is(.lx-aside, .lx-hero, .lx-grid2) > .lx-controls, .lx-controls.lx-vert { flex-direction: column; flex-wrap: nowrap; align-items: stretch; }
+:is(.lx-aside, .lx-hero, .lx-grid2) > .lx-controls .lx-slider, .lx-controls.lx-vert .lx-slider { flex: none; min-width: 0; }
 .lx-slider { display: grid; gap: 2px; min-width: min(100%, 200px); flex: 1 1 200px; }
 .lx-slider .lx-lab { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--muted); }
-.lx-slider output, .lx-readout b { font-family: var(--f-mono); font-variant-numeric: tabular-nums; color: var(--fg); font-weight: 500; }
+.lx-slider output, .lx-readouts b { font-family: var(--f-mono); font-variant-numeric: tabular-nums; color: var(--fg); font-weight: 500; }
 .lx-slider input[type=range] { width: 100%; accent-color: var(--accent); }
 .lx-group { display: grid; gap: 4px; }
 .lx-group > span { font-size: 12px; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
 .lx-row { display: flex; flex-wrap: wrap; gap: 6px; }
-.lx-btn { font: 500 13px var(--f-ui); color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; cursor: pointer; }
-.lx-btn:hover { border-color: var(--accent); }
+.lx-btn { font: 500 13px var(--f-ui); color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; cursor: pointer; line-height: 1.3; }
+.lx-btn:hover:not(:disabled) { border-color: var(--accent); }
 .lx-btn:focus-visible, .lx-seg input:focus-visible + span, .lx-drag:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .lx-btn[aria-pressed="true"], .lx-btn.lx-primary { background: var(--accent); color: var(--surface); border-color: var(--accent); }
 .lx-btn:disabled { opacity: .45; cursor: not-allowed; }
-.lx-seg { display: inline-flex; flex-wrap: wrap; max-width: 100%; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.lx-btn mjx-container, .lx-seg mjx-container, .lx-opt mjx-container { display: inline-block !important; margin: 0 !important; vertical-align: -0.2em; }
+.lx-seg { display: inline-flex; flex-wrap: wrap; max-width: 100%; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--surface); }
 .lx-seg label { cursor: pointer; }
 .lx-seg input { position: absolute; opacity: 0; pointer-events: none; }
-.lx-seg span { display: block; padding: 5px 10px; font-size: 13px; }
+.lx-seg span { display: block; padding: 5px 10px; font-size: 13px; line-height: 1.3; }
 .lx-seg input:checked + span { background: var(--accent); color: var(--surface); }
 .lx-readouts { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); }
-.lx-locked { opacity: .5; }
-.lx-locked * { cursor: not-allowed !important; }
-/* steps */
-.lx-steps { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: grid; gap: 12px; min-width: 0; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); }
-@media (max-width: 860px) { .lx-steps { position: static; order: -1; } }  /* phones: read the question, then use the widget below */
-.lx-steps-top { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
-.lx-dots { display: flex; gap: 5px; }
-.lx-dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
-.lx-dots i.on { background: var(--accent); }
-.lx-dots i.done { background: var(--muted); }
-.lx-steps h2 { margin: 0; font: 600 19px/1.3 var(--f-prose); text-wrap: balance; }
-.lx-prose { font: 16px/1.6 var(--f-prose); max-width: 68ch; }
-.lx-prose p { margin: 0 0 .6em; }
-.lx-prose p:last-child { margin-bottom: 0; }
-.lx-predict { display: grid; gap: 8px; border-left: 3px solid var(--accent); padding: 8px 0 8px 12px; background: var(--accent-soft); border-radius: 0 8px 8px 0; }
-.lx-predict > p { margin: 0; font-weight: 500; }
-.lx-opts { display: grid; gap: 6px; padding-right: 10px; }
+.lx-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; color: var(--fg); }
+.lx-legend i { display: inline-block; width: 16px; height: 0; border-top: 2.5px solid currentColor; vertical-align: middle; margin-right: 5px; }
+.lx-legend i.dash { border-top-style: dashed; } .lx-legend i.dot { width: 9px; height: 9px; border: none; border-radius: 50%; background: currentColor; }
+/* "What you are looking at" */
+.lx-guide { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 12px; margin: 0; font-size: 13.5px; line-height: 1.45; border-top: 1px solid var(--line); padding-top: 10px; }
+.lx-guide > b { grid-column: 1 / -1; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+.lx-guide dt { font-weight: 600; } .lx-guide dd { margin: 0; color: var(--fg); }
+@container (max-width: 480px) { .lx-guide { grid-template-columns: minmax(0, 1fr); } .lx-guide dd { margin: 0 0 6px; } }
+/* inline questions */
+.lx-ask { display: grid; gap: 8px; border-left: 3px solid var(--accent); padding: 10px 12px; background: var(--accent-soft); border-radius: 0 8px 8px 0; }
+.lx-ask > .lx-kicker { font: 500 12px var(--f-ui); letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
+.lx-ask > .lx-q { font: 500 16px/1.5 var(--f-prose); }
+.lx-opts { display: grid; gap: 6px; }
 .lx-opt { text-align: left; font: 14px/1.4 var(--f-ui); color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; cursor: pointer; }
 .lx-opt:hover:not(:disabled) { border-color: var(--accent); }
 .lx-opt:disabled { cursor: default; }
 .lx-opt.right { border-color: var(--good); box-shadow: inset 3px 0 0 var(--good); }
 .lx-opt.wrong { border-color: var(--bad); box-shadow: inset 3px 0 0 var(--bad); }
-.lx-feedback { font: 15px/1.5 var(--f-prose); padding-right: 10px; }
+.lx-ask input[type=text] { font: 15px var(--f-mono); color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; width: 9em; }
+.lx-ask textarea { font: 15px/1.5 var(--f-prose); color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 8px; min-height: 84px; resize: vertical; }
+.lx-feedback { font: 15px/1.5 var(--f-prose); }
 .lx-feedback b { font-family: var(--f-ui); }
-.lx-explain { display: grid; gap: 8px; }
-.lx-explain textarea { font: 15px/1.5 var(--f-prose); color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 8px; min-height: 84px; resize: vertical; }
-.lx-model { border: 1px dashed var(--line); border-radius: 8px; padding: 10px; }
-.lx-nav { display: flex; justify-content: space-between; gap: 8px; }
+.lx-feedback.good b { color: var(--good); } .lx-feedback.bad b { color: var(--bad); }
+.lx-model { border: 1px dashed var(--line); border-radius: 8px; padding: 10px; background: var(--surface); font: 15px/1.55 var(--f-prose); }
+/* gate: a result stays hidden until its question is answered, then stays visible */
+.lx-gated { position: relative; }
+.lx-gated > * { filter: blur(7px); opacity: .45; pointer-events: none; user-select: none; }
+.lx-gated::after { content: attr(data-gate); position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 4px 8px; font: 500 14px var(--f-ui); color: var(--fg); }
+span.lx-gated { display: inline-block; min-width: 9em; }
+span.lx-gated::after { font-size: 12px; white-space: nowrap; padding: 0; }
 .lx-foot { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 12px; display: grid; gap: 4px; max-width: 90ch; }
 /* svg marks: color via classes so both themes work */
 .lx-plot text { font: calc(11px * var(--lx-k, 1)) var(--f-mono); fill: var(--muted); }
@@ -141,6 +188,8 @@ body { background: var(--bg); color: var(--fg); font: 15px/1.55 var(--f-ui); mar
 .s1 { stroke: var(--accent); } .s2 { stroke: var(--c2); } .s3 { stroke: var(--c3); } .s4 { stroke: var(--c4); } .sm { stroke: var(--muted); stroke-width: 1.2; }
 .dash { stroke-dasharray: 5 4; }
 .thin { stroke-width: 1.2; }
+.faint { opacity: .45; }
+.sk { fill: none; stroke: var(--c4); stroke-width: 2.6; stroke-dasharray: 7 5; stroke-linecap: round; }
 .f1 { fill: var(--accent); } .f2 { fill: var(--c2); } .f3 { fill: var(--c3); } .f4 { fill: var(--c4); } .fm { fill: var(--muted); } .fs { fill: var(--surface); }
 .a1 { fill: var(--accent); fill-opacity: .16; stroke: none; } .a2 { fill: var(--c2); fill-opacity: .18; stroke: none; } .a3 { fill: var(--c3); fill-opacity: .18; stroke: none; }
 .g-ghost { opacity: .32; }
@@ -149,22 +198,20 @@ body { background: var(--bg); color: var(--fg); font: 15px/1.55 var(--f-ui); mar
 .lx-drag:active { cursor: grabbing; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 /* LX:STYLE-END */
+/* page-specific styles go below */
+.hint07 { margin: 0; font-size: 13.5px; color: var(--muted); }
 </style>
 
 <main class="lx-page">
   <header class="lx-head">
     <p class="lx-eyebrow">Quantum mechanics · Fourier duality</p>
     <h1>Why can a state not be sharp in both position and momentum?</h1>
-    <p class="lx-lede">One Gaussian wavepacket, drawn in position space and in momentum space at the same time. Change its width, position, momentum and chirp, and see how each change shows up in the other picture.</p>
+    <p class="lx-lede">One Gaussian wavepacket, drawn in position space and in momentum space at the same time. Grab its width or its centre in either picture and see what the other picture does.</p>
     <div class="lx-meta">
-      <span class="lx-badge" data-kind="exact">Exact Fourier pair</span>
       <span>\(\hbar = 1\) so \(p = k\); \(\phi(k) = \tfrac{1}{\sqrt{2\pi}}\int \psi(x)\, e^{-ikx}\,dx\); \(\Delta\) = standard deviation</span>
     </div>
   </header>
-  <section class="lx-layout">
-    <div class="lx-stage" id="stage"></div>
-    <aside class="lx-steps" id="steps" aria-live="polite"></aside>
-  </section>
+  <div class="lx-stage" id="stage"></div>
   <footer class="lx-foot">
     <span>Source: model knowledge. Standard treatment: Griffiths &amp; Schroeter, <i>Introduction to Quantum Mechanics</i>, ch. 2 and ch. 3; Sakurai &amp; Napolitano, <i>Modern Quantum Mechanics</i>, ch. 1.</span>
   </footer>
@@ -177,9 +224,12 @@ body { background: var(--bg); color: var(--fg); font: 15px/1.55 var(--f-ui); mar
    Plots    LX.plot(parent, {xlim, ylim, ticks, frame, xlabel, ylabel, width, height}) → path/fn/dot/line/vline/hline/
             area/text/tex/arrow/clear/ghost/setLim/setLabels/X/Y/inv/svg/g · LX.drag(plot, node, {get,set,step})
    3D       LX.camera({yaw, pitch, scale}) → project([x,y,z]) · rotate by dragging an element
+   Widget   LX.widget(mount, {layout: stack|split|grid2|aside|hero, left, title, badge}) → body element
+            LX.guide(widgetOrBody, [[term, description], ...]) — the "What you are looking at" block
+            LX.legend(parent, [[label, colorVar, "line"|"dash"|"dot"], ...])
    Controls LX.controls(parent) · LX.slider · LX.segmented · LX.button · LX.limits · LX.readout · LX.player
-   Lesson   LX.steps(parent, steps) — predict → reveal gating, explain boxes, locking controls, onAnswer hook
-            LX.isLocked(el) — true while a lesson step locks el (use in custom click/drag handlers)
+   Text     LX.ask(parent, {type: choice|number|set|sketch|explain, prompt, ..., reveal}) — inline question
+            LX.gate(el, message) — hide a result until a question that lists it in `reveal` is answered
    Checks   LX.check(name, fn) → window.__lxTests */
 const LX = (() => {
   const NS = "http://www.w3.org/2000/svg";
@@ -276,7 +326,6 @@ const LX = (() => {
   let uid = 0;
   function fig(parent, caption) {
     const f = h("figure", { class: "lx-fig" }, parent);
-    f.style.margin = "0";
     if (caption) { const c = h("figcaption", { html: caption }, f); typeset(c); }
     return f;
   }
@@ -308,6 +357,8 @@ const LX = (() => {
       get xlim() { return [x0, x1]; }, get ylim() { return [y0, y1]; },
       setLim(xl, yl) { if (xl) [x0, x1] = xl; if (yl) [y0, y1] = yl; drawAxes(); return P; },
       setLabels(xl, yl) { if (xl != null) o.xlabel = xl; if (yl != null) o.ylabel = yl; drawAxes(); return P; },
+      /* Clear everything a redraw owns: main, fill, top and the TeX overlay (not grid/axes/ghost). */
+      clearAll() { for (const l of ["main", "fill", "top", "tex"]) P.clear(l); return P; },
       clear(layer = "main") {
         if (layer === "tex") { [...overlay.children].filter(c => !c.dataset.axis).forEach(c => c.remove()); return P; }
         g[layer].replaceChildren(); return P;
@@ -342,6 +393,7 @@ const LX = (() => {
       },
       placeTex(el, x, y, anchor = "c", px) {
         const [ux, uy] = px ? [x, y] : [X(x), Y(y)];
+        el.style.display = isFinite(ux) && isFinite(uy) ? "" : "none";
         el.style.left = (100 * ux / W) + "%"; el.style.top = (100 * uy / H) + "%";
         const tx = anchor.includes("w") ? "0%" : anchor.includes("e") ? "-100%" : "-50%";
         const ty = anchor.includes("n") ? "0%" : anchor.includes("s") ? "-100%" : "-50%";
@@ -452,7 +504,11 @@ const LX = (() => {
     typeset(grp);
     return { el: grp, get: () => value, set(v, fire = true) { value = v; inputs.forEach(i => i.checked = i.value == v); if (fire && o.onChange) o.onChange(v); } };
   }
-  const button = (parent, label, onClick, o = {}) => h("button", { type: "button", class: "lx-btn" + (o.cls ? " " + o.cls : ""), id: o.id, html: label, onclick: onClick, title: o.title }, parent);
+  function button(parent, label, onClick, o = {}) {
+    const b = h("button", { type: "button", class: "lx-btn" + (o.cls ? " " + o.cls : ""), id: o.id, html: label, onclick: onClick, title: o.title }, parent);
+    if (/\\\(/.test(label)) typeset(b);
+    return b;
+  }
   /* Limit buttons: one click jumps to a named regime. items: [{label, title, apply}] */
   function limits(parent, items, title = "Jump to a limit", o = {}) {
     const grp = h("div", { class: "lx-group", id: o.id }, parent);   /* pass {id} to lock the whole group in a step */
@@ -478,81 +534,142 @@ const LX = (() => {
     return { btn, play, pause, get playing() { return playing; } };
   }
 
-  /* ---------- lesson steps ----------
-     step = { title, html,                       // prose (TeX allowed)
-              onEnter(),                         // set the widget into the state this step needs
-              predict: { prompt, options:[...], answer: index, right, wrong },  // commit before reveal
-              lock: ["control-id", ...],         // controls disabled until the prediction is made
-              after: html,                       // revealed after predicting
-              explain: { prompt, model },        // learner writes, then compares with a model answer
-              onAnswer(correct, index) }         // optional: called once the prediction is made (e.g. un-blur a view) */
-  function steps(parent, list, o = {}) {
-    const state = list.map(() => ({ chosen: null, explained: false, text: "" }));
-    let i = 0;
-    const lockEls = ids => (ids || []).map(id => document.getElementById(id)).filter(Boolean);
-    function setLocked(ids, on) {
-      for (const el of lockEls(ids)) {
-        el.classList.toggle("lx-locked", on);
-        el.querySelectorAll("input,button,select,textarea").forEach(c => c.disabled = on);
-        if (el.matches("input,button,select,textarea")) el.disabled = on;
-        if (on) el.title = "Make a prediction first"; else el.removeAttribute("title");
-      }
+  /* ---------- widget card, guide, legend ---------- */
+  const BADGE = { exact: "Exact", computed: "Computed", schematic: "Schematic" };
+  /* A framed widget. Returns the body element to fill; its children are arranged by the layout:
+     stack (one column) · split (two equal columns) · grid2 (2×2; a cell may hold controls)
+     aside (figures + a controls column; {left:true} puts the column first) · hero (big first child + a column)
+     Every layout falls back to one column when the card is narrower than ~620 px. */
+  function widget(parent, o = {}) {
+    const card = h("section", { class: "lx-widget" + (o.cls ? " " + o.cls : ""), id: o.id }, parent);
+    if (o.title || o.badge) {
+      const hd = h("div", { class: "lx-w-head" }, card);
+      if (o.title) h("h3", { html: o.title }, hd);
+      if (o.badge) h("span", { class: "lx-badge", "data-kind": o.badge, text: o.badgeText || BADGE[o.badge] }, hd);
+      typeset(hd);
     }
-    function render() {
-      const st = list[i], ss = state[i];
-      parent.replaceChildren();
-      const top = h("div", { class: "lx-steps-top" }, parent);
-      h("span", { text: `Step ${i + 1} of ${list.length}` }, top);
-      const dots = h("div", { class: "lx-dots", "aria-hidden": "true" }, top);
-      list.forEach((_, k) => h("i", { class: k === i ? "on" : k < i ? "done" : "" }, dots));
-      h("h2", { html: st.title }, parent);
-      if (st.html) h("div", { class: "lx-prose", html: st.html }, parent);
-      const answered = !st.predict || ss.chosen !== null;
-      if (st.predict) {
-        const box = h("div", { class: "lx-predict" }, parent);
-        h("p", { html: "Predict: " + st.predict.prompt }, box);
-        const opts = h("div", { class: "lx-opts" }, box);
-        st.predict.options.forEach((op, k) => {
-          const b = h("button", { type: "button", class: "lx-opt", html: op }, opts);
-          if (ss.chosen !== null) {
-            b.disabled = true;
-            if (k === st.predict.answer) b.classList.add("right");
-            else if (k === ss.chosen) b.classList.add("wrong");
-          }
-          b.addEventListener("click", () => { ss.chosen = k; render(); if (st.onAnswer) st.onAnswer(k === st.predict.answer, k); });
-        });
-        if (ss.chosen !== null) {
-          const ok = ss.chosen === st.predict.answer;
-          h("div", { class: "lx-feedback", html: `<b>${ok ? "Right." : "Not quite."}</b> ` + ((ok ? st.predict.right : st.predict.wrong) || "") }, box);
-        }
-      }
-      setLocked(st.lock, !answered);
-      if (answered && st.after) h("div", { class: "lx-prose", html: st.after }, parent);
-      if (answered && st.explain) {
-        const ex = h("div", { class: "lx-explain" }, parent);
-        h("label", { for: "lx-explain-" + i, html: st.explain.prompt }, ex);
-        const ta = h("textarea", { id: "lx-explain-" + i, placeholder: "In your own words…" }, ex);
-        ta.value = ss.text; ta.addEventListener("input", () => ss.text = ta.value);
-        if (!ss.explained) button(ex, "Compare with the textbook answer", () => { ss.explained = true; render(); });
-        else h("div", { class: "lx-model lx-prose", html: st.explain.model }, ex);
-      }
-      const nav = h("div", { class: "lx-nav" }, parent);
-      const back = button(nav, "Back", () => go(i - 1)); back.disabled = i === 0;
-      const next = button(nav, i === list.length - 1 ? "Done" : "Next", () => go(i + 1), { cls: "lx-primary" });
-      next.disabled = !answered || i === list.length - 1;
-      typeset(parent);
+    const body = h("div", { class: `lx-w lx-${o.layout || "stack"}` + (o.left ? " lx-left" : "") }, card);
+    body.card = card;
+    return body;
+  }
+  /* "What you are looking at": one line per figure and per control. */
+  function guide(parent, items, title = "What you are looking at") {
+    const card = parent.card || parent;
+    const dl = h("dl", { class: "lx-guide" }, card);
+    if (title) h("b", { text: title }, dl);
+    for (const [t, d] of items) { h("dt", { html: t }, dl); h("dd", { html: d }, dl); }
+    typeset(dl); return dl;
+  }
+  function legend(parent, items) {
+    const lg = h("div", { class: "lx-legend" }, parent);
+    for (const [label, color, kind] of items) {
+      const sp = h("span", {}, lg); const i = h("i", { class: kind && kind !== "line" ? kind : "" }, sp);
+      i.style.color = `var(${color})`; h("span", { html: label }, sp);
     }
-    function go(k) {
-      if (k < 0 || k >= list.length) return;
-      setLocked(list[i].lock, false);
-      i = k; if (list[i].onEnter) list[i].onEnter(); render();
-    }
-    if (list[0] && list[0].onEnter) list[0].onEnter();
-    render();
-    return { go, get index() { return i; } };
+    typeset(lg); return lg;
   }
 
-  const isLocked = el => !!(el && el.closest && el.closest(".lx-locked"));
+  /* ---------- gates and inline questions ---------- */
+  /* Hide a result (figure, readout, paragraph) until a question that lists it in `reveal` is answered.
+     A gate only ever opens. Do not gate controls the learner has already used. */
+  function gate(el, message = "Answer the question above to reveal") {
+    el.classList.add("lx-gated"); el.dataset.gate = message; el.setAttribute("aria-hidden", "true");
+    return { el, open: () => openGate(el) };
+  }
+  function openGate(el) { el.classList.remove("lx-gated"); el.removeAttribute("data-gate"); el.removeAttribute("aria-hidden"); }
+
+  /* Inline question in the text. Common options:
+       prompt (html), kicker (small label, defaults by type), reveal: [elements to un-gate],
+       right / wrong (html feedback), onAnswer(correct, value)
+     Types:
+       choice   options: [html], answer: index
+       number   answer: value, tol: relative tolerance (0.1), unit (html after the box)
+       set      the learner sets the widget, then presses Check. check(): {pass, msg}; solve(): optional,
+                puts the widget into the right state (offered after a wrong attempt)
+       sketch   plot: LX.plot, xs: handle positions, y0: start value (or ys), truth: x → y, tol: 0.15
+                (rms error relative to the truth's range); the learner drags handles, then compares
+       explain  model: html model answer, shown after the learner writes */
+  const KICK = { choice: "Predict", number: "Estimate", set: "Try it", sketch: "Sketch", explain: "Explain" };
+  function ask(parent, o) {
+    const type = o.type || "choice";
+    const box = h("div", { class: "lx-ask", "data-type": type }, parent);
+    h("div", { class: "lx-kicker", text: o.kicker || KICK[type] }, box);
+    h("div", { class: "lx-q", html: o.prompt }, box);
+    const body = h("div", { class: "lx-ask-body" }, box);
+    const fb = h("div", { class: "lx-feedback", "aria-live": "polite" }, box);
+    let answered = false;
+    function done(ok, value, extra) {
+      fb.className = "lx-feedback " + (ok == null ? "" : ok ? "good" : "bad");
+      const head = ok == null ? "" : `<b>${ok ? "Right." : "Not quite."}</b> `;
+      fb.innerHTML = head + (extra || "") + ((ok ? o.right : o.wrong) || (ok == null ? o.right || "" : ""));
+      typeset(fb);
+      if (!answered) { answered = true; box.dataset.answered = "1"; (o.reveal || []).forEach(openGate); }
+      if (o.onAnswer) o.onAnswer(ok, value);
+    }
+    if (type === "choice") {
+      const opts = h("div", { class: "lx-opts" }, body);
+      const bs = o.options.map((op, k) => h("button", { type: "button", class: "lx-opt", html: op, onclick: () => {
+        bs.forEach((b, j) => { b.disabled = true; if (j === o.answer) b.classList.add("right"); else if (j === k) b.classList.add("wrong"); });
+        done(k === o.answer, k);
+      } }, opts));
+    } else if (type === "number") {
+      const row = h("div", { class: "lx-row" }, body); row.style.alignItems = "center";
+      const inp = h("input", { type: "text", inputmode: "decimal", "aria-label": "your estimate" }, row);
+      if (o.unit) h("span", { html: o.unit }, row);
+      const go = () => {
+        const v = parseFloat(inp.value.replace(",", ".").replace("−", "-"));
+        if (!isFinite(v)) { fb.className = "lx-feedback"; fb.textContent = "Enter a number."; return; }
+        const tol = o.tol ?? 0.1, err = (v - o.answer) / (Math.abs(o.answer) || 1), ok = Math.abs(err) <= tol;
+        const dir = ok ? "" : `Your estimate is too ${err > 0 ? "high" : "low"}. `;
+        done(ok, v, dir);
+      };
+      button(row, "Check", go, { cls: "lx-primary" });
+      inp.addEventListener("keydown", e => { if (e.key === "Enter") go(); });
+    } else if (type === "set") {
+      const row = h("div", { class: "lx-row" }, body);
+      let solveBtn = null;
+      button(row, o.checkLabel || "Check", () => {
+        const r = o.check(); const ok = typeof r === "object" ? !!r.pass : !!r;
+        done(ok, null, (typeof r === "object" && r.msg ? r.msg + " " : ""));
+        if (!ok && o.solve && !solveBtn) solveBtn = button(row, "Show me", () => { o.solve(); }, {});
+      }, { cls: "lx-primary" });
+    } else if (type === "sketch") {
+      const P = o.plot, n = o.xs.length, ys = o.ys ? o.ys.slice() : o.xs.map(() => o.y0 ?? (P.ylim[0] + P.ylim[1]) / 2);
+      const g = s("g", { class: "lx-sketch" }, P.svg);
+      const tg = s("g", {}, g), line = s("path", { class: "sk" }, g);
+      const dots = o.xs.map((x, i) => {
+        const c = s("circle", { r: 7, class: "f4", "aria-label": `sketch point ${i + 1}; arrow keys move it` }, g);
+        drag(P, c, { get: () => [x, ys[i]], set: (_, y) => { ys[i] = clamp(y, P.ylim[0], P.ylim[1]); draw(); }, step: [0, (P.ylim[1] - P.ylim[0]) / 40] });
+        return c;
+      });
+      function draw() {
+        line.setAttribute("d", o.xs.map((x, i) => (i ? "L" : "M") + P.X(x).toFixed(1) + "," + P.Y(ys[i]).toFixed(1)).join(""));
+        dots.forEach((c, i) => { c.setAttribute("cx", P.X(o.xs[i])); c.setAttribute("cy", P.Y(ys[i])); });
+      }
+      draw();
+      h("p", { html: o.hint || "Drag the pink points to sketch your guess, then compare.", style: "margin:0;font-size:13.5px" }, body);
+      const row = h("div", { class: "lx-row" }, body);
+      button(row, "Compare with the real curve", () => {
+        tg.replaceChildren();
+        const pts = sample(o.truth, P.xlim[0], P.xlim[1], 300);
+        let d = ""; pts.forEach(([x, y], i) => { d += (i ? "L" : "M") + P.X(x).toFixed(1) + "," + P.Y(clamp(y, P.ylim[0] - 10, P.ylim[1] + 10)).toFixed(1); });
+        s("path", { d, class: "s1" }, tg);
+        const tv = o.xs.map(o.truth), span = (Math.max(...tv) - Math.min(...tv)) || 1;
+        const rms = Math.sqrt(o.xs.reduce((a, _, i) => a + (ys[i] - tv[i]) ** 2, 0) / n) / span;
+        done(rms <= (o.tol ?? 0.15), rms, `Your sketch is off by ${(100 * rms).toFixed(0)}% of the curve's range. `);
+      }, { cls: "lx-primary" });
+    } else if (type === "explain") {
+      const ta = h("textarea", { placeholder: "In your own words…", "aria-label": "your explanation" }, body);
+      const row = h("div", { class: "lx-row" }, body);
+      button(row, o.compareLabel || "Compare with a model answer", () => {
+        if (box.querySelector(".lx-model")) return;
+        const m = h("div", { class: "lx-model", html: o.model }, body); typeset(m);
+        done(null, ta.value);
+      });
+    }
+    typeset(box);
+    return { el: box, get answered() { return answered; } };
+  }
 
   /* ---------- self-tests ---------- */
   window.__lxTests = window.__lxTests || [];
@@ -566,18 +683,19 @@ const LX = (() => {
   }
   const near = (a, b, tol = 1e-9) => Math.abs(a - b) <= tol * Math.max(1, Math.abs(a), Math.abs(b));
 
-  return { h, s, typeset, linspace, clamp, sample, C, eigSym, niceTicks, fig, plot, drag, camera,
-           controls, slider, segmented, button, limits, readout, player, steps, isLocked, check, near, rng, reduceMotion };
+  return { h, s, typeset, linspace, clamp, sample, C, eigSym, niceTicks, fig, plot, drag, camera, widget, guide, legend,
+           controls, slider, segmented, button, limits, readout, player, ask, gate, check, near, rng, reduceMotion };
 })();
-/* LX:LIB-END */</script>
+/* LX:LIB-END */
+</script>
 
 <script>
 /* PATTERN */
 const { C } = LX, PI = Math.PI;
-const S = { s: 1, x0: 0, k0: 0, b: 0 };
-const XL = [-10, 10], KL = [-8, 8];
+const BETA_ON = 2;
+const S = { s: 1, x0: 0, k0: 1.5, b: 0 };
+const XL = [-10, 10], KL = [-8, 8], SL = [0.4, 2.5], X0L = [-5, 5], K0L = [-4, 4];
 
-/* local complex helpers (LX.C has no exp/sqrt) */
 const cexp = z => C.scale(C.expi(z.im), Math.exp(z.re));
 const csqrt = z => { const r = Math.sqrt(C.abs(z)), t = C.arg(z) / 2; return C.of(r * Math.cos(t), r * Math.sin(t)); };
 
@@ -594,43 +712,56 @@ function phi(k, p = S) {
 }
 const dx = (p = S) => p.s;
 const dk = (p = S) => Math.sqrt(1 + p.b * p.b) / (2 * p.s);
-
-/* ---- layout ---- */
-const stage = document.getElementById("stage");
-const figs = LX.h("div", { class: "lx-figs" }, stage);
-const PX = LX.plot(LX.fig(figs, "Position space: \\(|\\psi(x)|^2\\) (blue) and \\(\\mathrm{Re}\\,\\psi(x)\\) (orange)"),
-  { xlim: XL, ylim: [-1.1, 1.15], xlabel: "x", height: 380, yticks: 4 });
-const PK = LX.plot(LX.fig(figs, "Momentum space: \\(|\\phi(k)|^2\\) and \\(\\mathrm{Re}\\,\\phi(k)\\)"),
-  { xlim: KL, ylim: [-1.5, 2.1], xlabel: "k", height: 380, yticks: 4 });
-
-const ctl = LX.controls(stage);
-const sS = LX.slider(ctl, { id: "s", label: "width \\(\\sigma\\)", min: 0.4, max: 2.5, step: 0.01, value: S.s, onInput: v => { S.s = v; draw(); } });
-const xS = LX.slider(ctl, { id: "x0", label: "centre \\(x_0\\)", min: -5, max: 5, step: 0.01, value: S.x0, onInput: v => { S.x0 = v; draw(); } });
-const kS = LX.slider(ctl, { id: "k0", label: "mean momentum \\(k_0\\)", min: -4, max: 4, step: 0.01, value: S.k0, onInput: v => { S.k0 = v; draw(); } });
-const bS = LX.slider(ctl, { id: "b", label: "chirp \\(\\beta\\)", min: -3, max: 3, step: 0.01, value: S.b, onInput: v => { S.b = v; draw(); } });
-const crow = LX.h("div", { class: "lx-group" }, ctl);
-LX.h("span", { text: "Compare" }, crow);
-const cb = LX.h("div", { class: "lx-row" }, crow);
-LX.button(cb, "Keep a copy", () => { PX.ghost(); PK.ghost(); }, { id: "keep" });
-LX.button(cb, "Clear copy", () => { PX.clearGhost(); PK.clearGhost(); }, { id: "clearcopy" });
-LX.limits(ctl, [
-  { label: "Sharp position", title: "σ small, no chirp", apply: () => { bS.set(0); sS.set(0.4); } },
-  { label: "Sharp momentum", title: "σ large, no chirp", apply: () => { bS.set(0); sS.set(2.5); } },
-  { label: "Minimum uncertainty", title: "β = 0", apply: () => bS.set(0) },
-  { label: "Strong chirp", title: "β = 3", apply: () => bS.set(3) }
-]);
-const ro = LX.controls(stage);
-const rX = LX.readout(ro, "\\(\\Delta x =\\)");
-const box = ro.querySelector(".lx-readouts");
-const rK = LX.readout(box, "\\(\\Delta k =\\)");
-const rP = LX.readout(box, "\\(\\Delta x\\,\\Delta k =\\)");
-const rM = LX.readout(box, "\\((\\langle x\\rangle, \\langle k\\rangle) =\\)");
-
 const f = (v, d = 3) => (Math.abs(v) < 0.5 * 10 ** -d ? 0 : v).toFixed(d).replace("-", "−");
 
-/* one panel: probability density filled, real part as a line, ±Δ bracket at e^{-1/2} of the peak */
-function panel(P, F, c, w, name, lim) {
-  P.clear(); P.clear("fill"); P.clear("top");
+/* ---- layout: grid2 = x-space | k-space, uncertainty plane | controls ---- */
+const W0 = LX.widget(document.getElementById("stage"), { layout: "grid2", title: "One wavepacket, two pictures", badge: "exact" });
+const PX = LX.plot(LX.fig(W0, "Position space: \\(|\\psi(x)|^2\\) (blue, filled) and \\(\\mathrm{Re}\\,\\psi(x)\\) (orange)"),
+  { xlim: XL, ylim: [-1.1, 1.15], xlabel: "x", height: 360, yticks: 4 });
+const PK = LX.plot(LX.fig(W0, "Momentum space: \\(|\\phi(k)|^2\\) (blue, filled) and \\(\\mathrm{Re}\\,\\phi(k)\\) (orange)"),
+  { xlim: KL, ylim: [-1.5, 2.1], xlabel: "k", height: 360, yticks: 4 });
+const PU = LX.plot(LX.fig(W0, "Uncertainty plane: the packet as a point \\((\\Delta x, \\Delta k)\\)"),
+  { xlim: [0, 3], ylim: [0, 3], xlabel: "\\Delta x", ylabel: "\\Delta k", height: 360, xticks: 6, yticks: 6 });
+
+const ctl = LX.controls(W0);
+LX.h("p", { class: "hint07", html: "Drag the pink handles on the two upper plots: the dot on the axis moves the centre, the dot at the end of the bracket changes the width." }, ctl);
+const chirpSeg = LX.segmented(ctl, { id: "chirp", label: "Phase across the packet", value: "off",
+  options: [{ value: "off", label: "flat (\\(\\beta = 0\\))" }, { value: "on", label: "chirped (\\(\\beta = 2\\))" }],
+  onChange: v => { S.b = v === "on" ? BETA_ON : 0; draw(); } });
+const ro = LX.h("div", { class: "lx-readouts" }, ctl);
+const rX = LX.readout(ro, "\\(\\Delta x =\\)");
+const rK = LX.readout(ro, "\\(\\Delta k =\\)");
+const rP = LX.readout(ro, "\\(\\Delta x\\,\\Delta k =\\)");
+const rM = LX.readout(ro, "\\((\\langle x\\rangle, \\langle k\\rangle) =\\)");
+
+LX.guide(W0, [
+  ["Position plot", "The packet in space. The filled blue curve is the probability density \\(|\\psi(x)|^2\\); the orange curve is \\(\\mathrm{Re}\\,\\psi(x)\\), which shows the phase: its wiggles have wavelength \\(2\\pi/k_0\\). The green bracket spans \\(\\langle x\\rangle \\pm \\Delta x\\)."],
+  ["Momentum plot", "The same state written as a superposition of plane waves \\(e^{ikx}\\): \\(|\\phi(k)|^2\\) is the probability of finding momentum \\(k\\). The green bracket spans \\(\\langle k\\rangle \\pm \\Delta k\\)."],
+  ["Pink handles", "On each plot, the dot on the axis sets the centre (\\(x_0\\) on the left, \\(k_0\\) on the right) and the dot at the right end of the bracket sets the width. Both width handles change the same parameter \\(\\sigma\\), so dragging one moves the other. Arrow keys work when a handle has focus."],
+  ["Uncertainty plane", "Horizontal: \\(\\Delta x\\); vertical: \\(\\Delta k\\). The packet is the blue dot; the blue rectangle has area \\(\\Delta x\\,\\Delta k\\). The shaded region below the orange hyperbola \\(\\Delta x\\,\\Delta k = \\tfrac12\\) is forbidden for every state. With the chirp on, the dashed curve shows where chirped packets live."],
+  ["Chirp", "Adds a quadratic phase \\(e^{-i\\beta(x-x_0)^2/4\\sigma^2}\\): the local wavelength varies across the packet. \\(|\\psi(x)|^2\\) does not change; look at \\(\\mathrm{Re}\\,\\psi\\) and at the momentum plot."],
+  ["What to look for", "Narrow \\(|\\psi|^2\\) and \\(|\\phi|^2\\) widens by the same factor: the dot slides along the hyperbola and the product stays exactly \\(\\tfrac12\\). Moving \\(x_0\\) does not move or reshape \\(|\\phi(k)|^2\\); only \\(\\mathrm{Re}\\,\\phi\\) starts to oscillate. Moving \\(k_0\\) does not move \\(|\\psi(x)|^2\\); it changes the wavelength of \\(\\mathrm{Re}\\,\\psi\\). With the chirp on, \\(\\Delta x\\) is unchanged but \\(\\Delta k\\) grows, and the dot leaves the hyperbola."]
+]);
+
+/* handles: created once in their own layer (never cleared), moved on every redraw */
+function handleLayer(P) { return LX.s("g", {}, P.svg); }
+function mkHandle(P, layer, label, get, set) {
+  const c = LX.s("circle", { r: 8, class: "f4", "aria-label": label + "; drag or use arrow keys" }, layer);
+  LX.drag(P, c, { get, set, step: [(P.xlim[1] - P.xlim[0]) / 100, 0] });
+  return c;
+}
+const HX = handleLayer(PX), HK = handleLayer(PK);
+const setS = s => { S.s = LX.clamp(s, ...SL); draw(); };
+const hx0 = mkHandle(PX, HX, "centre x0", () => [S.x0, 0], x => { S.x0 = LX.clamp(x, ...X0L); draw(); });
+const hxs = mkHandle(PX, HX, "width: right end of the Δx bracket", () => [S.x0 + dx(), 0], x => setS(x - S.x0));
+const hk0 = mkHandle(PK, HK, "centre k0", () => [S.k0, 0], k => { S.k0 = LX.clamp(k, ...K0L); draw(); });
+const hks = mkHandle(PK, HK, "width: right end of the Δk bracket", () => [S.k0 + dk(), 0],
+  k => { const w = Math.max(k - S.k0, 1e-3); setS(Math.sqrt(1 + S.b * S.b) / (2 * w)); });
+const place = (P, c, x, y) => { c.setAttribute("cx", P.X(x)); c.setAttribute("cy", P.Y(y)); };
+
+/* one panel: density filled, real part as a line, ±Δ bracket at e^{-1/2} of the peak */
+function panel(P, F, c, w, name, lim, hc, hw) {
+  P.clearAll();
   P.hline(0, { cls: "gr" });
   const pts = LX.linspace(lim[0], lim[1], 900).map(x => [x, F(x)]);
   P.area(pts.map(([x, z]) => [x, C.abs2(z)]), { cls: "a1" });
@@ -639,75 +770,37 @@ function panel(P, F, c, w, name, lim) {
   const h = C.abs2(F(c)) * Math.exp(-0.5), t = 0.025 * (P.ylim[1] - P.ylim[0]);
   P.line(c - w, h, c + w, h, { cls: "s3", layer: "top" });
   P.line(c - w, h - t, c - w, h + t, { cls: "s3", layer: "top" });
-  P.line(c + w, h - t, c + w, h + t, { cls: "s3", layer: "top" });
-  P.text(LX.clamp(c + w, lim[0] + 1.5, lim[1] - 1.5), h, "2" + name, { anchor: "start", dx: 6, dy: 4, cls: "f3" });
+  P.text(LX.clamp(c - w, lim[0] + 1.6, lim[1]), h, "2" + name, { anchor: "end", dx: -8, dy: 4, cls: "f3" });
+  P.vline(c, { cls: "sm thin dash", layer: "top" });
+  place(P, hc, c, 0); place(P, hw, Math.min(c + w, lim[1]), h);
 }
+
+/* uncertainty plane: static parts drawn once */
+const hyper = c => LX.linspace(0.05, 3, 300).map(x => [x, c / x]);
+PU.area(hyper(0.5).map(([x, y]) => [x, Math.min(y, 3.2)]), { cls: "a2", layer: "ghost" });
+PU.path(hyper(0.5), { cls: "s2 thin", layer: "ghost" });
+PU.g.ghost.classList.remove("g-ghost");
+PU.tex(2.95, 0.5 / 2.95, "\\Delta x\\,\\Delta k = \\tfrac12", { anchor: "se", color: "var(--c2)" });
+PU.text(0.6, 0.18, "forbidden", { anchor: "middle", layer: "ghost" });
+function drawPlane() {
+  PU.clear("main"); PU.clear("fill"); PU.clear("top");   /* the hyperbola, its labels and the forbidden region are static */
+  if (S.b) PU.path(hyper(Math.sqrt(1 + S.b * S.b) / 2), { cls: "s1 thin dash" });
+  const X = dx(), K = dk(), Kc = Math.min(K, 3);
+  PU.path([[0, 0], [X, 0], [X, Kc], [0, Kc]], { cls: "a1", close: true, layer: "fill" });
+  PU.path([[0, Kc], [X, Kc], [X, 0]], { cls: "s1 thin" });
+  PU.dot(X, Kc, { r: 6, cls: "f1" });
+  const right = X < 2;
+  PU.text(X, Kc, "area Δx·Δk = " + f(X * K, 2), { anchor: right ? "start" : "end", dx: right ? 10 : -10, dy: Kc > 2.7 ? 16 : -8 });
+}
+
 function draw() {
-  panel(PX, x => psi(x), S.x0, dx(), "Δx", XL);
-  panel(PK, k => phi(k), S.k0, dk(), "Δk", KL);
+  panel(PX, x => psi(x), S.x0, dx(), "Δx", XL, hx0, hxs);
+  panel(PK, k => phi(k), S.k0, dk(), "Δk", KL, hk0, hks);
+  drawPlane();
   rX.set(f(dx())); rK.set(f(dk())); rP.set(f(dx() * dk()));
   rM.set(`(${f(S.x0, 2)}, ${f(S.k0, 2)})`);
 }
 draw();
-
-/* ---- lesson ---- */
-const go = (s, x0 = 0, k0 = 0, b = 0) => () => {
-  PX.clearGhost(); PK.clearGhost();
-  [[sS, s], [xS, x0], [kS, k0], [bS, b]].forEach(([sl, v]) => sl.set(v, false));
-  Object.assign(S, { s, x0, k0, b }); draw();
-};
-LX.steps(document.getElementById("steps"), [
-  { title: "Squeeze the packet",
-    onEnter: go(1.5),
-    html: "<p>A Gaussian of width \\(\\sigma = 1.5\\), at rest at the origin. Press <i>Keep a copy</i>, then you will shrink it to \\(\\sigma = 0.5\\).</p>",
-    predict: { prompt: "What happens to the momentum distribution \\(|\\phi(k)|^2\\)?",
-      options: ["It narrows by the same factor 3", "It widens by a factor 3", "It does not change: width in \\(x\\) and \\(k\\) are independent"], answer: 1,
-      right: "The Fourier transform of a Gaussian of width \\(\\sigma\\) is a Gaussian of width \\(1/(2\\sigma)\\). Localising the particle requires many plane waves.",
-      wrong: "A narrow bump needs many wavelengths to build it. The transform of a width-\\(\\sigma\\) Gaussian has width \\(1/(2\\sigma)\\): three times narrower in \\(x\\) means three times wider in \\(k\\)." },
-    lock: ["s-wrap"],
-    after: "<p>Shrink \\(\\sigma\\) and watch the two panels trade width. The height changes too: both densities stay normalised to one.</p>" },
-  { title: "The product",
-    onEnter: go(1),
-    html: "<p>The readouts show the two standard deviations. You are about to sweep \\(\\sigma\\) across its whole range.</p>",
-    predict: { prompt: "How does \\(\\Delta x\\,\\Delta k\\) depend on \\(\\sigma\\) for this packet?",
-      options: ["It grows with \\(\\sigma\\)", "It stays at \\(1/2\\)", "It stays at 1"], answer: 1,
-      right: "\\(\\Delta x = \\sigma\\) and \\(\\Delta k = 1/(2\\sigma)\\), so the product is \\(1/2\\) for every \\(\\sigma\\): the Gaussian saturates the bound \\(\\Delta x\\,\\Delta p \\ge \\hbar/2\\).",
-      wrong: "Sweep \\(\\sigma\\) and watch the product: \\(\\sigma\\cdot 1/(2\\sigma) = 1/2\\) every time. The unchirped Gaussian is a minimum-uncertainty state." },
-    lock: ["s-wrap"],
-    after: "<p>No other shape does better: \\(1/2\\) is the bound set by \\([x, p] = i\\), and only Gaussians reach it.</p>" },
-  { title: "Move it in space",
-    onEnter: go(1),
-    html: "<p>Now shift the packet to \\(x_0 = 4\\) without changing its shape. Watch the momentum panel closely.</p>",
-    predict: { prompt: "What does a shift in position do to \\(|\\phi(k)|^2\\)?",
-      options: ["Shifts it by \\(x_0\\)", "Nothing: only the phase of \\(\\phi(k)\\) changes", "Widens it"], answer: 1,
-      right: "Translation multiplies \\(\\phi(k)\\) by \\(e^{-ikx_0}\\). The modulus is untouched; \\(\\mathrm{Re}\\,\\phi\\) starts to oscillate in \\(k\\) with period \\(2\\pi/x_0\\).",
-      wrong: "A shift by \\(x_0\\) multiplies \\(\\phi(k)\\) by the pure phase \\(e^{-ikx_0}\\). The filled curve stays put; only the orange real part starts oscillating." },
-    lock: ["x0-wrap"],
-    after: "<p>Position information sits in the <i>phase</i> of the momentum wavefunction. This is why \\(|\\phi(k)|^2\\) alone, as measured in a time-of-flight image, cannot tell you where the cloud was.</p>" },
-  { title: "Give it momentum",
-    onEnter: go(1),
-    html: "<p>The reverse experiment: boost the packet to \\(k_0 = 3\\).</p>",
-    predict: { prompt: "What changes in position space?",
-      options: ["\\(|\\psi(x)|^2\\) moves to the right", "\\(|\\psi(x)|^2\\) stays; \\(\\mathrm{Re}\\,\\psi\\) oscillates with wavelength \\(2\\pi/k_0\\)", "\\(|\\psi(x)|^2\\) becomes narrower"], answer: 1,
-      right: "The boost is the phase \\(e^{ik_0x}\\). The density does not move at this instant; it will move once time evolves. In \\(k\\) space the whole distribution slides to \\(k_0\\).",
-      wrong: "Multiplying by \\(e^{ik_0x}\\) changes no modulus. \\(|\\psi(x)|^2\\) is unchanged at this instant; the momentum is visible in the wiggles of \\(\\mathrm{Re}\\,\\psi\\) and in the shifted \\(|\\phi(k)|^2\\)." },
-    lock: ["k0-wrap"],
-    after: "<p>The two views are dual: a shift in one is a linear phase in the other, in both directions.</p>" },
-  { title: "Add a chirp",
-    onEnter: go(1),
-    html: "<p>A chirp \\(\\beta\\) adds a quadratic phase \\(e^{-i\\beta (x-x_0)^2/4\\sigma^2}\\): the local wavelength varies across the packet. \\(|\\psi(x)|^2\\) is unchanged by construction.</p>",
-    predict: { prompt: "What does the chirp do to \\(\\Delta x\\,\\Delta k\\)?",
-      options: ["Nothing: \\(\\Delta x\\) is unchanged, so neither is the product", "It raises it above \\(1/2\\): \\(\\Delta k\\) grows", "It lowers it below \\(1/2\\)"], answer: 1,
-      right: "Different parts of the packet now carry different local momenta, so \\(\\Delta k = \\sqrt{1+\\beta^2}/(2\\sigma)\\) grows while \\(\\Delta x\\) stays \\(\\sigma\\).",
-      wrong: "The local wavenumber varies across the packet, which spreads the momentum distribution: \\(\\Delta k = \\sqrt{1+\\beta^2}/(2\\sigma)\\). Nothing can go below \\(1/2\\)." },
-    lock: ["b-wrap"],
-    after: "<p>A chirped packet is what free evolution produces from a minimum-uncertainty one: fast components run ahead of slow ones. Its \\(|\\phi(k)|^2\\) is wider than an unchirped packet of the same \\(\\Delta x\\) would need.</p>" },
-  { title: "Put it in your own words",
-    onEnter: go(1, 2, 1.5, 1),
-    html: "<p>You have seen widths trade off, shifts turn into phases, and chirps cost extra uncertainty.</p>",
-    explain: { prompt: "Why does a shift in position leave \\(|\\phi(k)|^2\\) unchanged, while a change in width does not?",
-      model: "<p>A shift is generated by the momentum operator: \\(\\psi(x - x_0) = e^{-i\\hat p x_0}\\psi(x)\\), which is diagonal in the momentum basis and only multiplies each \\(\\phi(k)\\) by a phase \\(e^{-ikx_0}\\). A change of width is a dilation, \\(x \\to x/\\lambda\\); its Fourier image is \\(k \\to \\lambda k\\), which redistributes weight between momenta, so the modulus changes.</p><p><b>Transfer:</b> free evolution multiplies \\(\\phi(k)\\) by \\(e^{-ik^2t/2}\\). Which of \\(\\Delta x\\) and \\(\\Delta k\\) can change in time, and what does that tell you about a packet that starts at minimum uncertainty?</p>" } }
-]);
 
 /* ---- self-tests ---- */
 const P0 = { s: 0.8, x0: 1.3, k0: -0.7, b: 1.6 };

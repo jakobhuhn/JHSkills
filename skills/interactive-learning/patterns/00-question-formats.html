@@ -1,33 +1,33 @@
-<title>Winding Number</title>
+<title>Question Formats</title>
 <!--
-PATTERN 08 · TOPOLOGY / INVARIANTS
-When to use     An integer computed from a smooth object stays fixed under every smooth deformation and
-                can only change at a singular event (a gap closing, a zero, a degeneracy). Use it for
-                winding numbers (SSH, 1D chiral classes), Chern numbers, Berry phase quantisation,
-                vortices and topological defects, Z₂ invariants, index theorems, Thouless pumps,
-                degree of a map, phase slips.
-Widget anatomy  (1) the loop d(k) in the plane with the origin marked, a point running along k, the
-                    arrow from the origin to it, and a dashed circle of radius min|d| (half the gap);
-                (2) linked plot of the unwrapped angle φ(k)/2π: its total rise is the integer W;
-                (3) sliders v, w, u and k, a play loop, "Keep a copy" (ghosts the loop), jumps to
-                    each phase and to the gap closing;
-                (4) readouts: W, min|d|, band gap 2 min|d|, |d(k)|; a "What you are looking at" guide.
-Layout          aside: the two linked plots sit side by side in the wide column (they share k, so they
-                belong next to each other); sliders, buttons and readouts form the narrow column.
-Teaching moments  Suggestions for the chapter around the widget:
-                - choice: raise w past v; does W grow smoothly or jump? (misconception: it is geometric)
-                - set: "make the gap close" (check min|d| < 0.02), then "find a W = 2 loop".
-                - choice: at w = v, what happens to the bands? (gap closes, angle undefined)
-                - number: with v = 0.4, w = 1.2, at which u does W become 2? (u = w − v = 0.8)
-                - explain: why can W only change when min|d| = 0?
-                - transfer: edge states of an open SSH chain count |W|.
-Adapt by        Replace dvec(k) with any closed curve in a plane (for a 2×2 chiral Hamiltonian,
-                h(k) = d_x σ_x + d_y σ_y). For a Chern number, replace the curve by a map of the Brillouin
-                torus to the sphere and count the solid angle; keep min|d| as the gap readout.
-Physics         d(k) = (v + w cos k + u cos 2k, w sin k + u sin 2k) = Re/Im of v + w z + u z², z = e^{ik}.
-                W = (1/2π)∮ dφ = number of zeros of v + w z + u z² inside the unit circle (argument
-                principle). With u = 0 this is the SSH model: W = 1 for w > v, 0 for w < v, min|d| = |v − w|.
-                Energies of h(k) = d(k)·σ are ±|d(k)|, so the band gap is 2 min_k |d(k)|.
+PATTERN 00 · QUESTION FORMATS
+When to use     Reference for the five inline question types (LX.ask) and the gate (LX.gate), all built around
+                one small exact widget. Copy the format that fits the learning goal; questions live in the
+                text of a chapter, between paragraphs, not inside the widget.
+                - choice   confront one specific misconception; every wrong option is a belief someone holds.
+                - number   estimate a scale; the answer is a number with a tolerance (relative, default 10%).
+                - set      the learner puts the widget into the predicted state, then presses Check; check()
+                           reads the widget state; solve() offers "Show me" after a wrong attempt.
+                - sketch   predict a whole functional shape: drag handles on an empty plot, then compare with
+                           the true curve (drawn by the ask); pair it with LX.gate on the widget's own figure.
+                - explain  articulate the mechanism in words; a model answer appears after writing.
+                LX.gate(el, msg) blurs a result until a question that lists it in `reveal` is answered; it only
+                ever opens. Do not gate a control the learner has already used.
+Widget anatomy  (1) the box: walls at 0 and L, the three lowest levels as faint lines, the current state ψ_n(x)
+                    drawn on its level;
+                (2) energy vs box width: E_n(L) for n = 1…3 with the current state as a dot (gated until the
+                    sketch question is answered);
+                (3) sliders n and L; readouts E_n, wavelength λ = 2L/n; a "What you are looking at" guide.
+Layout          aside: the two figures side by side in the wide column, the two sliders and readouts in the
+                narrow column. The widget sits in an lx-article (a chapter page), with .lx-wide.
+Teaching moments  This page is itself the list: choice (which level is higher, n = 2 in 2L or n = 1 in L?),
+                number (E_1 of an electron in a 1 nm box), set (make E = 4 E_1), sketch (E_1 against L),
+                explain (why confinement costs energy). Gate messages are CSS content: plain text, no TeX.
+Adapt by        Swap the widget for the one in your chapter and keep the prose before each question short:
+                say what the learner should do and why this format, not the answer.
+Physics         Infinite square well of width L (ħ = m = 1 in the widget): ψ_n(x) = √(2/L) sin(nπx/L),
+                E_n = n²π²/(2L²); plotted in units of E_1(L = 1) = π²/2, so E_n = n²/L². λ_n = 2L/n.
+                SI: E_1 = h²/(8 m_e L²) = 0.376 eV for L = 1 nm.
 -->
 <!-- LX:HEAD-BEGIN -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
@@ -201,20 +201,44 @@ span.lx-gated::after { font-size: 12px; white-space: nowrap; padding: 0; }
 
 <main class="lx-page">
   <header class="lx-head">
-    <p class="lx-eyebrow">Topological matter · Winding number</p>
-    <h1>When can a whole number change?</h1>
-    <p class="lx-lede">As \(k\) runs once around the Brillouin zone, the vector \(\mathbf d(k)\) traces a closed loop. Count how many times it winds around the origin, then try to change that count by deforming the loop.</p>
+    <p class="lx-eyebrow">Pattern reference · Inline questions</p>
+    <h1>Five ways to ask a question about one widget</h1>
+    <p class="lx-lede">A particle in a box, and the five question formats a chapter can use around it. Each section says when the format is the right tool, then shows it working.</p>
     <div class="lx-meta">
-      <span>\(\mathbf d(k) = (v + w\cos k + u\cos 2k,\; w\sin k + u\sin 2k)\), \(h(k) = \mathbf d(k)\cdot\boldsymbol\sigma\), \(k \in [0, 2\pi)\), lattice constant 1</span>
+      <span>Infinite square well of width \(L\); in the widget \(\hbar = m = 1\) and energies in units of \(E_1(L{=}1) = \pi^2/2\)</span>
     </div>
   </header>
-  <div class="lx-stage" id="stage"></div>
+  <article class="lx-article" id="article">
+    <p>A particle confined between two hard walls can only have standing waves that fit the box: \(\psi_n(x) = \sqrt{2/L}\,\sin(n\pi x/L)\), with \(n\) half wavelengths across the width \(L\). The widget shows these states and their energies.</p>
+    <div class="lx-wide" id="w1"></div>
+
+    <h2>Choice: confront a misconception</h2>
+    <p>Use a multiple-choice question when there is a specific wrong belief to bring into the open. Each wrong option should be something a reasonable learner thinks, so the feedback can address it. Here the belief is that a higher quantum number always means a higher energy.</p>
+    <div id="q-choice"></div>
+
+    <h2>Number: estimate a scale</h2>
+    <p>Use a numerical estimate when the point is the size of something: does the effect matter at this scale? The tolerance should be generous; an estimate within a factor of a few is often the real goal. The widget works in natural units, so this one asks for a real number in electronvolts.</p>
+    <div id="q-number"></div>
+
+    <h2>Set: put the widget into the predicted state</h2>
+    <p>Use a set question when the learner can express the prediction by operating the widget. It turns the widget into the answer box, and the check reads the widget state, so any correct configuration counts.</p>
+    <div id="q-set"></div>
+
+    <h2>Sketch: predict a whole shape</h2>
+    <p>Use a sketch when the shape of a dependence is the insight: a power law, a maximum, a divergence. Drawing forces a commitment over the whole range, which a single number does not. The matching curve in the widget stays hidden until the sketch is compared.</p>
+    <div id="q-sketch"></div>
+
+    <h2>Explain: articulate the mechanism</h2>
+    <p>Use an explanation at the end of a section, when the learner has seen the effect and should now say why it happens. There is no automatic grading: the model answer is for self-comparison.</p>
+    <div id="q-explain"></div>
+  </article>
   <footer class="lx-foot">
-    <span>Source: model knowledge. Standard treatment: Asbóth, Oroszlány &amp; Pályi, <i>A Short Course on Topological Insulators</i>, ch. 1 (the SSH model); Bernevig &amp; Hughes, <i>Topological Insulators and Topological Superconductors</i>.</span>
+    <span>Source: model knowledge. Standard treatment: Griffiths &amp; Schroeter, <i>Introduction to Quantum Mechanics</i>, sec. 2.2 (the infinite square well).</span>
   </footer>
 </main>
 
-<script>/* LX:LIB-BEGIN */
+<script>
+/* LX:LIB-BEGIN */
 /* LX — small helper library for interactive-learning widgets. API summary:
    DOM      LX.h(tag, attrs, parent) · LX.fig(parent, caption) · LX.typeset(el)
    Numbers  LX.linspace · LX.clamp · LX.sample(f,a,b,n) · LX.C (complex) · LX.eigSym(A) · LX.niceTicks · LX.rng(seed)
@@ -688,124 +712,119 @@ const LX = (() => {
 
 <script>
 /* PATTERN */
-const TAU = 2 * Math.PI;
-const S = { v: 1.5, w: 0.5, u: 0, k: 0.8 };
-const dvec = (k, p = S) => [p.v + p.w * Math.cos(k) + p.u * Math.cos(2 * k), p.w * Math.sin(k) + p.u * Math.sin(2 * k)];
-/* Unwrapped angle φ(k) on a fine grid; its total change / 2π is the winding number. */
-function angles(p = S, n = 2000) {
-  const out = []; let prev = null, acc = 0;
-  for (let i = 0; i <= n; i++) {
-    const k = TAU * i / n, [x, y] = dvec(k, p), a = Math.atan2(y, x);
-    if (prev !== null) { let d = a - prev; d -= TAU * Math.round(d / TAU); acc += d; } else acc = a;
-    prev = a; out.push([k, acc]);
-  }
-  return out;
-}
-const winding = (p = S) => { const a = angles(p); return Math.round((a[a.length - 1][1] - a[0][1]) / TAU); };
-const minD = (p = S) => Math.min(...LX.linspace(0, TAU, 4001).map(k => Math.hypot(...dvec(k, p))));
-/* Independent count: zeros of v + w z + u z² with |z| < 1. */
-function rootsInside({ v, w, u }) {
-  if (Math.abs(u) < 1e-14) return Math.abs(w) < 1e-14 ? 0 : +(Math.abs(v / w) < 1);
-  const disc = w * w - 4 * u * v;
-  if (disc < 0) return (v / u) < 1 ? 2 : 0;           // complex pair, |z|² = v/u
-  const r = [(-w + Math.sqrt(disc)) / (2 * u), (-w - Math.sqrt(disc)) / (2 * u)];
-  return r.filter(z => Math.abs(z) < 1).length;
-}
-const fmt = (v, d = 3) => v.toFixed(d).replace("-", "−");
+const PI = Math.PI, NMAX = 3, LL = [1, 3], EMAX = 10;
+const S = { n: 2, L: 1.5 };
+/* energies in units of E_1(L = 1) = π²/2 (ħ = m = 1): E_n(L) = n²/L² */
+const E = (n, L) => n * n / (L * L);
+const psi = (n, L, x) => Math.sqrt(2 / L) * Math.sin(n * PI * x / L);
+const f = (v, d = 3) => v.toFixed(d);
 
-/* ---- layout: aside = the two linked plots side by side, controls in the narrow column ---- */
-const W0 = LX.widget(document.getElementById("stage"), { layout: "aside", title: "The loop \\(\\mathbf d(k)\\) and its winding number", badge: "exact" });
+/* ---- widget: aside = two figures in the wide column, sliders + readouts in the narrow one ---- */
+const W0 = LX.widget(document.getElementById("w1"), { layout: "aside", title: "Particle in a box", badge: "exact" });
 const figs = LX.h("div", { class: "lx-figs" }, W0);
-const PD = LX.plot(LX.fig(figs, "The loop \\(\\mathbf d(k)\\) in the plane"),
-  { xlim: [-3.2, 3.2], ylim: [-3.2, 3.2], xlabel: "d_x", ylabel: "d_y", width: 400, height: 408 });
-const PA = LX.plot(LX.fig(figs, "Angle of \\(\\mathbf d(k)\\), counted in full turns"),
-  { xlim: [0, TAU], ylim: [-1, 2.5], xlabel: "k", ylabel: "\\varphi/2\\pi", width: 400, height: 408 });
-
+const PB = LX.plot(LX.fig(figs, "The box: levels and the current state \\(\\psi_n(x)\\)"),
+  { xlim: [-0.2, 3.2], ylim: [0, EMAX], xlabel: "x", ylabel: "E", width: 420, height: 360, xticks: 4, yticks: 4 });
+const figE = LX.fig(figs, "Energy against box width, \\(E_n(L)\\)");
+const PE = LX.plot(figE, { xlim: LL, ylim: [0, EMAX], xlabel: "L", ylabel: "E", width: 420, height: 360, xticks: 4, yticks: 4 });
 const ctl = LX.controls(W0);
-const mk = (id, label, max, key) => LX.slider(ctl, { id, label, min: 0, max, step: 0.01, value: S[key], onInput: v => { S[key] = v; update(); } });
-const vS = mk("v", "intracell hopping \\(v\\)", 2, "v");
-const wS = mk("w", "intercell hopping \\(w\\)", 2, "w");
-const uS = mk("u", "second-neighbour term \\(u\\)", 1.5, "u");
-const kS = LX.slider(ctl, { id: "k", label: "momentum \\(k\\)", min: 0, max: TAU, step: 0.01, value: S.k, onInput: v => { S.k = v; update(); } });
-const act = LX.h("div", { class: "lx-group" }, ctl);
-LX.h("span", { text: "Run and compare" }, act);
-const actRow = LX.h("div", { class: "lx-row" }, act);
-LX.player(actRow, { id: "play", autoplay: true, onFrame: dt => { S.k = (S.k + 1.2 * dt) % TAU; kS.set(S.k, false); update(); } });
-LX.button(actRow, "Keep a copy", () => PD.ghost(), { id: "ghost" });
-const setP = (v, w, u) => { vS.set(v, false); wS.set(w, false); uS.set(u, false); Object.assign(S, { v, w, u }); update(); };
-LX.limits(ctl, [
-  { label: "Trivial", title: "v > w, u = 0", apply: () => setP(1.5, 0.5, 0) },
-  { label: "Topological", title: "w > v, u = 0", apply: () => setP(0.5, 1.5, 0) },
-  { label: "Gap closing", title: "v = w, u = 0", apply: () => setP(1, 1, 0) },
-  { label: "Winding 2", title: "large u", apply: () => setP(0.3, 0.5, 1.5) }
-]);
+const nS = LX.slider(ctl, { id: "n", label: "quantum number \\(n\\)", min: 1, max: NMAX, step: 1, value: S.n, fmt: v => String(v), onInput: v => { S.n = v; draw(); } });
+const LS = LX.slider(ctl, { id: "L", label: "box width \\(L\\)", min: LL[0], max: LL[1], step: 0.01, value: S.L, onInput: v => { S.L = v; draw(); } });
 const ro = LX.h("div", { class: "lx-readouts" }, ctl);
-const rW = LX.readout(ro, "winding \\(W\\) =");
-const rM = LX.readout(ro, "\\(\\min_k|\\mathbf d|\\) =");
-const rG = LX.readout(ro, "band gap \\(2\\min_k|\\mathbf d|\\) =");
-const rD = LX.readout(ro, "\\(|\\mathbf d(k)|\\) =");
-
+const rE = LX.readout(ro, "\\(E_n =\\)");
+const rW = LX.readout(ro, "wavelength \\(\\lambda = 2L/n =\\)");
 LX.guide(W0, [
-  ["Left plot", "The tip of \\(\\mathbf d(k)\\) as \\(k\\) runs from 0 to \\(2\\pi\\): a closed loop (blue). The orange arrow points from the origin to \\(\\mathbf d(k)\\) at the current \\(k\\). \\(W\\) counts how many times this arrow turns around the origin in one trip around the loop."],
-  ["Dashed circle", "Radius \\(\\min_k|\\mathbf d(k)|\\), the closest approach of the loop to the origin. The bands of \\(h(k)\\) are \\(\\pm|\\mathbf d(k)|\\), so this radius is half the band gap. When it shrinks to zero the origin turns pink: the gap is closed."],
-  ["Right plot", "The angle \\(\\varphi(k)\\) of the arrow, unwrapped (no jumps at \\(2\\pi\\)) and measured in full turns. Its total rise from \\(k = 0\\) to \\(2\\pi\\) is \\(W\\). For \\(W = 0\\) it wiggles and returns; for \\(W = 1\\) it climbs one level."],
-  ["\\(v,\\ w\\)", "Intra- and intercell hopping of the SSH chain. With \\(u = 0\\) the loop is a circle of radius \\(w\\) centred at \\((v, 0)\\): it encloses the origin when \\(w > v\\)."],
-  ["\\(u\\)", "A second-neighbour term that adds a second harmonic. It distorts the loop strongly; \\(W\\) stays the same until the loop touches the origin."],
-  ["\\(k\\), Play", "Move the point along the loop by hand, or let it run. <i>Keep a copy</i> leaves a faded copy of the loop to compare shapes."],
-  ["What to look for", "\\(W\\) never changes while the dashed circle has a nonzero radius. It changes only at a gap closing, where the loop passes through the origin and the angle curve develops a vertical step."]
+  ["Left plot", "The box, from \\(x = 0\\) to the grey wall at \\(x = L\\). Faint lines are the three lowest energy levels. The blue curve is the wavefunction of the current state, drawn on its own level: it has \\(n\\) half wavelengths across the box."],
+  ["Right plot", "The energies \\(E_n = n^2/L^2\\) of the three lowest states as the box width changes; the dot is the current state. Hidden until you answer the sketch question below."],
+  ["\\(n,\\ L\\)", "Pick the state and the width of the box. Energies are in units of the ground-state energy of a box of width 1."],
+  ["What to look for", "Squeezing the box shortens every wavelength and raises every level; the levels spread apart as \\(n^2\\)."]
 ]);
+LX.gate(figE, "Sketch E₁(L) below to reveal");   /* gate messages are CSS content: plain text only */
 
-PD.tex(0, 0, "0", { anchor: "ne" });
-let wLabel = { src: null, el: null };
-function update() {
-  const md = minD(), gapless = md < 0.02, ang = angles(), W = winding();
-  PD.clear(); PD.clear("top");
-  PD.hline(0, { cls: "gr" }); PD.vline(0, { cls: "gr" });
-  PD.path(LX.linspace(0, TAU, 201).map(t => [md * Math.cos(t), md * Math.sin(t)]), { cls: "sm dash" });
-  PD.path(LX.linspace(0, TAU, 600).map(k => dvec(k)), { cls: "s1" });
-  const [x, y] = dvec(S.k);
-  PD.arrow(0, 0, x, y, { cls: "s2" });
-  PD.dot(0, 0, { r: 5, cls: gapless ? "f4" : "fm" });
-  PD.dot(x, y, { r: 6, cls: "f2" });
-
-  PA.clear(); PA.clear("top");
-  for (let n = -1; n <= 2; n++) PA.hline(n, { cls: n ? "sm thin dash" : "sm" });
-  const a0 = ang[0][1];
-  PA.path(ang.map(([k, a]) => [k, (a - a0) / TAU]), { cls: "s1" });
-  const i = Math.round(S.k / TAU * (ang.length - 1));
-  PA.dot(S.k, (ang[i][1] - a0) / TAU, { r: 6, cls: "f2" });
-  /* TeX labels are created only when their text changes: re-typesetting every animation frame is wasteful. */
-  const lab = gapless ? "W\\ \\text{undefined}" : "W = " + W;
-  if (lab !== wLabel.src) { PA.clear("tex"); wLabel = { src: lab, el: PA.tex(TAU, 0, lab, { anchor: "se" }) }; }
-  PA.placeTex(wLabel.el, TAU, gapless ? 2.3 : Math.min(W, 2.3), "se");
-
-  rW.set(gapless ? "undefined (gap closed)" : String(W));
-  rM.set(fmt(md)); rG.set(fmt(2 * md)); rD.set(fmt(Math.hypot(x, y)));
+const wall = LX.s("rect", { class: "fm", opacity: 0.25 }, PB.g.fill);   // the right wall: created once, moved
+function draw() {
+  const { n, L } = S;
+  PB.clear("main"); PB.clear("top");
+  PB.line(0, 0, 0, EMAX, { cls: "ax" });
+  wall.setAttribute("x", PB.X(L)); wall.setAttribute("y", PB.Y(EMAX)); wall.setAttribute("width", PB.X(3.2) - PB.X(L)); wall.setAttribute("height", PB.Y(0) - PB.Y(EMAX));
+  PB.line(L, 0, L, EMAX, { cls: "ax" });
+  for (let m = 1; m <= NMAX; m++) if (E(m, L) < EMAX) PB.line(0, E(m, L), L, E(m, L), { cls: m === n ? "sm" : "sm thin dash faint" });
+  const amp = 0.9 * Math.sqrt(L / 2);
+  PB.fn(x => E(n, L) + amp * psi(n, L, x), { a: 0, b: L, cls: "s1" });
+  PE.clear("main"); PE.clear("top");
+  for (let m = 1; m <= NMAX; m++) PE.fn(L => E(m, L), { cls: m === n ? "s1" : "s1 thin faint" });
+  PE.dot(L, E(n, L), { r: 6, cls: "f2" });
+  rE.set(f(E(n, L))); rW.set(f(2 * L / n, 2));
 }
-update();
+draw();
+
+/* ---- 1. choice ---- */
+LX.ask(document.getElementById("q-choice"), {
+  type: "choice",
+  prompt: "Which state has the higher energy: \\(n = 2\\) in a box of width \\(L = 2\\), or \\(n = 1\\) in a box of width \\(L = 1\\)?",
+  options: ["\\(n = 2\\): a higher quantum number always means a higher energy", "They are equal", "\\(n = 1\\): the smaller box always wins"],
+  answer: 1,
+  right: "Both have wavelength \\(\\lambda = 2L/n = 2\\), and the energy depends only on the wavelength: \\(E = n^2/L^2 = 1\\) in both cases. Check it in the widget.",
+  wrong: "The energy depends on \\(n/L\\) only, through the wavelength \\(\\lambda = 2L/n\\). Both states have \\(\\lambda = 2\\), so \\(E = 1\\) for both. Set them in the widget and compare the readouts."
+});
+
+/* ---- 2. number ---- */
+const hP = 6.62607015e-34, me = 9.1093837e-31, eV = 1.602176634e-19;
+const E1SI = (L) => hP * hP / (8 * me * L * L) / eV;
+LX.ask(document.getElementById("q-number"), {
+  type: "number",
+  prompt: "An electron is confined to a box of width 1 nm (roughly a small molecule or a quantum dot). Estimate its ground-state energy \\(E_1 = h^2/(8 m_e L^2)\\).",
+  answer: E1SI(1e-9), tol: 0.3, unit: "eV",
+  right: "\\(E_1 \\approx 0.38\\) eV: comparable to chemical bond energies and much larger than \\(k_BT \\approx 0.025\\) eV at room temperature, so the quantisation is not washed out.",
+  wrong: "\\(E_1 = h^2/(8 m_e L^2) \\approx 0.38\\) eV. With \\(h^2/(8m_e) \\approx 6.0\\times10^{-38}\\,\\mathrm{J\\,m^2}\\) and \\(L^2 = 10^{-18}\\,\\mathrm{m^2}\\), \\(E_1 \\approx 6.0\\times 10^{-20}\\) J."
+});
+
+/* ---- 3. set ---- */
+LX.ask(document.getElementById("q-set"), {
+  type: "set",
+  prompt: "Use the widget: find a state whose energy is exactly 4 (four times the ground state of the \\(L = 1\\) box) with the box <i>wider</i> than 1. Then press Check.",
+  check: () => {
+    const e = E(S.n, S.L), ok = Math.abs(e - 4) < 0.08 && S.L > 1.05;
+    return { pass: ok, msg: ok ? `\\(n = ${S.n}\\), \\(L = ${f(S.L, 2)}\\) gives \\(E = ${f(e, 2)}\\).` : `Now \\(E = ${f(e, 2)}\\) at \\(L = ${f(S.L, 2)}\\).` };
+  },
+  solve: () => { nS.set(3); LS.set(1.5); },
+  right: "You need \\(n/L = 2\\) with \\(L > 1\\): within the widget's range that is \\(n = 3\\), \\(L = 1.5\\). Any state with the same wavelength \\(\\lambda = 1\\) has the same energy.",
+  wrong: "You need \\(n^2/L^2 = 4\\), so \\(n/L = 2\\) with \\(L > 1\\): try \\(n = 3\\) and \\(L = 1.5\\)."
+});
+
+/* ---- 4. sketch (the widget's E(L) plot is gated until compare) ---- */
+const qs = document.getElementById("q-sketch");
+const sketchHost = LX.h("div", {}, null);
+const PS = LX.plot(sketchHost, { xlim: LL, ylim: [0, 1.1], xlabel: "L", ylabel: "E_1", width: 520, height: 260, xticks: 4, yticks: 4 });
+const askS = LX.ask(qs, {
+  type: "sketch",
+  prompt: "Sketch the ground-state energy \\(E_1\\) as the box widens from \\(L = 1\\) to \\(L = 3\\) (the value at \\(L = 1\\) is 1).",
+  plot: PS, xs: [1, 1.4, 1.8, 2.2, 2.6, 3], y0: 0.5, truth: L => 1 / (L * L), tol: 0.12,
+  right: "\\(E_1 = 1/L^2\\): it falls fast at first and then flattens. Doubling the width costs a factor of 4.",
+  wrong: "\\(E_1 = 1/L^2\\), not a straight line: doubling the width divides the energy by 4, tripling it by 9. The curve in the widget is now visible.",
+  reveal: [figE]
+});
+askS.el.insertBefore(sketchHost, askS.el.querySelector(".lx-ask-body"));
+
+/* ---- 5. explain ---- */
+LX.ask(document.getElementById("q-explain"), {
+  type: "explain",
+  prompt: "Why does squeezing the box raise the energy of every state?",
+  model: "<p>The walls force the wavefunction to vanish at both ends, so only standing waves with \\(n\\) half wavelengths fit: \\(\\lambda = 2L/n\\). A narrower box means a shorter wavelength, hence a larger momentum \\(p = h/\\lambda\\) and a larger kinetic energy \\(p^2/2m \\propto 1/L^2\\). There is no potential energy inside the box, so this confinement cost is the whole energy. The same scale follows from the uncertainty relation: \\(\\Delta x \\sim L\\) forces \\(\\Delta p \\gtrsim \\hbar/L\\).</p>"
+});
 
 /* ---- self-tests ---- */
-LX.check("SSH: W = 0 for v > w, W = 1 for w > v; second harmonic gives W = 2", () =>
-  winding({ v: 1.5, w: 0.5, u: 0 }) === 0 && winding({ v: 0.5, w: 1.5, u: 0 }) === 1 && winding({ v: 0.3, w: 0.5, u: 1.5 }) === 2);
-LX.check("W = number of zeros of v + wz + uz² inside |z| < 1 (30 seeded samples)", () => {
-  let seed = 11; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
-  let tested = 0;
-  for (let i = 0; i < 60 && tested < 30; i++) {
-    const p = { v: 2 * rnd(), w: 2 * rnd(), u: 1.5 * rnd() };
-    if (minD(p) < 0.05) continue; tested++;
-    if (winding(p) !== rootsInside(p)) return { pass: false, detail: JSON.stringify(p) };
-  }
-  return { pass: tested === 30, detail: tested };
+LX.check("E_n = n²π²/(2L²) from a finite-difference solution of −ψ''/2 = Eψ (ratios n² and 1/L²)", () => {
+  const solve = L => { const N = 80, h = L / (N + 1), A = Array.from({ length: N }, (_, i) => Array.from({ length: N }, (_, j) => i === j ? 1 / (h * h) : Math.abs(i - j) === 1 ? -0.5 / (h * h) : 0)); return LX.eigSym(A).values.slice(0, 3); };
+  const e1 = solve(1), e2 = solve(2), u = PI * PI / 2;
+  const ok = [0, 1, 2].every(k => Math.abs(e1[k] / u - E(k + 1, 1)) < 2e-3 * E(k + 1, 1) && Math.abs(e2[k] / u - E(k + 1, 2)) < 2e-3 * E(k + 1, 2));
+  return { pass: ok, detail: e1.map(v => (v / u).toFixed(4)).join(",") };
 });
-LX.check("SSH gap: min|d| = |v − w| at k = π", () => [[1.5, 0.5], [0.4, 1.2], [1, 1]].every(([v, w]) => LX.near(minD({ v, w, u: 0 }), Math.abs(v - w), 1e-9)));
-LX.check("winding integral (1/2π)∮(d_x d_y′ − d_y d_x′)/|d|² dk is an integer equal to W", () => {
-  const p = { v: 0.4, w: 1.2, u: 0.5 }, n = 4000; let s = 0;
-  for (let i = 0; i < n; i++) {
-    const k = TAU * (i + 0.5) / n, [x, y] = dvec(k, p);
-    const dx = -p.w * Math.sin(k) - 2 * p.u * Math.sin(2 * k), dy = p.w * Math.cos(k) + 2 * p.u * Math.cos(2 * k);
-    s += (x * dy - y * dx) / (x * x + y * y);
-  }
-  const W = s / n;   // (1/2π)·Σ·(2π/n)
-  return { pass: Math.abs(W - winding(p)) < 1e-9, detail: W };
+LX.check("ψ_n normalised and orthogonal on [0, L]", () => {
+  const L = 1.7, xs = LX.linspace(0, L, 4001), h = xs[1] - xs[0];
+  const ip = (a, b) => xs.reduce((s, x) => s + psi(a, L, x) * psi(b, L, x), 0) * h;
+  return LX.near(ip(2, 2), 1, 1e-6) && Math.abs(ip(1, 3)) < 1e-6;
 });
+LX.check("equal n/L gives equal energy (choice answer)", () => LX.near(E(2, 2), E(1, 1), 1e-12));
+LX.check("electron in a 1 nm box: E_1 ≈ 0.376 eV (number answer)", () => ({ pass: Math.abs(E1SI(1e-9) - 0.376) < 0.002, detail: E1SI(1e-9) }));
+LX.check("E = 4 with L > 1 is reachable with n ≤ 3 (set answer): n = 3, L = 1.5", () => LX.near(E(3, 1.5), 4, 1e-12));
 </script>
