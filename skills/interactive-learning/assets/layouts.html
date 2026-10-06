@@ -1,33 +1,15 @@
-<title>Variational Principle</title>
+<title>Widget Layouts</title>
 <!--
-PATTERN 04 · OPTIMISATION / EXTREMUM
-When to use     A principle selects a minimum, maximum or saddle of some functional, and the learner
-                searches the landscape for it: the answer is "where the slope vanishes". Variational
-                method (Rayleigh–Ritz), Hartree–Fock and mean-field energy minimisation, Ginzburg–Landau,
-                least action, maximum entropy, Fermat's principle, saddle-point approximations.
-Widget anatomy  (1) left: landscape E(α) with a draggable trial point (created once, moved), its tangent
-                    and a downhill arrow, and the exact bound E₀ as a floor;
-                (2) right: the trial object (here the radial density) against the exact one;
-                (3) controls below: trial parameter slider, family switch, "Best fit" (animates the trial
-                    parameter to the family's optimum; jumps under reduced motion), "Too compact" /
-                    "Too diffuse" jumps, "Keep a copy" of the density;
-                (4) readouts for the competing terms ⟨T⟩, ⟨V⟩, the virial combination, the error and the
-                    overlap, and whether the current point is the family's minimum.
-Layout          split: landscape and density side by side (cause and effect of the same parameter),
-                controls and readouts in full-width strips below.
-Teaching moments  Suggestions for the chapter around the widget:
-                - choice: can any trial dip below E₀? (no: the variational bound);
-                - choice: why does E rise when the trial is too compact? (⟨T⟩ ∝ α beats ⟨V⟩ ∝ −√α);
-                - set: "find the minimum", then choice on the virial ratio 2⟨T⟩ = −⟨V⟩;
-                - number: the best Gaussian energy (−4/3π ≈ −0.424) or its overlap (≈ 0.96);
-                - choice: the lowest energy of the Slater family (exactly −1/2);
-                - explain: why the energy error is second order in the wavefunction error.
-How to adapt    Replace FAM with your trial families: each needs T(a), V(a) (or just E(a)), a range, the
-                known optimum and the object to plot. For two parameters, swap the landscape for a contour plot.
-Physics         Hydrogen atom, atomic units (ħ = mₑ = e = 4πε₀ = 1). Gaussian trial ψ ∝ e^{−αr²}:
-                ⟨T⟩ = 3α/2, ⟨V⟩ = −2√(2α/π), minimum at α* = 8/(9π), E* = −4/(3π) ≈ −0.4244.
-                Slater trial ψ ∝ e^{−βr}: ⟨T⟩ = β²/2, ⟨V⟩ = −β, minimum at β* = 1, E* = −1/2 (exact).
-                Virial theorem for a 1/r potential at any stationary point of a scale family: 2⟨T⟩ = −⟨V⟩.
+  layouts.html — gallery of widget layout recipes, built on a copy of base.html.
+  Five recipes, each with a small dummy widget (exact, simple functions) and the lines that set it up:
+    1. aside          hero figure + controls column on the right
+    2. grid2          2×2: three figures and the controls in the fourth cell
+    3. stack          wide figure with a controls strip below
+    4. aside + left   figure with floating buttons (.lx-float), controls column on the left
+    5. split          text beside a figure, inside an article
+  Copy the recipe that fits, then replace the dummy plots. Every layout collapses to one column
+  below ~620 px card width. The LX:HEAD, LX:STYLE and LX:LIB blocks are the shared ones from
+  base.html (kept in sync by tests/sync-base.mjs); do not edit them here.
 -->
 <!-- LX:HEAD-BEGIN -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
@@ -196,21 +178,68 @@ span.lx-gated::after { font-size: 12px; white-space: nowrap; padding: 0; }
 .lx-drag:active { cursor: grabbing; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 /* LX:STYLE-END */
-.task-ok { color: var(--good); }
+/* page-specific styles go below */
+.lx-code { margin: 0; font: 12.5px/1.5 var(--f-mono); color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; overflow-x: auto; white-space: pre; }
 </style>
 
 <main class="lx-page">
   <header class="lx-head">
-    <p class="lx-eyebrow">Quantum mechanics · Variational method</p>
-    <h1>How good is the best wavefunction you can guess?</h1>
-    <p class="lx-lede">Drag the trial point along the energy landscape \(E(\alpha)\) of a Gaussian guess for the hydrogen ground state. Every guess gives an energy above the true one; the best guess sits where the slope vanishes.</p>
+    <p class="lx-eyebrow">Interactive learning · Reference</p>
+    <h1>Five ways to lay out a widget</h1>
+    <p class="lx-lede">Pick the arrangement that matches how the figures are read: one main figure, several linked ones, a wide trace, a figure with its own buttons, or a figure beside the text that explains it.</p>
     <div class="lx-meta">
-      <span>Hydrogen, atomic units: \(\hbar = m_e = e = 4\pi\varepsilon_0 = 1\), energies in hartree, \(E_0 = -1/2\)</span>
+      <span>Dummy plots: \(\sin\), \(\cos\) and Gaussians. All layouts fall back to one column on narrow screens.</span>
     </div>
   </header>
-  <div class="lx-stage" id="stage"></div>
+  <article class="lx-article" id="article">
+    <h2>1. Hero figure with a controls column (<code>aside</code>)</h2>
+    <p>Use it when one figure carries the idea and a handful of sliders drive it: the figure gets most of the width, the controls stay in view beside it.</p>
+    <pre class="lx-code">const W = LX.widget(mount, { layout: "aside", title: "…", badge: "exact" });
+const P = LX.plot(LX.fig(W, "caption"), { xlim, ylim, xlabel, ylabel });
+const ctl = LX.controls(W);            // second child = the column
+LX.slider(ctl, { label: "…", min, max, value, onInput: draw });
+LX.guide(W, [["Figure", "…"], ["Slider", "…"]]);</pre>
+    <div class="lx-wide" id="w1"></div>
+
+    <h2>2. Three linked figures, controls in the fourth cell (<code>grid2</code>)</h2>
+    <p>Use it for three views of one state (for example a function, its transform and a derived quantity), so that no quadrant is left empty.</p>
+    <pre class="lx-code">const W = LX.widget(mount, { layout: "grid2" });
+const A = LX.plot(LX.fig(W, "…"), o), B = LX.plot(LX.fig(W, "…"), o);
+const C = LX.plot(LX.fig(W, "…"), o);
+const ctl = LX.controls(W);            // fourth cell: stacks vertically
+LX.slider(ctl, { … }); LX.readout(ctl, "…");</pre>
+    <div class="lx-wide" id="w2"></div>
+
+    <h2>3. Wide figure with a controls strip below (<code>stack</code>)</h2>
+    <p>Use it for time traces, spectra and other figures that need width more than height; the controls sit in one row underneath.</p>
+    <pre class="lx-code">const W = LX.widget(mount, { layout: "stack" });
+const P = LX.plot(LX.fig(W, "…"), { width: 900, height: 280, … });
+const ctl = LX.controls(W);            // a wrapping row
+LX.slider(ctl, { … }); LX.slider(ctl, { … });
+LX.legend(W, [["sum", "--accent", "line"], ["parts", "--muted", "dash"]]);</pre>
+    <div class="lx-wide" id="w3"></div>
+
+    <h2>4. Floating buttons on the figure, controls on the left (<code>aside</code> + <code>left</code>)</h2>
+    <p>Use it when an action belongs to the figure itself (keep a copy, reset, best fit): the buttons sit in its top-right corner where the eye already is.</p>
+    <pre class="lx-code">const W = LX.widget(mount, { layout: "aside", left: true });
+const ctl = LX.controls(W);            // first child = left column
+const fig = LX.fig(W), P = LX.plot(fig, { … });   // caption below
+LX.h("figcaption", { text: "…" }, fig);
+const flt = LX.h("div", { class: "lx-float" }, fig);
+LX.button(flt, "Keep a copy", keep, { cls: "lx-primary" });</pre>
+    <div class="lx-wide" id="w4"></div>
+
+    <h2>5. Text beside the figure (<code>split</code>)</h2>
+    <p>Use it inside a chapter when a short paragraph and the figure it describes should be read together.</p>
+    <pre class="lx-code">const W = LX.widget(mount, { layout: "split" });
+const txt = LX.h("div", { class: "lx-prose", html: "&lt;p&gt;…&lt;/p&gt;" }, W);
+LX.typeset(txt);
+const col = LX.h("div", { class: "lx-col" }, W);   // figure + slider in one cell
+const P = LX.plot(LX.fig(col, "…"), { … }); LX.slider(LX.controls(col), { … });</pre>
+    <div class="lx-wide" id="w5"></div>
+  </article>
   <footer class="lx-foot">
-    <span>Source: model knowledge. Standard treatment: Griffiths, <i>Introduction to Quantum Mechanics</i> (2nd ed.), ch. 7; Sakurai &amp; Napolitano, <i>Modern Quantum Mechanics</i>, ch. 5.</span>
+    <span>Source: none needed; the plots are elementary functions used as placeholders.</span>
   </footer>
 </main>
 
@@ -688,145 +717,102 @@ const LX = (() => {
 </script>
 
 <script>
-/* PATTERN */
-const E0 = -0.5;
-/* Trial families: kinetic and potential expectation values in closed form, radial density P(r) = 4πr²|ψ|². */
-const FAM = {
-  gauss: { sym: "\\alpha", name: "α", label: "trial width \\(\\alpha\\)", lim: [0.02, 1.2], step: 0.002, opt: 8 / (9 * Math.PI), start: 0.8,
-    T: a => 1.5 * a, V: a => -2 * Math.sqrt(2 * a / Math.PI),
-    psi: (r, a) => Math.pow(2 * a / Math.PI, 0.75) * Math.exp(-a * r * r) },
-  slater: { sym: "\\beta", name: "β", label: "trial decay \\(\\beta\\)", lim: [0.1, 2], step: 0.002, opt: 1, start: 1.6,
-    T: b => b * b / 2, V: b => -b,
-    psi: (r, b) => Math.sqrt(b ** 3 / Math.PI) * Math.exp(-b * r) }
-};
-const S = { fam: "gauss", a: 0.8, anim: 0 };
-const F = () => FAM[S.fam];
-const E = (a, f = F()) => f.T(a) + f.V(a);
-const dE = (a, f = F()) => (E(a + 1e-6, f) - E(a - 1e-6, f)) / 2e-6;
-const psiExact = r => Math.exp(-r) / Math.sqrt(Math.PI);
-const Prad = (psi, r) => 4 * Math.PI * r * r * psi(r) ** 2;
-function simpson(f, a, b, n = 6000) {
-  const h = (b - a) / n; let s = f(a) + f(b);
-  for (let i = 1; i < n; i++) s += (i % 2 ? 4 : 2) * f(a + i * h);
-  return s * h / 3;
-}
-const overlap = (a, f = F()) => simpson(r => 4 * Math.PI * r * r * f.psi(r, a) * psiExact(r), 0, 40);
-const fmt = (v, d = 4) => v.toFixed(d).replace("-", "−");
+/* PATTERN — layout gallery. Each recipe builds a small widget with exact dummy functions. */
+const $ = id => document.getElementById(id);
+const gauss = (x, m, s) => Math.exp(-((x - m) ** 2) / (2 * s * s));
 
-/* ---- widget ---- */
-const W = LX.widget(document.getElementById("stage"), { layout: "split", title: "Variational energy of a trial wavefunction", badge: "exact" });
-const figE = LX.fig(W, "Energy landscape: drag the orange trial point; the arrow points downhill");
-const PE = LX.plot(figE, { xlim: [0, FAM.gauss.lim[1]], ylim: [-0.6, 0.5], xlabel: FAM.gauss.sym, ylabel: "E(" + FAM.gauss.sym + ")", height: 320 });
-const lgE = LX.h("div", {}, figE);
-const figW = LX.fig(W, "Radial density \\(4\\pi r^2|\\psi|^2\\)");
-const PW = LX.plot(figW, { xlim: [0, 6], ylim: [0, 1.2], xlabel: "r", ylabel: "4\\pi r^2|\\psi|^2", height: 320 });
-LX.legend(figW, [["trial", "--accent", "line"], ["exact \\(1s\\)", "--c2", "dash"], ["copy", "--accent", "dash"]]);
-const handle = LX.s("circle", { r: 8, class: "f2", "aria-label": "trial parameter; drag or use arrow keys" }, PE.g.top);
-LX.drag(PE, handle, { get: () => [S.a, E(S.a)], step: [0.01, 0], set: x => { stopAnim(); setA(x); } });
-
-const ctl = LX.controls(W, "lx-span2");
-const aS = LX.slider(ctl, { id: "a", label: FAM.gauss.label, min: FAM.gauss.lim[0], max: FAM.gauss.lim[1], step: FAM.gauss.step, value: S.a,
-  fmt: v => v.toFixed(3), onInput: v => { stopAnim(); S.a = v; update(); } });
-const famSeg = LX.segmented(ctl, { id: "fam", label: "Trial family", value: "gauss",
-  options: [{ value: "gauss", label: "Gaussian \\(e^{-\\alpha r^2}\\)" }, { value: "slater", label: "Slater \\(e^{-\\beta r}\\)" }],
-  onChange: v => setFam(v) });
-const jump = LX.h("div", { class: "lx-group" }, ctl);
-LX.h("span", { text: "Jump to" }, jump);
-const jrow = LX.h("div", { class: "lx-row" }, jump);
-LX.button(jrow, "Best fit", () => bestFit(), { id: "best", cls: "lx-primary", title: "Move the trial parameter to the minimum of this family" });
-LX.button(jrow, "Too compact", () => { stopAnim(); setA(F().lim[1]); }, { title: "large parameter: electron squeezed near the nucleus" });
-LX.button(jrow, "Too diffuse", () => { stopAnim(); setA(F().lim[0] * 2); }, { title: "small parameter: electron spread far out" });
-LX.button(jrow, "Keep a copy", () => PW.ghost(), { id: "ghost", title: "Keep the current density as a faded dashed curve" });
-const ro = LX.h("div", { class: "lx-readouts lx-span2" }, W);
-const rE = LX.readout(ro, "\\(E\\) =");
-const rT = LX.readout(ro, "\\(\\langle T\\rangle\\) =");
-const rV = LX.readout(ro, "\\(\\langle V\\rangle\\) =");
-const rVir = LX.readout(ro, "\\(2\\langle T\\rangle + \\langle V\\rangle\\) =");
-const rErr = LX.readout(ro, "\\(E - E_0\\) =");
-const rO = LX.readout(ro, "overlap \\(|\\langle\\psi|1s\\rangle|^2\\) =");
-const rTask = LX.readout(ro, "minimum of this family:");
-
-LX.guide(W, [
-  ["Left plot", "The energy \\(E\\) of the trial state for each value of its parameter. The orange dashed floor is the exact ground-state energy \\(E_0 = -1/2\\); the curve never goes below it. The orange point is your current guess, with its tangent and an arrow pointing downhill."],
-  ["Right plot", "Where the electron is: probability per unit radius for your trial (blue) and for the exact \\(1s\\) state (orange dashed)."],
-  ["Slider, drag", "Set the trial parameter: large means a compact state close to the nucleus, small means a diffuse one."],
-  ["Trial family", "Gaussian \\(e^{-\\alpha r^2}\\) or exponential (Slater) \\(e^{-\\beta r}\\). The Slater family contains the exact answer at \\(\\beta = 1\\)."],
-  ["Best fit", "Moves the parameter to the minimum of the current family. Too compact / Too diffuse jump to the ends; Keep a copy freezes the density for comparison."],
-  ["Readouts", "Kinetic and potential energy compete; at the minimum \\(2\\langle T\\rangle + \\langle V\\rangle = 0\\). The overlap says how close the trial state is to the exact one."]
-]);
-
-/* ---- state changes ---- */
-function stopAnim() { cancelAnimationFrame(S.anim); S.anim = 0; }
-function setA(v) { S.a = LX.clamp(v, F().lim[0], F().lim[1]); aS.set(S.a, false); update(); }
-/* Animate the parameter to the family's optimum (ease-out), or jump under reduced motion. */
-function bestFit() {
-  stopAnim();
-  const a0 = S.a, a1 = F().opt;
-  if (LX.reduceMotion || Math.abs(a1 - a0) < 1e-9) return setA(a1);
-  const dur = 700; let t0 = 0;
-  const frame = ts => {
-    if (!t0) t0 = ts;
-    const u = Math.min(1, (ts - t0) / dur), e = 1 - (1 - u) ** 3;
-    setA(a0 + (a1 - a0) * e);
-    S.anim = u < 1 ? requestAnimationFrame(frame) : 0;
-  };
-  S.anim = requestAnimationFrame(frame);
-}
-function setFam(v, a) {
-  stopAnim();
-  S.fam = v; famSeg.set(v, false);
-  aS.input.min = F().lim[0]; aS.input.max = F().lim[1]; aS.input.step = F().step;
-  const lab = aS.el.querySelector(".lx-lab span");
-  lab.innerHTML = F().label; LX.typeset(lab);
-  PW.clearGhost();
-  PE.setLim([0, F().lim[1]]); PE.setLabels(F().sym, "E(" + F().sym + ")");
-  /* the legend names the reference lines; it changes only with the family */
-  lgE.replaceChildren();
-  LX.legend(lgE, [["trial energy", "--accent", "line"], ["exact \\(E_0 = -1/2\\)", "--c2", "dash"]].concat(v === "slater" ? [["best Gaussian", "--muted", "dash"]] : []));
-  setA(a ?? F().start);
+/* 1. aside: hero figure + controls column */
+{
+  const W = LX.widget($("w1"), { layout: "aside", title: "Hero figure, controls beside it", badge: "exact" });
+  const P = LX.plot(LX.fig(W, "\\(y = \\sin(kx)\\) on one period"), { xlim: [0, 2 * Math.PI], ylim: [-1.2, 1.2], xlabel: "x", ylabel: "y", height: 300 });
+  const ctl = LX.controls(W);
+  const k = LX.slider(ctl, { id: "k1", label: "wavenumber \\(k\\)", min: 0.5, max: 4, step: 0.05, value: 1, onInput: draw });
+  const z = LX.readout(ctl, "zeros in \\([0, 2\\pi]\\):");
+  LX.guide(W, [["Figure", "\\(\\sin(kx)\\); its zeros sit at \\(x = n\\pi/k\\)."], ["Slider", "Changes \\(k\\); the readout counts the zeros."]]);
+  function draw() { P.clearAll(); P.hline(0, { cls: "gr" }); P.fn(x => Math.sin(k.get() * x)); z.set(String(Math.floor(2 * k.get() + 1e-9) + 1)); }
+  draw();
 }
 
-function update() {
-  const f = F(), a = S.a, Ea = E(a), sl = dE(a), span = f.lim[1];
-  PE.clear();
-  PE.hline(E0, { cls: "s2 dash" });
-  if (S.fam === "slater") PE.hline(-4 / (3 * Math.PI), { cls: "sm thin dash" });
-  PE.fn(x => E(x), { a: f.lim[0] * 0.5, b: span, n: 400 });
-  const h = 0.09 * span;
-  PE.line(a - h, Ea - sl * h, a + h, Ea + sl * h, { cls: "s2 thin" });
-  if (Math.abs(sl) > 0.02) {
-    const L = 0.12 * span * Math.min(1, Math.abs(sl)), dir = -Math.sign(sl);
-    PE.arrow(a, Ea, a + dir * L, Ea - Math.abs(sl) * L, { cls: "s2", layer: "main" });
+/* 2. grid2: three linked figures + controls in the fourth cell */
+{
+  const W = LX.widget($("w2"), { layout: "grid2", title: "Three views, controls in the fourth cell", badge: "exact" });
+  const o = { xlim: [0, 2 * Math.PI], ylim: [-1.2, 1.2], height: 240 };
+  const A = LX.plot(LX.fig(W, "\\(\\sin(x - \\phi)\\)"), o);
+  const B = LX.plot(LX.fig(W, "\\(\\cos(x - \\phi)\\)"), o);
+  const C = LX.plot(LX.fig(W, "\\(\\sin^2 + \\cos^2 = 1\\)"), Object.assign({}, o, { ylim: [0, 1.2] }));
+  const ctl = LX.controls(W);
+  const ph = LX.slider(ctl, { id: "ph2", label: "phase \\(\\phi\\)", min: 0, max: 2 * Math.PI, step: 0.01, value: 0.6, onInput: draw });
+  const r = LX.readout(ctl, "\\(\\sin\\phi\\) =");
+  LX.guide(W, [["Top row", "Sine and cosine, both shifted by \\(\\phi\\)."], ["Bottom left", "Their squares (filled) and the constant sum."], ["Slider", "Moves \\(\\phi\\) in all three views."]]);
+  function draw() {
+    const p = ph.get();
+    for (const P of [A, B, C]) P.clearAll();
+    A.fn(x => Math.sin(x - p)); B.fn(x => Math.cos(x - p), { cls: "s2" });
+    C.area(LX.sample(x => Math.sin(x - p) ** 2, 0, 2 * Math.PI, 200)); C.fn(x => Math.sin(x - p) ** 2, { cls: "s1 thin" });
+    C.fn(() => 1, { cls: "s3" });
+    r.set(Math.sin(p).toFixed(2).replace("-", "−"));
   }
-  handle.setAttribute("cx", PE.X(a)); handle.setAttribute("cy", PE.Y(LX.clamp(Ea, -0.6, 0.5)));
-
-  PW.clear(); PW.clear("fill");
-  const pts = LX.sample(r => Prad(x => f.psi(x, a), r), 0, 6, 300);
-  PW.area(pts); PW.path(pts, { cls: "s1" });
-  PW.fn(r => Prad(psiExact, r), { cls: "s2 dash" });
-
-  const T = f.T(a), V = f.V(a), best = E(f.opt);
-  rE.set(fmt(Ea)); rT.set(fmt(T)); rV.set(fmt(V)); rVir.set(fmt(2 * T + V));
-  rErr.set(fmt(Ea - E0)); rO.set(fmt(overlap(a) ** 2, 3));
-  const found = Ea - best < 5e-4;
-  rTask.set(found ? `yes, ${f.name} = ${a.toFixed(3)}, slope ≈ 0` : `not yet (slope ${fmt(sl, 2)})`);
-  rTask.el.classList.toggle("task-ok", found);
+  draw();
 }
-setFam("gauss", 0.8);
 
-/* ---- self-tests ---- */
-LX.check("Gaussian: minimum at α = 8/(9π), E = −4/(3π)", () => {
-  let lo = 0.05, hi = 1; for (let k = 0; k < 200; k++) { const m1 = lo + (hi - lo) / 3, m2 = hi - (hi - lo) / 3; if (E(m1, FAM.gauss) < E(m2, FAM.gauss)) hi = m2; else lo = m1; }
-  return { pass: LX.near(lo, 8 / (9 * Math.PI), 1e-6) && LX.near(E(lo, FAM.gauss), -4 / (3 * Math.PI), 1e-9), detail: lo };
+/* 3. stack: wide figure + controls strip below */
+{
+  const W = LX.widget($("w3"), { layout: "stack", title: "Wide figure, controls strip below", badge: "exact" });
+  const P = LX.plot(LX.fig(W, "Two Gaussian peaks and their sum"), { xlim: [-5, 5], ylim: [0, 2.2], width: 900, height: 260, xlabel: "x" });
+  LX.legend(W, [["sum", "--accent", "line"], ["single peaks", "--muted", "dash"]]);
+  const ctl = LX.controls(W);
+  const d = LX.slider(ctl, { id: "d3", label: "separation \\(d\\)", min: 0, max: 6, step: 0.05, value: 2.5, onInput: draw });
+  const s = LX.slider(ctl, { id: "s3", label: "width \\(\\sigma\\)", min: 0.3, max: 1.5, step: 0.01, value: 0.7, onInput: draw });
+  LX.guide(W, [["Figure", "Two Gaussians of width \\(\\sigma\\) at \\(\\pm d/2\\) and their sum."], ["Sliders", "When \\(d < 2\\sigma\\) the sum has one maximum instead of two."]]);
+  function draw() {
+    const a = d.get() / 2, w = s.get();
+    P.clearAll();
+    P.fn(x => gauss(x, -a, w), { cls: "sm dash" }); P.fn(x => gauss(x, a, w), { cls: "sm dash" });
+    P.fn(x => gauss(x, -a, w) + gauss(x, a, w));
+  }
+  draw();
+}
+
+/* 4. aside + left: floating buttons on the figure, controls on the left */
+{
+  const W = LX.widget($("w4"), { layout: "aside", left: true, title: "Floating buttons, controls on the left", badge: "exact" });
+  const ctl = LX.controls(W);
+  const fig = LX.fig(W);   // caption goes below the plot so the floating buttons cover nothing
+  const P = LX.plot(fig, { xlim: [-4, 4], ylim: [0, 1.35], xlabel: "x", height: 280 });
+  LX.typeset(LX.h("figcaption", { html: "A Gaussian of width \\(\\sigma\\); the copy is faded and dashed." }, fig));
+  const flt = LX.h("div", { class: "lx-float" }, fig);
+  LX.button(flt, "Keep a copy", () => { P.ghost(); clr.disabled = false; }, { id: "keep4", cls: "lx-primary" });
+  const clr = LX.button(flt, "Clear copy", () => { P.clearGhost(); clr.disabled = true; }, { id: "clear4" });
+  clr.disabled = true;
+  const s = LX.slider(ctl, { id: "s4", label: "width \\(\\sigma\\)", min: 0.3, max: 2, step: 0.01, value: 1, onInput: draw });
+  const c = LX.slider(ctl, { id: "c4", label: "centre \\(x_0\\)", min: -2, max: 2, step: 0.01, value: 0, onInput: draw });
+  LX.guide(W, [["Figure", "\\(e^{-(x-x_0)^2/2\\sigma^2}\\)."], ["Keep a copy", "Freezes the current curve so you can compare after moving the sliders."]]);
+  function draw() { P.clearAll(); P.fn(x => gauss(x, c.get(), s.get())); }
+  draw();
+}
+
+/* 5. split: text beside a figure inside the article */
+{
+  const W = LX.widget($("w5"), { layout: "split" });
+  const txt = LX.h("div", { class: "lx-prose", html:
+    "<p>A damped oscillation \\(y = e^{-\\gamma x}\\cos x\\) decays inside the envelope \\(\\pm e^{-\\gamma x}\\).</p>" +
+    "<p>Increase \\(\\gamma\\): the oscillation keeps its period, only the envelope closes faster. The text stays next to the figure it describes.</p>" }, W);
+  LX.typeset(txt);
+  const col = LX.h("div", { class: "lx-col" }, W);
+  const P = LX.plot(LX.fig(col, "Damped cosine and its envelope"), { xlim: [0, 12], ylim: [-1.1, 1.1], xlabel: "x", height: 240 });
+  const g = LX.slider(LX.controls(col), { id: "g5", label: "damping \\(\\gamma\\)", min: 0, max: 0.6, step: 0.01, value: 0.15, onInput: draw });
+  LX.guide(W, [["Figure", "Blue: the oscillation. Grey dashed: the envelope."], ["Slider", "Sets \\(\\gamma\\)."]]);
+  function draw() {
+    const k = g.get(); P.clearAll();
+    P.fn(x => Math.exp(-k * x), { cls: "sm dash" }); P.fn(x => -Math.exp(-k * x), { cls: "sm dash" });
+    P.fn(x => Math.exp(-k * x) * Math.cos(x));
+  }
+  draw();
+}
+
+LX.check("zeros of sin(kx) sit at x = nπ/k (readout of recipe 1)", () => [0.5, 1, 2.5, 4].every(k => [0, 1, 2, 3].every(n => Math.abs(Math.sin(k * n * Math.PI / k)) < 1e-12)));
+LX.check("two equal Gaussians merge into one peak when d < 2σ", () => {
+  const curv = (d, s) => { const h = 1e-4, f = x => gauss(x, -d / 2, s) + gauss(x, d / 2, s); return (f(h) - 2 * f(0) + f(-h)) / (h * h); };
+  return curv(1.9, 1) < 0 && curv(2.1, 1) > 0;
 });
-LX.check("virial 2⟨T⟩ + ⟨V⟩ = 0 at both optima", () => [FAM.gauss, FAM.slater].every(f => Math.abs(2 * f.T(f.opt) + f.V(f.opt)) < 1e-12));
-LX.check("variational bound E(α) ≥ E₀ on a grid, both families", () => [FAM.gauss, FAM.slater].every(f => LX.linspace(0.01, 3, 600).every(a => E(a, f) >= E0 - 1e-12)));
-LX.check("Best fit target is a stationary point inside the slider range", () => [FAM.gauss, FAM.slater].every(f => f.opt > f.lim[0] && f.opt < f.lim[1] && Math.abs(dE(f.opt, f)) < 1e-6));
-LX.check("trial states normalised; ⟨V⟩ = −⟨1/r⟩ matches quadrature", () => {
-  const a = 0.37, g = FAM.gauss, sl = FAM.slater;
-  const n1 = simpson(r => Prad(x => g.psi(x, a), r), 0, 40), n2 = simpson(r => Prad(x => sl.psi(x, 1.3), r), 0, 40);
-  const v = -simpson(r => 4 * Math.PI * r * g.psi(r, a) ** 2, 0, 40);
-  return { pass: LX.near(n1, 1, 1e-7) && LX.near(n2, 1, 1e-7) && LX.near(v, g.V(a), 1e-7), detail: [n1, n2, v].join(",") };
-});
-LX.check("Slater β = 1 is the exact 1s: E = −1/2, overlap 1", () => LX.near(E(1, FAM.slater), -0.5) && LX.near(overlap(1, FAM.slater), 1, 1e-7));
 </script>

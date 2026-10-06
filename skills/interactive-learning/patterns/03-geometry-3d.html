@@ -1,21 +1,28 @@
 <title>The Bloch Sphere</title>
 <!--
 PATTERN 03 · 3D GEOMETRY
-Concept shape   The insight is a geometric picture in three dimensions: a state space, an orbit, a surface,
-                a direction. The learner needs to turn it around and see linked 2D shadows of it.
-Use it for      Bloch sphere (qubits, spin-1/2, two-level atoms), Poincaré sphere (polarization),
-                Brillouin zones and Fermi surfaces, Berry curvature / solid angle, rotation groups,
-                d-vector of a two-band Hamiltonian H(k) = d(k)·σ.
+When to use     The insight is a geometric picture in three dimensions: a state space, an orbit, a surface,
+                a direction. The learner needs to turn it around and see linked 2D views of it.
+                Bloch sphere (qubits, spin-1/2), Poincaré sphere (polarization), Brillouin zones and
+                Fermi surfaces, Berry curvature / solid angle, d-vector of H(k) = d(k)·σ.
 Widget anatomy  (1) orthographic 3D view (LX.camera), drag to rotate; great circles and axes drawn as
-                    projected polylines whose back halves are faded and dashed; the object (here the state
-                    arrow) with its angle arcs and its shadow on the equatorial plane;
-                (2) a linked 2D view of the same object in other coordinates (here the amplitude phasors);
-                (3) a linked view of something measurable (here Z- and X-basis probabilities);
-                (4) sliders for the coordinates, preset buttons for named points, "Keep a copy" for a
-                    reference object plus a readout comparing the two (here the overlap).
-Teaching moments  Predict where a named state sits; predict where the orthogonal state sits (antipode);
-                  predict what a global phase does (nothing); predict what φ does to Z statistics.
-Adapt by        Replace vec() with the 3D object of your model; keep poly3() for depth-aware drawing.
+                    projected polylines whose back halves are faded and dashed; the state arrow with its
+                    angle arcs and its shadow on the equatorial plane. Floating buttons on the figure
+                    (.lx-float): "Keep a copy" (primary) freezes the current state as a pink dashed
+                    arrow |χ⟩, "Clear copy" removes it; a legend under the figure names both arrows;
+                (2) the same state as two complex amplitudes (phasors);
+                (3) measurable consequences: Z- and X-basis probabilities;
+                (4) controls cell: θ, φ, global phase γ, named states, "Go to antipode", readouts
+                    including the overlap with the copy.
+Layout          grid2: sphere, phasors, probabilities and the controls in the fourth cell, so no quadrant
+                stays empty. Collapses to one column on phones.
+Teaching moments  Suggestions for the chapter around the widget:
+                - choice: where does |+⟩ sit (equator, not θ = π/4)?
+                - set: "find a state orthogonal to the copy" (answer: the antipode; overlap 0);
+                - choice: what does γ do to the arrow (nothing)?
+                - choice: what does sweeping φ do to the Z statistics (nothing) and to X (swings 1 → 0)?
+                - explain: why the sphere uses θ/2 in the amplitudes.
+How to adapt    Replace vec() with the 3D object of your model; keep poly3() for depth-aware drawing.
                 Put every coordinate the learner should feel on a slider and every named point on a button.
 Physics         |ψ⟩ = e^{iγ}[cos(θ/2)|0⟩ + e^{iφ} sin(θ/2)|1⟩], Bloch vector r = (⟨σx⟩, ⟨σy⟩, ⟨σz⟩)
                 = (sinθ cosφ, sinθ sinφ, cosθ); |⟨χ|ψ⟩|² = (1 + r_χ·r_ψ)/2; P(±x) = (1 ± ⟨σx⟩)/2.
@@ -25,7 +32,7 @@ Physics         |ψ⟩ = e^{iγ}[cos(θ/2)|0⟩ + e^{iφ} sin(θ/2)|1⟩], Bloch
 <script>
 window.MathJax = {
   tex: {
-    inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]],
+    inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]], tags: "ams",
     macros: {
       ket: ["\\left|#1\\right\\rangle", 1], bra: ["\\left\\langle#1\\right|", 1],
       braket: ["\\left\\langle#1\\middle|#2\\right\\rangle", 2], expval: ["\\left\\langle#1\\right\\rangle", 1],
@@ -44,7 +51,7 @@ window.MathJax = {
 <!-- LX:HEAD-END -->
 <style>
 /* LX:STYLE-BEGIN */
-/* Layout: a lab-notebook page. Figure stage on the left, lesson steps on the right; one column on phones. */
+/* Theme tokens, page, article typography, widget layouts, inline questions, SVG marks. */
 :root {
   --bg: #f5f6f8; --surface: #ffffff; --fg: #17202c; --muted: #5b6676; --line: #d6dce5; --grid: #eaeef3;
   --accent: #2f5bd3; --c2: #c9700c; --c3: #12857a; --c4: #b0377a; --good: #1f8a4c; --bad: #c2412d;
@@ -75,63 +82,98 @@ body { background: var(--bg); color: var(--fg); font: 15px/1.55 var(--f-ui); mar
 .lx-badge[data-kind="exact"] { color: var(--good); }
 .lx-badge[data-kind="schematic"] { color: var(--c2); }
 .lx-badge[data-kind="computed"] { color: var(--accent); }
-.lx-layout { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr); gap: 20px; align-items: start; }
-@media (max-width: 860px) { .lx-layout { grid-template-columns: minmax(0, 1fr); } }
+/* article: a reading column for text and math; widgets may break out with .lx-wide */
+.lx-article { display: grid; grid-template-columns: minmax(0, 1fr) min(720px, 100%) minmax(0, 1fr); row-gap: 16px; }
+.lx-article > * { grid-column: 2; min-width: 0; margin: 0; }
+.lx-article > .lx-wide { grid-column: 1 / -1; }
+.lx-article > p, .lx-article > ul, .lx-article > ol, .lx-prose { font: 17px/1.65 var(--f-prose); }
+.lx-article > ul, .lx-article > ol { padding-left: 1.3em; }
+.lx-article h2 { font: 600 24px/1.25 var(--f-prose); margin-top: 18px; text-wrap: balance; }
+.lx-article h3 { font: 600 19px/1.3 var(--f-prose); margin-top: 6px; }
+.lx-prose p { margin: 0 0 .6em; } .lx-prose p:last-child { margin-bottom: 0; }
+mjx-container[display="true"] { overflow-x: auto; overflow-y: hidden; max-width: 100%; padding: 2px 0; }
+.lx-callout { border-left: 3px solid var(--c3); padding: 8px 14px; background: var(--surface); border-radius: 0 8px 8px 0; font: 16px/1.6 var(--f-prose); }
+.lx-callout > b:first-child { font-family: var(--f-ui); font-size: 13px; letter-spacing: .04em; text-transform: uppercase; color: var(--c3); display: block; }
+.lx-hook { border: 1px solid var(--line); border-top: 3px solid var(--c2); background: var(--surface); border-radius: 10px; padding: 14px 16px; font: 18px/1.55 var(--f-prose); }
 .lx-stage { display: grid; gap: 14px; min-width: 0; }
-.lx-figs { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
-.lx-fig { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px; min-width: 0; display: grid; gap: 6px; }
+/* widget card: one framed unit of figures + controls; the layout class sets the arrangement */
+.lx-widget { container-type: inline-size; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: grid; gap: 12px; min-width: 0; }
+.lx-w-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px 12px; }
+.lx-w-head h3 { margin: 0; font: 600 16px/1.3 var(--f-ui); }
+.lx-w { display: grid; gap: 12px; min-width: 0; align-items: start; }
+.lx-w > *, .lx-col > * { min-width: 0; }
+.lx-col { display: grid; gap: 12px; align-content: start; min-width: 0; }
+.lx-split { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.lx-grid2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.lx-aside { grid-template-columns: minmax(0, 1fr) minmax(210px, 32%); }
+.lx-aside.lx-left { grid-template-columns: minmax(210px, 32%) minmax(0, 1fr); }
+.lx-hero { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+.lx-hero > :first-child { grid-row: span 3; }
+.lx-span2 { grid-column: 1 / -1; }
+@container (max-width: 620px) {
+  .lx-split, .lx-grid2, .lx-aside, .lx-aside.lx-left, .lx-hero { grid-template-columns: minmax(0, 1fr); }
+  .lx-hero > :first-child { grid-row: auto; }
+}
+.lx-figs { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); }
+.lx-fig { position: relative; min-width: 0; display: grid; gap: 6px; margin: 0; }
 .lx-fig > figcaption { font-size: 12.5px; color: var(--muted); }
 .lx-plot { position: relative; width: 100%; }
 .lx-plot > svg { display: block; width: 100%; height: auto; overflow: visible; touch-action: none; }
 .lx-overlay { position: absolute; inset: 0; pointer-events: none; }
 .lx-tex { position: absolute; white-space: nowrap; font-size: 13px; color: var(--fg); line-height: 1; }
-.lx-controls { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: end; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+.lx-float { position: absolute; top: 4px; right: 4px; z-index: 2; display: flex; flex-wrap: wrap; gap: 6px; justify-content: end; }
+.lx-controls { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: end; background: var(--bg); border-radius: 8px; padding: 10px 12px; }
+:is(.lx-aside, .lx-hero, .lx-grid2) > .lx-controls, .lx-controls.lx-vert { flex-direction: column; flex-wrap: nowrap; align-items: stretch; }
+:is(.lx-aside, .lx-hero, .lx-grid2) > .lx-controls .lx-slider, .lx-controls.lx-vert .lx-slider { flex: none; min-width: 0; }
 .lx-slider { display: grid; gap: 2px; min-width: min(100%, 200px); flex: 1 1 200px; }
 .lx-slider .lx-lab { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--muted); }
-.lx-slider output, .lx-readout b { font-family: var(--f-mono); font-variant-numeric: tabular-nums; color: var(--fg); font-weight: 500; }
+.lx-slider output, .lx-readouts b { font-family: var(--f-mono); font-variant-numeric: tabular-nums; color: var(--fg); font-weight: 500; }
 .lx-slider input[type=range] { width: 100%; accent-color: var(--accent); }
 .lx-group { display: grid; gap: 4px; }
 .lx-group > span { font-size: 12px; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
 .lx-row { display: flex; flex-wrap: wrap; gap: 6px; }
-.lx-btn { font: 500 13px var(--f-ui); color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; cursor: pointer; }
-.lx-btn:hover { border-color: var(--accent); }
+.lx-btn { font: 500 13px var(--f-ui); color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; cursor: pointer; line-height: 1.3; }
+.lx-btn:hover:not(:disabled) { border-color: var(--accent); }
 .lx-btn:focus-visible, .lx-seg input:focus-visible + span, .lx-drag:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .lx-btn[aria-pressed="true"], .lx-btn.lx-primary { background: var(--accent); color: var(--surface); border-color: var(--accent); }
 .lx-btn:disabled { opacity: .45; cursor: not-allowed; }
-.lx-seg { display: inline-flex; flex-wrap: wrap; max-width: 100%; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.lx-btn mjx-container, .lx-seg mjx-container, .lx-opt mjx-container { display: inline-block !important; margin: 0 !important; vertical-align: -0.2em; }
+.lx-seg { display: inline-flex; flex-wrap: wrap; max-width: 100%; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--surface); }
 .lx-seg label { cursor: pointer; }
 .lx-seg input { position: absolute; opacity: 0; pointer-events: none; }
-.lx-seg span { display: block; padding: 5px 10px; font-size: 13px; }
+.lx-seg span { display: block; padding: 5px 10px; font-size: 13px; line-height: 1.3; }
 .lx-seg input:checked + span { background: var(--accent); color: var(--surface); }
 .lx-readouts { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); }
-.lx-locked { opacity: .5; }
-.lx-locked * { cursor: not-allowed !important; }
-/* steps */
-.lx-steps { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: grid; gap: 12px; min-width: 0; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); }
-@media (max-width: 860px) { .lx-steps { position: static; order: -1; } }  /* phones: read the question, then use the widget below */
-.lx-steps-top { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
-.lx-dots { display: flex; gap: 5px; }
-.lx-dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
-.lx-dots i.on { background: var(--accent); }
-.lx-dots i.done { background: var(--muted); }
-.lx-steps h2 { margin: 0; font: 600 19px/1.3 var(--f-prose); text-wrap: balance; }
-.lx-prose { font: 16px/1.6 var(--f-prose); max-width: 68ch; }
-.lx-prose p { margin: 0 0 .6em; }
-.lx-prose p:last-child { margin-bottom: 0; }
-.lx-predict { display: grid; gap: 8px; border-left: 3px solid var(--accent); padding: 8px 0 8px 12px; background: var(--accent-soft); border-radius: 0 8px 8px 0; }
-.lx-predict > p { margin: 0; font-weight: 500; }
-.lx-opts { display: grid; gap: 6px; padding-right: 10px; }
+.lx-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; color: var(--fg); }
+.lx-legend i { display: inline-block; width: 16px; height: 0; border-top: 2.5px solid currentColor; vertical-align: middle; margin-right: 5px; }
+.lx-legend i.dash { border-top-style: dashed; } .lx-legend i.dot { width: 9px; height: 9px; border: none; border-radius: 50%; background: currentColor; }
+/* "What you are looking at" */
+.lx-guide { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 12px; margin: 0; font-size: 13.5px; line-height: 1.45; border-top: 1px solid var(--line); padding-top: 10px; }
+.lx-guide > b { grid-column: 1 / -1; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+.lx-guide dt { font-weight: 600; } .lx-guide dd { margin: 0; color: var(--fg); }
+@container (max-width: 480px) { .lx-guide { grid-template-columns: minmax(0, 1fr); } .lx-guide dd { margin: 0 0 6px; } }
+/* inline questions */
+.lx-ask { display: grid; gap: 8px; border-left: 3px solid var(--accent); padding: 10px 12px; background: var(--accent-soft); border-radius: 0 8px 8px 0; }
+.lx-ask > .lx-kicker { font: 500 12px var(--f-ui); letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
+.lx-ask > .lx-q { font: 500 16px/1.5 var(--f-prose); }
+.lx-opts { display: grid; gap: 6px; }
 .lx-opt { text-align: left; font: 14px/1.4 var(--f-ui); color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; cursor: pointer; }
 .lx-opt:hover:not(:disabled) { border-color: var(--accent); }
 .lx-opt:disabled { cursor: default; }
 .lx-opt.right { border-color: var(--good); box-shadow: inset 3px 0 0 var(--good); }
 .lx-opt.wrong { border-color: var(--bad); box-shadow: inset 3px 0 0 var(--bad); }
-.lx-feedback { font: 15px/1.5 var(--f-prose); padding-right: 10px; }
+.lx-ask input[type=text] { font: 15px var(--f-mono); color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; width: 9em; }
+.lx-ask textarea { font: 15px/1.5 var(--f-prose); color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 8px; min-height: 84px; resize: vertical; }
+.lx-feedback { font: 15px/1.5 var(--f-prose); }
 .lx-feedback b { font-family: var(--f-ui); }
-.lx-explain { display: grid; gap: 8px; }
-.lx-explain textarea { font: 15px/1.5 var(--f-prose); color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 8px; min-height: 84px; resize: vertical; }
-.lx-model { border: 1px dashed var(--line); border-radius: 8px; padding: 10px; }
-.lx-nav { display: flex; justify-content: space-between; gap: 8px; }
+.lx-feedback.good b { color: var(--good); } .lx-feedback.bad b { color: var(--bad); }
+.lx-model { border: 1px dashed var(--line); border-radius: 8px; padding: 10px; background: var(--surface); font: 15px/1.55 var(--f-prose); }
+/* gate: a result stays hidden until its question is answered, then stays visible */
+.lx-gated { position: relative; }
+.lx-gated > * { filter: blur(7px); opacity: .45; pointer-events: none; user-select: none; }
+.lx-gated::after { content: attr(data-gate); position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 4px 8px; font: 500 14px var(--f-ui); color: var(--fg); }
+span.lx-gated { display: inline-block; min-width: 9em; }
+span.lx-gated::after { font-size: 12px; white-space: nowrap; padding: 0; }
 .lx-foot { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 12px; display: grid; gap: 4px; max-width: 90ch; }
 /* svg marks: color via classes so both themes work */
 .lx-plot text { font: calc(11px * var(--lx-k, 1)) var(--f-mono); fill: var(--muted); }
@@ -142,6 +184,8 @@ body { background: var(--bg); color: var(--fg); font: 15px/1.55 var(--f-ui); mar
 .s1 { stroke: var(--accent); } .s2 { stroke: var(--c2); } .s3 { stroke: var(--c3); } .s4 { stroke: var(--c4); } .sm { stroke: var(--muted); stroke-width: 1.2; }
 .dash { stroke-dasharray: 5 4; }
 .thin { stroke-width: 1.2; }
+.faint { opacity: .45; }
+.sk { fill: none; stroke: var(--c4); stroke-width: 2.6; stroke-dasharray: 7 5; stroke-linecap: round; }
 .f1 { fill: var(--accent); } .f2 { fill: var(--c2); } .f3 { fill: var(--c3); } .f4 { fill: var(--c4); } .fm { fill: var(--muted); } .fs { fill: var(--surface); }
 .a1 { fill: var(--accent); fill-opacity: .16; stroke: none; } .a2 { fill: var(--c2); fill-opacity: .18; stroke: none; } .a3 { fill: var(--c3); fill-opacity: .18; stroke: none; }
 .g-ghost { opacity: .32; }
@@ -158,29 +202,29 @@ body { background: var(--bg); color: var(--fg); font: 15px/1.55 var(--f-ui); mar
     <h1>Why is every qubit state a point on a sphere?</h1>
     <p class="lx-lede">Set the two angles of a pure qubit state and watch the arrow on the Bloch sphere, its two complex amplitudes and its measurement probabilities move together. Drag the sphere to rotate it.</p>
     <div class="lx-meta">
-      <span class="lx-badge" data-kind="exact">Exact</span>
       <span>\(\ket{\psi} = e^{i\gamma}\big[\cos\tfrac{\theta}{2}\ket{0} + e^{i\varphi}\sin\tfrac{\theta}{2}\ket{1}\big]\), \(\sigma_z\ket{0} = +\ket{0}\), \(\ket{\pm} = (\ket{0}\pm\ket{1})/\sqrt2\), \(\ket{\pm i} = (\ket{0}\pm i\ket{1})/\sqrt2\)</span>
     </div>
   </header>
-  <section class="lx-layout">
-    <div class="lx-stage" id="stage"></div>
-    <aside class="lx-steps" id="steps" aria-live="polite"></aside>
-  </section>
+  <div class="lx-stage" id="stage"></div>
   <footer class="lx-foot">
     <span>Source: model knowledge. Standard treatment: Nielsen &amp; Chuang, <i>Quantum Computation and Quantum Information</i>, ch. 1 and ch. 4; Sakurai &amp; Napolitano, <i>Modern Quantum Mechanics</i>, ch. 3.</span>
   </footer>
 </main>
 
-<script>/* LX:LIB-BEGIN */
+<script>
+/* LX:LIB-BEGIN */
 /* LX — small helper library for interactive-learning widgets. API summary:
    DOM      LX.h(tag, attrs, parent) · LX.fig(parent, caption) · LX.typeset(el)
    Numbers  LX.linspace · LX.clamp · LX.sample(f,a,b,n) · LX.C (complex) · LX.eigSym(A) · LX.niceTicks · LX.rng(seed)
    Plots    LX.plot(parent, {xlim, ylim, ticks, frame, xlabel, ylabel, width, height}) → path/fn/dot/line/vline/hline/
             area/text/tex/arrow/clear/ghost/setLim/setLabels/X/Y/inv/svg/g · LX.drag(plot, node, {get,set,step})
    3D       LX.camera({yaw, pitch, scale}) → project([x,y,z]) · rotate by dragging an element
+   Widget   LX.widget(mount, {layout: stack|split|grid2|aside|hero, left, title, badge}) → body element
+            LX.guide(widgetOrBody, [[term, description], ...]) — the "What you are looking at" block
+            LX.legend(parent, [[label, colorVar, "line"|"dash"|"dot"], ...])
    Controls LX.controls(parent) · LX.slider · LX.segmented · LX.button · LX.limits · LX.readout · LX.player
-   Lesson   LX.steps(parent, steps) — predict → reveal gating, explain boxes, locking controls, onAnswer hook
-            LX.isLocked(el) — true while a lesson step locks el (use in custom click/drag handlers)
+   Text     LX.ask(parent, {type: choice|number|set|sketch|explain, prompt, ..., reveal}) — inline question
+            LX.gate(el, message) — hide a result until a question that lists it in `reveal` is answered
    Checks   LX.check(name, fn) → window.__lxTests */
 const LX = (() => {
   const NS = "http://www.w3.org/2000/svg";
@@ -277,7 +321,6 @@ const LX = (() => {
   let uid = 0;
   function fig(parent, caption) {
     const f = h("figure", { class: "lx-fig" }, parent);
-    f.style.margin = "0";
     if (caption) { const c = h("figcaption", { html: caption }, f); typeset(c); }
     return f;
   }
@@ -309,6 +352,8 @@ const LX = (() => {
       get xlim() { return [x0, x1]; }, get ylim() { return [y0, y1]; },
       setLim(xl, yl) { if (xl) [x0, x1] = xl; if (yl) [y0, y1] = yl; drawAxes(); return P; },
       setLabels(xl, yl) { if (xl != null) o.xlabel = xl; if (yl != null) o.ylabel = yl; drawAxes(); return P; },
+      /* Clear everything a redraw owns: main, fill, top and the TeX overlay (not grid/axes/ghost). */
+      clearAll() { for (const l of ["main", "fill", "top", "tex"]) P.clear(l); return P; },
       clear(layer = "main") {
         if (layer === "tex") { [...overlay.children].filter(c => !c.dataset.axis).forEach(c => c.remove()); return P; }
         g[layer].replaceChildren(); return P;
@@ -343,6 +388,7 @@ const LX = (() => {
       },
       placeTex(el, x, y, anchor = "c", px) {
         const [ux, uy] = px ? [x, y] : [X(x), Y(y)];
+        el.style.display = isFinite(ux) && isFinite(uy) ? "" : "none";
         el.style.left = (100 * ux / W) + "%"; el.style.top = (100 * uy / H) + "%";
         const tx = anchor.includes("w") ? "0%" : anchor.includes("e") ? "-100%" : "-50%";
         const ty = anchor.includes("n") ? "0%" : anchor.includes("s") ? "-100%" : "-50%";
@@ -453,7 +499,11 @@ const LX = (() => {
     typeset(grp);
     return { el: grp, get: () => value, set(v, fire = true) { value = v; inputs.forEach(i => i.checked = i.value == v); if (fire && o.onChange) o.onChange(v); } };
   }
-  const button = (parent, label, onClick, o = {}) => h("button", { type: "button", class: "lx-btn" + (o.cls ? " " + o.cls : ""), id: o.id, html: label, onclick: onClick, title: o.title }, parent);
+  function button(parent, label, onClick, o = {}) {
+    const b = h("button", { type: "button", class: "lx-btn" + (o.cls ? " " + o.cls : ""), id: o.id, html: label, onclick: onClick, title: o.title }, parent);
+    if (/\\\(/.test(label)) typeset(b);
+    return b;
+  }
   /* Limit buttons: one click jumps to a named regime. items: [{label, title, apply}] */
   function limits(parent, items, title = "Jump to a limit", o = {}) {
     const grp = h("div", { class: "lx-group", id: o.id }, parent);   /* pass {id} to lock the whole group in a step */
@@ -479,81 +529,142 @@ const LX = (() => {
     return { btn, play, pause, get playing() { return playing; } };
   }
 
-  /* ---------- lesson steps ----------
-     step = { title, html,                       // prose (TeX allowed)
-              onEnter(),                         // set the widget into the state this step needs
-              predict: { prompt, options:[...], answer: index, right, wrong },  // commit before reveal
-              lock: ["control-id", ...],         // controls disabled until the prediction is made
-              after: html,                       // revealed after predicting
-              explain: { prompt, model },        // learner writes, then compares with a model answer
-              onAnswer(correct, index) }         // optional: called once the prediction is made (e.g. un-blur a view) */
-  function steps(parent, list, o = {}) {
-    const state = list.map(() => ({ chosen: null, explained: false, text: "" }));
-    let i = 0;
-    const lockEls = ids => (ids || []).map(id => document.getElementById(id)).filter(Boolean);
-    function setLocked(ids, on) {
-      for (const el of lockEls(ids)) {
-        el.classList.toggle("lx-locked", on);
-        el.querySelectorAll("input,button,select,textarea").forEach(c => c.disabled = on);
-        if (el.matches("input,button,select,textarea")) el.disabled = on;
-        if (on) el.title = "Make a prediction first"; else el.removeAttribute("title");
-      }
+  /* ---------- widget card, guide, legend ---------- */
+  const BADGE = { exact: "Exact", computed: "Computed", schematic: "Schematic" };
+  /* A framed widget. Returns the body element to fill; its children are arranged by the layout:
+     stack (one column) · split (two equal columns) · grid2 (2×2; a cell may hold controls)
+     aside (figures + a controls column; {left:true} puts the column first) · hero (big first child + a column)
+     Every layout falls back to one column when the card is narrower than ~620 px. */
+  function widget(parent, o = {}) {
+    const card = h("section", { class: "lx-widget" + (o.cls ? " " + o.cls : ""), id: o.id }, parent);
+    if (o.title || o.badge) {
+      const hd = h("div", { class: "lx-w-head" }, card);
+      if (o.title) h("h3", { html: o.title }, hd);
+      if (o.badge) h("span", { class: "lx-badge", "data-kind": o.badge, text: o.badgeText || BADGE[o.badge] }, hd);
+      typeset(hd);
     }
-    function render() {
-      const st = list[i], ss = state[i];
-      parent.replaceChildren();
-      const top = h("div", { class: "lx-steps-top" }, parent);
-      h("span", { text: `Step ${i + 1} of ${list.length}` }, top);
-      const dots = h("div", { class: "lx-dots", "aria-hidden": "true" }, top);
-      list.forEach((_, k) => h("i", { class: k === i ? "on" : k < i ? "done" : "" }, dots));
-      h("h2", { html: st.title }, parent);
-      if (st.html) h("div", { class: "lx-prose", html: st.html }, parent);
-      const answered = !st.predict || ss.chosen !== null;
-      if (st.predict) {
-        const box = h("div", { class: "lx-predict" }, parent);
-        h("p", { html: "Predict: " + st.predict.prompt }, box);
-        const opts = h("div", { class: "lx-opts" }, box);
-        st.predict.options.forEach((op, k) => {
-          const b = h("button", { type: "button", class: "lx-opt", html: op }, opts);
-          if (ss.chosen !== null) {
-            b.disabled = true;
-            if (k === st.predict.answer) b.classList.add("right");
-            else if (k === ss.chosen) b.classList.add("wrong");
-          }
-          b.addEventListener("click", () => { ss.chosen = k; render(); if (st.onAnswer) st.onAnswer(k === st.predict.answer, k); });
-        });
-        if (ss.chosen !== null) {
-          const ok = ss.chosen === st.predict.answer;
-          h("div", { class: "lx-feedback", html: `<b>${ok ? "Right." : "Not quite."}</b> ` + ((ok ? st.predict.right : st.predict.wrong) || "") }, box);
-        }
-      }
-      setLocked(st.lock, !answered);
-      if (answered && st.after) h("div", { class: "lx-prose", html: st.after }, parent);
-      if (answered && st.explain) {
-        const ex = h("div", { class: "lx-explain" }, parent);
-        h("label", { for: "lx-explain-" + i, html: st.explain.prompt }, ex);
-        const ta = h("textarea", { id: "lx-explain-" + i, placeholder: "In your own words…" }, ex);
-        ta.value = ss.text; ta.addEventListener("input", () => ss.text = ta.value);
-        if (!ss.explained) button(ex, "Compare with the textbook answer", () => { ss.explained = true; render(); });
-        else h("div", { class: "lx-model lx-prose", html: st.explain.model }, ex);
-      }
-      const nav = h("div", { class: "lx-nav" }, parent);
-      const back = button(nav, "Back", () => go(i - 1)); back.disabled = i === 0;
-      const next = button(nav, i === list.length - 1 ? "Done" : "Next", () => go(i + 1), { cls: "lx-primary" });
-      next.disabled = !answered || i === list.length - 1;
-      typeset(parent);
+    const body = h("div", { class: `lx-w lx-${o.layout || "stack"}` + (o.left ? " lx-left" : "") }, card);
+    body.card = card;
+    return body;
+  }
+  /* "What you are looking at": one line per figure and per control. */
+  function guide(parent, items, title = "What you are looking at") {
+    const card = parent.card || parent;
+    const dl = h("dl", { class: "lx-guide" }, card);
+    if (title) h("b", { text: title }, dl);
+    for (const [t, d] of items) { h("dt", { html: t }, dl); h("dd", { html: d }, dl); }
+    typeset(dl); return dl;
+  }
+  function legend(parent, items) {
+    const lg = h("div", { class: "lx-legend" }, parent);
+    for (const [label, color, kind] of items) {
+      const sp = h("span", {}, lg); const i = h("i", { class: kind && kind !== "line" ? kind : "" }, sp);
+      i.style.color = `var(${color})`; h("span", { html: label }, sp);
     }
-    function go(k) {
-      if (k < 0 || k >= list.length) return;
-      setLocked(list[i].lock, false);
-      i = k; if (list[i].onEnter) list[i].onEnter(); render();
-    }
-    if (list[0] && list[0].onEnter) list[0].onEnter();
-    render();
-    return { go, get index() { return i; } };
+    typeset(lg); return lg;
   }
 
-  const isLocked = el => !!(el && el.closest && el.closest(".lx-locked"));
+  /* ---------- gates and inline questions ---------- */
+  /* Hide a result (figure, readout, paragraph) until a question that lists it in `reveal` is answered.
+     A gate only ever opens. Do not gate controls the learner has already used. */
+  function gate(el, message = "Answer the question above to reveal") {
+    el.classList.add("lx-gated"); el.dataset.gate = message; el.setAttribute("aria-hidden", "true");
+    return { el, open: () => openGate(el) };
+  }
+  function openGate(el) { el.classList.remove("lx-gated"); el.removeAttribute("data-gate"); el.removeAttribute("aria-hidden"); }
+
+  /* Inline question in the text. Common options:
+       prompt (html), kicker (small label, defaults by type), reveal: [elements to un-gate],
+       right / wrong (html feedback), onAnswer(correct, value)
+     Types:
+       choice   options: [html], answer: index
+       number   answer: value, tol: relative tolerance (0.1), unit (html after the box)
+       set      the learner sets the widget, then presses Check. check(): {pass, msg}; solve(): optional,
+                puts the widget into the right state (offered after a wrong attempt)
+       sketch   plot: LX.plot, xs: handle positions, y0: start value (or ys), truth: x → y, tol: 0.15
+                (rms error relative to the truth's range); the learner drags handles, then compares
+       explain  model: html model answer, shown after the learner writes */
+  const KICK = { choice: "Predict", number: "Estimate", set: "Try it", sketch: "Sketch", explain: "Explain" };
+  function ask(parent, o) {
+    const type = o.type || "choice";
+    const box = h("div", { class: "lx-ask", "data-type": type }, parent);
+    h("div", { class: "lx-kicker", text: o.kicker || KICK[type] }, box);
+    h("div", { class: "lx-q", html: o.prompt }, box);
+    const body = h("div", { class: "lx-ask-body" }, box);
+    const fb = h("div", { class: "lx-feedback", "aria-live": "polite" }, box);
+    let answered = false;
+    function done(ok, value, extra) {
+      fb.className = "lx-feedback " + (ok == null ? "" : ok ? "good" : "bad");
+      const head = ok == null ? "" : `<b>${ok ? "Right." : "Not quite."}</b> `;
+      fb.innerHTML = head + (extra || "") + ((ok ? o.right : o.wrong) || (ok == null ? o.right || "" : ""));
+      typeset(fb);
+      if (!answered) { answered = true; box.dataset.answered = "1"; (o.reveal || []).forEach(openGate); }
+      if (o.onAnswer) o.onAnswer(ok, value);
+    }
+    if (type === "choice") {
+      const opts = h("div", { class: "lx-opts" }, body);
+      const bs = o.options.map((op, k) => h("button", { type: "button", class: "lx-opt", html: op, onclick: () => {
+        bs.forEach((b, j) => { b.disabled = true; if (j === o.answer) b.classList.add("right"); else if (j === k) b.classList.add("wrong"); });
+        done(k === o.answer, k);
+      } }, opts));
+    } else if (type === "number") {
+      const row = h("div", { class: "lx-row" }, body); row.style.alignItems = "center";
+      const inp = h("input", { type: "text", inputmode: "decimal", "aria-label": "your estimate" }, row);
+      if (o.unit) h("span", { html: o.unit }, row);
+      const go = () => {
+        const v = parseFloat(inp.value.replace(",", ".").replace("−", "-"));
+        if (!isFinite(v)) { fb.className = "lx-feedback"; fb.textContent = "Enter a number."; return; }
+        const tol = o.tol ?? 0.1, err = (v - o.answer) / (Math.abs(o.answer) || 1), ok = Math.abs(err) <= tol;
+        const dir = ok ? "" : `Your estimate is too ${err > 0 ? "high" : "low"}. `;
+        done(ok, v, dir);
+      };
+      button(row, "Check", go, { cls: "lx-primary" });
+      inp.addEventListener("keydown", e => { if (e.key === "Enter") go(); });
+    } else if (type === "set") {
+      const row = h("div", { class: "lx-row" }, body);
+      let solveBtn = null;
+      button(row, o.checkLabel || "Check", () => {
+        const r = o.check(); const ok = typeof r === "object" ? !!r.pass : !!r;
+        done(ok, null, (typeof r === "object" && r.msg ? r.msg + " " : ""));
+        if (!ok && o.solve && !solveBtn) solveBtn = button(row, "Show me", () => { o.solve(); }, {});
+      }, { cls: "lx-primary" });
+    } else if (type === "sketch") {
+      const P = o.plot, n = o.xs.length, ys = o.ys ? o.ys.slice() : o.xs.map(() => o.y0 ?? (P.ylim[0] + P.ylim[1]) / 2);
+      const g = s("g", { class: "lx-sketch" }, P.svg);
+      const tg = s("g", {}, g), line = s("path", { class: "sk" }, g);
+      const dots = o.xs.map((x, i) => {
+        const c = s("circle", { r: 7, class: "f4", "aria-label": `sketch point ${i + 1}; arrow keys move it` }, g);
+        drag(P, c, { get: () => [x, ys[i]], set: (_, y) => { ys[i] = clamp(y, P.ylim[0], P.ylim[1]); draw(); }, step: [0, (P.ylim[1] - P.ylim[0]) / 40] });
+        return c;
+      });
+      function draw() {
+        line.setAttribute("d", o.xs.map((x, i) => (i ? "L" : "M") + P.X(x).toFixed(1) + "," + P.Y(ys[i]).toFixed(1)).join(""));
+        dots.forEach((c, i) => { c.setAttribute("cx", P.X(o.xs[i])); c.setAttribute("cy", P.Y(ys[i])); });
+      }
+      draw();
+      h("p", { html: o.hint || "Drag the pink points to sketch your guess, then compare.", style: "margin:0;font-size:13.5px" }, body);
+      const row = h("div", { class: "lx-row" }, body);
+      button(row, "Compare with the real curve", () => {
+        tg.replaceChildren();
+        const pts = sample(o.truth, P.xlim[0], P.xlim[1], 300);
+        let d = ""; pts.forEach(([x, y], i) => { d += (i ? "L" : "M") + P.X(x).toFixed(1) + "," + P.Y(clamp(y, P.ylim[0] - 10, P.ylim[1] + 10)).toFixed(1); });
+        s("path", { d, class: "s1" }, tg);
+        const tv = o.xs.map(o.truth), span = (Math.max(...tv) - Math.min(...tv)) || 1;
+        const rms = Math.sqrt(o.xs.reduce((a, _, i) => a + (ys[i] - tv[i]) ** 2, 0) / n) / span;
+        done(rms <= (o.tol ?? 0.15), rms, `Your sketch is off by ${(100 * rms).toFixed(0)}% of the curve's range. `);
+      }, { cls: "lx-primary" });
+    } else if (type === "explain") {
+      const ta = h("textarea", { placeholder: "In your own words…", "aria-label": "your explanation" }, body);
+      const row = h("div", { class: "lx-row" }, body);
+      button(row, o.compareLabel || "Compare with a model answer", () => {
+        if (box.querySelector(".lx-model")) return;
+        const m = h("div", { class: "lx-model", html: o.model }, body); typeset(m);
+        done(null, ta.value);
+      });
+    }
+    typeset(box);
+    return { el: box, get answered() { return answered; } };
+  }
 
   /* ---------- self-tests ---------- */
   window.__lxTests = window.__lxTests || [];
@@ -567,10 +678,11 @@ const LX = (() => {
   }
   const near = (a, b, tol = 1e-9) => Math.abs(a - b) <= tol * Math.max(1, Math.abs(a), Math.abs(b));
 
-  return { h, s, typeset, linspace, clamp, sample, C, eigSym, niceTicks, fig, plot, drag, camera,
-           controls, slider, segmented, button, limits, readout, player, steps, isLocked, check, near, rng, reduceMotion };
+  return { h, s, typeset, linspace, clamp, sample, C, eigSym, niceTicks, fig, plot, drag, camera, widget, guide, legend,
+           controls, slider, segmented, button, limits, readout, player, ask, gate, check, near, rng, reduceMotion };
 })();
-/* LX:LIB-END */</script>
+/* LX:LIB-END */
+</script>
 
 <script>
 /* PATTERN */
@@ -582,45 +694,54 @@ const amps = (th = S.th, ph = S.ph, ga = S.ga) => [C.scale(C.expi(ga), Math.cos(
 function vec([a, b]) { const ab = C.mul(C.conj(a), b); return [2 * ab.re, 2 * ab.im, C.abs2(a) - C.abs2(b)]; }
 const inner = ([a1, b1], [a2, b2]) => C.add(C.mul(C.conj(a1), a2), C.mul(C.conj(b1), b2));   // ⟨1|2⟩
 
-/* ---- layout ---- */
-const stage = document.getElementById("stage");
-const figs = LX.h("div", { class: "lx-figs" }, stage);
-const PB = LX.plot(LX.fig(figs, "Bloch sphere: \\(\\vec r = (\\langle\\sigma_x\\rangle, \\langle\\sigma_y\\rangle, \\langle\\sigma_z\\rangle)\\). Drag to rotate."),
-  { xlim: [-1.5, 1.5], ylim: [-1.5, 1.5], ticks: false, width: 360, height: 360, margin: { l: 6, r: 6, t: 6, b: 6 }, aria: "Bloch sphere" });
-PB.g.axes.replaceChildren();   // a sphere needs no plot frame
+/* ---- widget ---- */
+const W = LX.widget(document.getElementById("stage"), { layout: "grid2", title: "One qubit, three views", badge: "exact" });
+const figB = LX.fig(W);
+/* extra headroom at the top keeps the floating buttons clear of the sphere */
+const PB = LX.plot(figB, { xlim: [-1.5, 1.5], ylim: [-1.4, 1.6], ticks: false, frame: false, width: 360, height: 360, margin: { l: 6, r: 6, t: 6, b: 6 }, aria: "Bloch sphere" });
 const cam = LX.camera({ yaw: -2.0, pitch: 0.32, onChange: () => drawSphere() });
 cam.attach(PB.svg);
-const PA = LX.plot(LX.fig(figs, "Amplitudes in the complex plane: \\(\\alpha = \\braket{0}{\\psi}\\) (blue), \\(\\beta = \\braket{1}{\\psi}\\) (orange)"),
+const flt = LX.h("div", { class: "lx-float" }, figB);
+LX.button(flt, "Keep a copy", () => { S.kept = amps(); draw(); }, { id: "keep", cls: "lx-primary", title: "Freeze the current state as the pink reference arrow" });
+const bClear = LX.button(flt, "Clear copy", () => { S.kept = null; draw(); }, { id: "clear-copy" });
+LX.legend(figB, [["state \\(\\ket\\psi\\)", "--accent", "line"], ["copy \\(\\ket\\chi\\)", "--c4", "dash"], ["\\(\\varphi\\)", "--c2", "line"], ["\\(\\theta\\)", "--c3", "line"]]);
+LX.h("figcaption", { text: "Bloch sphere: the arrow is (⟨σx⟩, ⟨σy⟩, ⟨σz⟩). Drag to rotate." }, figB);
+
+const PA = LX.plot(LX.fig(W, "Amplitudes in the complex plane: \\(\\alpha = \\braket{0}{\\psi}\\) (blue), \\(\\beta = \\braket{1}{\\psi}\\) (orange)"),
   { xlim: [-1.15, 1.15], ylim: [-1.15, 1.15], width: 320, height: 328, xlabel: "\\mathrm{Re}", ylabel: "\\mathrm{Im}", xticks: 4, yticks: 4 });
-const PM = LX.plot(LX.fig(stage, "Measurement probabilities in the \\(Z\\) basis (blue) and the \\(X\\) basis (orange)"),
-  { xlim: [0, 5], ylim: [0, 1.12], width: 640, height: 200, margin: { b: 44 }, yticks: 4 });
+const PM = LX.plot(LX.fig(W, "Measurement probabilities in the \\(Z\\) basis (blue) and the \\(X\\) basis (orange)"),
+  { xlim: [0, 5], ylim: [0, 1.15], width: 360, height: 260, margin: { b: 44 }, yticks: 4 });
 /* category axis: drop the numeric x ticks and vertical grid lines */
 [...PM.g.axes.querySelectorAll("text")].filter(t => t.getAttribute("text-anchor") === "middle").forEach(t => t.remove());
 [...PM.g.grid.querySelectorAll("line")].filter(l => l.getAttribute("x1") === l.getAttribute("x2")).forEach(l => l.remove());
 
-const ctl = LX.controls(stage);
-const thS = LX.slider(ctl, { id: "th", label: "polar angle \\(\\theta\\)", min: 0, max: PI, step: 0.005, value: S.th, fmt: v => (v / PI).toFixed(3) + "π", onInput: v => { S.th = v; draw(); } });
-const phS = LX.slider(ctl, { id: "ph", label: "relative phase \\(\\varphi\\)", min: 0, max: 2 * PI, step: 0.005, value: S.ph, fmt: v => (v / PI).toFixed(3) + "π", onInput: v => { S.ph = v; draw(); } });
-const gaS = LX.slider(ctl, { id: "ga", label: "global phase \\(\\gamma\\)", min: 0, max: 2 * PI, step: 0.005, value: 0, fmt: v => (v / PI).toFixed(3) + "π", onInput: v => { S.ga = v; draw(); } });
+const ctl = LX.controls(W);
+const pifmt = v => (v / PI).toFixed(3) + "π";
+const thS = LX.slider(ctl, { id: "th", label: "polar angle \\(\\theta\\)", min: 0, max: PI, step: 0.005, value: S.th, fmt: pifmt, onInput: v => { S.th = v; draw(); } });
+const phS = LX.slider(ctl, { id: "ph", label: "relative phase \\(\\varphi\\)", min: 0, max: 2 * PI, step: 0.005, value: S.ph, fmt: pifmt, onInput: v => { S.ph = v; draw(); } });
+const gaS = LX.slider(ctl, { id: "ga", label: "global phase \\(\\gamma\\)", min: 0, max: 2 * PI, step: 0.005, value: 0, fmt: pifmt, onInput: v => { S.ga = v; draw(); } });
 const grp = LX.h("div", { class: "lx-group", id: "states" }, ctl);
 LX.h("span", { text: "Named states" }, grp);
 const row = LX.h("div", { class: "lx-row" }, grp);
 const setState = (th, ph) => { thS.set(th, false); phS.set(ph, false); S.th = th; S.ph = ph; draw(); };
 for (const [lab, th, ph] of [["|0⟩", 0, 0], ["|1⟩", PI, 0], ["|+⟩", PI / 2, 0], ["|−⟩", PI / 2, PI], ["|+i⟩", PI / 2, PI / 2], ["|−i⟩", PI / 2, 3 * PI / 2]])
   LX.button(row, lab, () => setState(th, ph));
-const cmp = LX.h("div", { class: "lx-group" }, ctl);
-LX.h("span", { text: "Compare" }, cmp);
-const crow = LX.h("div", { class: "lx-row" }, cmp);
-LX.button(crow, "Keep a copy", () => { S.kept = amps(); draw(); }, { id: "keep" });
-LX.button(crow, "Go to antipode", () => setState(PI - S.th, (S.ph + PI) % (2 * PI)), { id: "anti" });
-
-const ro = LX.controls(stage);
+LX.button(LX.h("div", { class: "lx-row" }, ctl), "Go to antipode", () => setState(PI - S.th, (S.ph + PI) % (2 * PI)), { id: "anti" });
+const ro = LX.h("div", { class: "lx-readouts", style: "display:grid;gap:2px" }, ctl);
 const rA = LX.readout(ro, "\\(|\\alpha|^2 =\\)");
-const box = ro.querySelector(".lx-readouts");
-const rB = LX.readout(box, "\\(|\\beta|^2 =\\)");
-const rP = LX.readout(box, "\\(\\arg\\beta - \\arg\\alpha =\\)");
-const rS = LX.readout(box, "\\((\\langle\\sigma_x\\rangle, \\langle\\sigma_y\\rangle, \\langle\\sigma_z\\rangle) =\\)");
-const rO = LX.readout(box, "overlap with copy \\(|\\braket{\\chi}{\\psi}|^2 =\\)");
+const rB = LX.readout(ro, "\\(|\\beta|^2 =\\)");
+const rP = LX.readout(ro, "\\(\\arg\\beta - \\arg\\alpha =\\)");
+const rS = LX.readout(ro, "\\(\\vec r =\\)");
+const rO = LX.readout(ro, "overlap with copy \\(|\\braket{\\chi}{\\psi}|^2 =\\)");
+
+LX.guide(W, [
+  ["Sphere", "Every pure qubit state is one arrow of length 1. North pole \\(\\ket0\\), south pole \\(\\ket1\\), equator: equal superpositions. The orange arc is \\(\\varphi\\) (around the axis), the green arc \\(\\theta\\) (down from the north pole); the dashed lines drop the arrow onto the equatorial plane."],
+  ["Keep a copy", "Freezes the current state as the pink dashed arrow \\(\\ket\\chi\\); the overlap readout then compares the two. Clear copy removes it."],
+  ["Phasors", "The two complex amplitudes \\(\\alpha, \\beta\\) as arrows in the plane. Their lengths set the probabilities; only the angle between them matters physically."],
+  ["Bars", "Probabilities of the outcomes when measuring in the \\(Z\\) basis (\\(0, 1\\)) and in the \\(X\\) basis (\\(+, -\\))."],
+  ["\\(\\theta, \\varphi, \\gamma\\)", "Polar angle, relative phase, and a global phase that multiplies the whole state. Watch which views each one moves."],
+  ["Buttons", "Named states jump to the six axis points; Go to antipode jumps to the opposite point of the sphere."]
+]);
 
 const f = (v, d = 3) => (Math.abs(v) < 0.5 * 10 ** -d ? 0 : v).toFixed(d).replace("-", "−");
 
@@ -640,7 +761,7 @@ function poly3(pts, cls, back = "sm thin dash", layer = "main") {
 const ring = fn => LX.linspace(0, 2 * PI, 121).map(fn);
 const at = (v, k = 1) => proj(v.map(c => c * k));
 function drawSphere() {
-  PB.clear(); PB.clear("top"); PB.clear("ghost");
+  PB.clear(); PB.clear("top");
   PB.path(ring(a => [Math.cos(a), Math.sin(a)]), { cls: "sm thin" });
   poly3(ring(a => [Math.cos(a), Math.sin(a), 0]), "sm thin");
   poly3(ring(a => [Math.cos(a), 0, Math.sin(a)]), "sm thin", "sm thin dash");
@@ -656,7 +777,12 @@ function drawSphere() {
   poly3(LX.linspace(0, S.th, 40).map(t => [0.38 * Math.sin(t) * Math.cos(S.ph), 0.38 * Math.sin(t) * Math.sin(S.ph), 0.38 * Math.cos(t)]), "s3", "s3 thin dash");
   const pa = at([Math.cos(S.ph / 2), Math.sin(S.ph / 2), 0], 0.45); PB.text(pa[0], pa[1], "φ", { dy: 4, cls: "f2" });
   const ta = at([Math.sin(S.th / 2) * Math.cos(S.ph), Math.sin(S.th / 2) * Math.sin(S.ph), Math.cos(S.th / 2)], 0.52); PB.text(ta[0], ta[1], "θ", { dy: 4, cls: "f3" });
-  if (S.kept) { const k = at(vec(S.kept)); PB.arrow(0, 0, k[0], k[1], { cls: "s4", layer: "ghost" }); }
+  if (S.kept) {
+    const [u, w] = at(vec(S.kept));
+    PB.arrow(0, 0, u, w, { cls: "s4 dash" });
+    PB.dot(u, w, { r: 4.5, cls: "f4" });
+    PB.text(u, w, "χ", { dy: -9, cls: "f4" });
+  }
   const [u, w, d] = proj(r);
   PB.arrow(0, 0, u, w, { cls: "s1" + (d < -1e-9 ? " dash" : "") });
   PB.dot(u, w, { r: 4.5, cls: "f1" });
@@ -664,7 +790,7 @@ function drawSphere() {
 
 /* ---- phasors and probabilities ---- */
 function drawAmps(ab) {
-  PA.clear(); PA.clear("top"); PA.clear("tex");
+  PA.clear(); PA.clear("top");
   PA.path(ring(a => [Math.cos(a), Math.sin(a)]), { cls: "sm thin dash" });
   PA.hline(0, { cls: "sm thin" }); PA.vline(0, { cls: "sm thin" });
   ab.forEach((z, i) => {
@@ -690,6 +816,7 @@ function drawProbs(r) {
 function draw() {
   const ab = amps(), r = vec(ab);
   drawSphere(); drawAmps(ab); drawProbs(r);
+  bClear.disabled = !S.kept;
   rA.set(f(C.abs2(ab[0]))); rB.set(f(C.abs2(ab[1])));
   rP.set(C.abs(ab[1]) > 1e-6 && C.abs(ab[0]) > 1e-6 ? (((C.arg(ab[1]) - C.arg(ab[0]) + 4 * PI) % (2 * PI)) / PI).toFixed(3) + "π" : "undefined");
   rS.set(`(${f(r[0], 2)}, ${f(r[1], 2)}, ${f(r[2], 2)})`);
@@ -697,54 +824,8 @@ function draw() {
 }
 draw();
 
-/* ---- lesson ---- */
-const go = (th, ph, ga = 0, kept = null) => () => { gaS.set(ga, false); S.ga = ga; S.kept = kept; setState(th, ph); };
-LX.steps(document.getElementById("steps"), [
-  { title: "Halfway between 0 and 1",
-    onEnter: go(0, 0),
-    html: "<p>The arrow points at \\(\\ket{0}\\), the north pole; \\(\\ket{1}\\) is the south pole. The equal superposition \\(\\ket{+} = (\\ket{0}+\\ket{1})/\\sqrt2\\) is in some sense halfway between them.</p>",
-    predict: { prompt: "Where on the sphere does \\(\\ket{+}\\) sit?",
-      options: ["On the equator, \\(\\theta = \\pi/2\\)", "At \\(\\theta = \\pi/4\\), halfway to the equator", "At the centre of the sphere"], answer: 0,
-      right: "\\(\\cos(\\theta/2) = \\sin(\\theta/2) = 1/\\sqrt2\\) needs \\(\\theta/2 = \\pi/4\\), so \\(\\theta = \\pi/2\\). The sphere uses <i>twice</i> the Hilbert-space angle.",
-      wrong: "The amplitudes are \\(\\cos(\\theta/2)\\) and \\(\\sin(\\theta/2)\\). Equal magnitudes need \\(\\theta/2 = \\pi/4\\), i.e. \\(\\theta = \\pi/2\\): the equator. The centre is reserved for the maximally mixed state." },
-    lock: ["th-wrap", "states"],
-    after: "<p>Drag \\(\\theta\\) to \\(\\pi/2\\) and watch the bars: the \\(Z\\) outcomes become 50/50. Every point of the equator is an equal superposition; they differ only in \\(\\varphi\\).</p>" },
-  { title: "Orthogonal states",
-    onEnter: go(PI / 3, PI / 4),
-    html: "<p>Press <i>Keep a copy</i> to freeze the current state as \\(\\ket{\\chi}\\) (pink arrow). The readout then shows the overlap \\(|\\braket{\\chi}{\\psi}|^2\\) as you move \\(\\ket{\\psi}\\).</p>",
-    predict: { prompt: "Where is the state orthogonal to \\(\\ket{\\chi}\\)?",
-      options: ["90° away on the sphere", "At the antipode, 180° away", "Anywhere on the great circle 90° away"], answer: 1,
-      right: "Orthogonal means 90° in Hilbert space, and the sphere doubles angles: 180°, the antipode. In general \\(|\\braket{\\chi}{\\psi}|^2 = (1 + \\vec r_\\chi\\cdot\\vec r_\\psi)/2\\).",
-      wrong: "Try it: 90° away gives overlap 1/2, not 0. Orthogonal states are antipodal, because \\(|\\braket{\\chi}{\\psi}|^2 = (1 + \\vec r_\\chi\\cdot\\vec r_\\psi)/2\\) vanishes only for \\(\\vec r_\\psi = -\\vec r_\\chi\\)." },
-    lock: ["th-wrap", "ph-wrap", "states", "anti"],
-    after: "<p>Press <i>Go to antipode</i>: the overlap reads 0. This is why \\(\\ket{0},\\ket{1}\\) and \\(\\ket{+},\\ket{-}\\) are opposite ends of an axis.</p>" },
-  { title: "A phase you cannot see",
-    onEnter: go(PI / 3, PI / 4),
-    html: "<p>The slider \\(\\gamma\\) multiplies the whole state by \\(e^{i\\gamma}\\). Watch the amplitude plot as you move it.</p>",
-    predict: { prompt: "What does \\(\\gamma\\) do to the Bloch vector?",
-      options: ["Rotates it about \\(z\\) by \\(\\gamma\\)", "Nothing at all", "Rotates it about \\(z\\) by \\(\\gamma/2\\)"], answer: 1,
-      right: "Both phasors turn together, so every \\(\\langle\\sigma_i\\rangle = \\bra{\\psi}\\sigma_i\\ket{\\psi}\\) is unchanged. \\(\\ket{\\psi}\\) and \\(e^{i\\gamma}\\ket{\\psi}\\) are the same physical state.",
-      wrong: "Move \\(\\gamma\\): both phasors rotate together and the arrow on the sphere stays put. Expectation values contain \\(\\psi^*\\psi\\), where \\(e^{i\\gamma}\\) cancels." },
-    lock: ["ga-wrap"],
-    after: "<p>This is why a qubit needs only two real parameters: four real numbers in \\((\\alpha, \\beta)\\), minus normalisation, minus global phase. Two parameters, two angles, one sphere.</p>" },
-  { title: "What does \\(\\varphi\\) change?",
-    onEnter: go(PI / 2, 0),
-    html: "<p>The state is \\(\\ket{+}\\). Now sweep the relative phase \\(\\varphi\\) from 0 to \\(2\\pi\\): the arrow runs around the equator.</p>",
-    predict: { prompt: "How do the \\(Z\\)-basis probabilities change during the sweep?",
-      options: ["They oscillate between 0 and 1", "They do not change at all", "They oscillate between 1/4 and 3/4"], answer: 1,
-      right: "\\(P(0) = \\cos^2(\\theta/2)\\) does not contain \\(\\varphi\\). The phase shows up only in other bases: \\(P(+) = (1 + \\sin\\theta\\cos\\varphi)/2\\).",
-      wrong: "\\(P(0) = |\\alpha|^2 = \\cos^2(\\theta/2)\\) does not contain \\(\\varphi\\). Watch the orange \\(X\\)-basis bars instead: they swing from 1 to 0." },
-    lock: ["ph-wrap", "states"],
-    after: "<p>Unlike \\(\\gamma\\), the relative phase is physical: the \\(X\\) measurement distinguishes \\(\\ket{+}\\) from \\(\\ket{-}\\) perfectly, though their \\(Z\\) statistics are identical.</p>" },
-  { title: "Put it in your own words",
-    onEnter: go(PI / 3, PI / 4),
-    html: "<p>You have seen why the polar angle is \\(\\theta/2\\) in the amplitudes and what each phase does.</p>",
-    explain: { prompt: "Why does the Bloch sphere parameterise states with \\(\\theta/2\\) rather than \\(\\theta\\)?",
-      model: "<p>So that orthogonal states land on opposite points. The Hilbert-space angle between two states, defined by \\(|\\braket{\\chi}{\\psi}| = \\cos\\vartheta\\), runs from 0 (same state) to \\(\\pi/2\\) (orthogonal). Mapping it to a sphere angle \\(2\\vartheta\\) fills the whole range 0 to \\(\\pi\\), giving \\(|\\braket{\\chi}{\\psi}|^2 = \\cos^2\\vartheta = (1 + \\cos 2\\vartheta)/2 = (1 + \\vec r_\\chi\\cdot\\vec r_\\psi)/2\\).</p><p><b>Transfer:</b> the phase gate \\(S = \\mathrm{diag}(1, i)\\) multiplies \\(\\beta\\) by \\(i\\). What rotation of the Bloch sphere is it, and where does it send \\(\\ket{+}\\)?</p>" } }
-]);
-
 /* ---- self-tests ---- */
-const rnd = (() => { let s = 7; return () => (s = (s * 16807) % 2147483647) / 2147483647; })();
+const rnd = LX.rng(7);
 LX.check("⟨σ⟩ from amplitudes equals (sinθ cosφ, sinθ sinφ, cosθ)", () => {
   const th = 1.1, ph = 2.3, r = vec(amps(th, ph, 0.7));
   return LX.near(r[0], Math.sin(th) * Math.cos(ph), 1e-12) && LX.near(r[1], Math.sin(th) * Math.sin(ph), 1e-12) && LX.near(r[2], Math.cos(th), 1e-12);
