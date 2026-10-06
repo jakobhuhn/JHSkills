@@ -144,13 +144,17 @@ mjx-container[display="true"] { overflow-x: auto; overflow-y: hidden; max-width:
 .lx-btn:focus-visible, .lx-seg input:focus-visible + span, .lx-drag:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .lx-btn[aria-pressed="true"], .lx-btn.lx-primary { background: var(--accent); color: var(--surface); border-color: var(--accent); }
 .lx-btn:disabled { opacity: .45; cursor: not-allowed; }
-.lx-btn mjx-container, .lx-seg mjx-container, .lx-opt mjx-container { display: inline-block !important; margin: 0 !important; vertical-align: -0.2em; }
+.lx-btn mjx-container, .lx-seg mjx-container, .lx-opt mjx-container { display: inline-block !important; margin: 0 !important; }
+.lx-group > .lx-seg { justify-self: start; }
 .lx-seg { display: inline-flex; flex-wrap: wrap; max-width: 100%; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--surface); }
 .lx-seg label { cursor: pointer; }
 .lx-seg input { position: absolute; opacity: 0; pointer-events: none; }
 .lx-seg span { display: block; padding: 5px 10px; font-size: 13px; line-height: 1.3; }
 .lx-seg input:checked + span { background: var(--accent); color: var(--surface); }
 .lx-readouts { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); }
+.lx-readouts.lx-vert { flex-direction: column; gap: 4px; }
+.lx-page a { color: var(--accent); }
+mjx-container[jax="SVG"] > svg a { fill: var(--accent); stroke: var(--accent); }
 .lx-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; color: var(--fg); }
 .lx-legend i { display: inline-block; width: 16px; height: 0; border-top: 2.5px solid currentColor; vertical-align: middle; margin-right: 5px; }
 .lx-legend i.dash { border-top-style: dashed; } .lx-legend i.dot { width: 9px; height: 9px; border: none; border-radius: 50%; background: currentColor; }
@@ -169,8 +173,9 @@ mjx-container[display="true"] { overflow-x: auto; overflow-y: hidden; max-width:
 .lx-opt:disabled { cursor: default; }
 .lx-opt.right { border-color: var(--good); box-shadow: inset 3px 0 0 var(--good); }
 .lx-opt.wrong { border-color: var(--bad); box-shadow: inset 3px 0 0 var(--bad); }
+.lx-opt.picked { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
 .lx-ask input[type=text] { font: 15px var(--f-mono); color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; width: 9em; }
-.lx-ask textarea { font: 15px/1.5 var(--f-prose); color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 8px; min-height: 84px; resize: vertical; }
+.lx-ask textarea { width: 100%; box-sizing: border-box; font: 15px/1.5 var(--f-prose); color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 8px; min-height: 84px; resize: vertical; }
 .lx-feedback { font: 15px/1.5 var(--f-prose); }
 .lx-feedback b { font-family: var(--f-ui); }
 .lx-feedback.good b { color: var(--good); } .lx-feedback.bad b { color: var(--bad); }
@@ -194,6 +199,8 @@ span.lx-gated::after { font-size: 12px; white-space: nowrap; padding: 0; }
 .faint { opacity: .45; }
 .sk { fill: none; stroke: var(--c4); stroke-width: 2.6; stroke-dasharray: 7 5; stroke-linecap: round; }
 .f1 { fill: var(--accent); } .f2 { fill: var(--c2); } .f3 { fill: var(--c3); } .f4 { fill: var(--c4); } .fm { fill: var(--muted); } .fs { fill: var(--surface); }
+.sg { stroke: var(--good); } .sb { stroke: var(--bad); } .fg { fill: var(--good); } .fb { fill: var(--bad); }
+.lx-plot text.f1 { fill: var(--accent); } .lx-plot text.f2 { fill: var(--c2); } .lx-plot text.f3 { fill: var(--c3); } .lx-plot text.f4 { fill: var(--c4); } .lx-plot text.fg { fill: var(--good); } .lx-plot text.fb { fill: var(--bad); }
 .a1 { fill: var(--accent); fill-opacity: .16; stroke: none; } .a2 { fill: var(--c2); fill-opacity: .18; stroke: none; } .a3 { fill: var(--c3); fill-opacity: .18; stroke: none; }
 .g-ghost { opacity: .32; }
 .g-ghost path { stroke-dasharray: 4 3; }
@@ -224,7 +231,9 @@ span.lx-gated::after { font-size: 12px; white-space: nowrap; padding: 0; }
    DOM      LX.h(tag, attrs, parent) · LX.fig(parent, caption) · LX.typeset(el)
    Numbers  LX.linspace · LX.clamp · LX.sample(f,a,b,n) · LX.C (complex) · LX.eigSym(A) · LX.niceTicks · LX.rng(seed)
    Plots    LX.plot(parent, {xlim, ylim, ticks, frame, xlabel, ylabel, width, height}) → path/fn/dot/line/vline/hline/
-            area/text/tex/arrow/clear/ghost/setLim/setLabels/X/Y/inv/svg/g · LX.drag(plot, node, {get,set,step})
+            area/text/tex/arrow/clear/clearAll/ghost/setLim/setLabels/X/Y/inv/svg/g
+            layers: grid, axes, ghost, fill, main, top, handles (handles is never cleared by clearAll: put draggables there)
+            LX.drag(plot, node, {get, set, step, start, end}) · LX.fig(parent, caption, {below}) · LX.setHTML(el, html)
    3D       LX.camera({yaw, pitch, scale}) → project([x,y,z]) · rotate by dragging an element
    Widget   LX.widget(mount, {layout: stack|split|grid2|aside|hero, left, title, badge}) → body element
             LX.guide(widgetOrBody, [[term, description], ...]) — the "What you are looking at" block
@@ -326,11 +335,13 @@ const LX = (() => {
 
   /* ---------- plots ---------- */
   let uid = 0;
-  function fig(parent, caption) {
+  function fig(parent, caption, o = {}) {
     const f = h("figure", { class: "lx-fig" }, parent);
-    if (caption) { const c = h("figcaption", { html: caption }, f); typeset(c); }
+    if (caption) { const c = h("figcaption", { html: caption }, f); typeset(c); if (o.below) c.style.order = "1"; }
     return f;
   }
+  /* Replace an element's content with HTML/TeX and typeset it (e.g. a button label or a readout). */
+  function setHTML(el, html) { el.innerHTML = html; typeset(el); return el; }
   function plot(parent, o = {}) {
     const W = o.width || 560, H = o.height || 340, ticks = o.ticks !== false;
     const m = Object.assign(ticks ? { l: 56, r: 16, t: o.ylabel ? 30 : 14, b: 50 } : { l: 26, r: 22, t: o.ylabel ? 30 : 16, b: o.xlabel ? 34 : 16 }, o.margin || {});
@@ -346,7 +357,7 @@ const LX = (() => {
     const mk = s("marker", { id: id + "a", viewBox: "0 0 10 10", refX: 9, refY: 5, markerWidth: 7, markerHeight: 7, orient: "auto-start-reverse" }, defs);
     s("path", { d: "M0,0 L10,5 L0,10 z", fill: "context-stroke" }, mk);
     const g = {};
-    for (const name of ["grid", "axes", "ghost", "fill", "main", "top"]) {
+    for (const name of ["grid", "axes", "ghost", "fill", "main", "top", "handles"]) {
       g[name] = s("g", name === "ghost" ? { class: "g-ghost", "clip-path": `url(#${id})` } : ["fill", "main"].includes(name) ? { "clip-path": `url(#${id})` } : {}, svg);
     }
     const pw = () => W - m.l - m.r, ph = () => H - m.t - m.b;
@@ -362,7 +373,7 @@ const LX = (() => {
       /* Clear everything a redraw owns: main, fill, top and the TeX overlay (not grid/axes/ghost). */
       clearAll() { for (const l of ["main", "fill", "top", "tex"]) P.clear(l); return P; },
       clear(layer = "main") {
-        if (layer === "tex") { [...overlay.children].filter(c => !c.dataset.axis).forEach(c => c.remove()); return P; }
+        if (layer === "tex") { [...overlay.children].filter(c => !c.dataset.axis && !c.dataset.keep).forEach(c => c.remove()); return P; }
         g[layer].replaceChildren(); return P;
       },
       path(pts, opt = {}) {
@@ -390,6 +401,7 @@ const LX = (() => {
         const el = h("div", { class: "lx-tex" + (opt.cls ? " " + opt.cls : ""), html: `\\(${src}\\)` }, overlay);
         P.placeTex(el, x, y, opt.anchor || "c", opt.px);
         if (opt.axis) el.dataset.axis = "1";
+        if (opt.keep) el.dataset.keep = "1";   /* survives clear("tex")/clearAll: create once, move with placeTex */
         if (opt.color) el.style.color = opt.color;
         typeset(el); return el;
       },
@@ -440,7 +452,7 @@ const LX = (() => {
     node.classList.add("lx-drag"); node.setAttribute("tabindex", "0");
     if (!node.getAttribute("aria-label")) node.setAttribute("aria-label", "draggable point; use arrow keys");
     let active = false;
-    node.addEventListener("pointerdown", e => { active = true; node.setPointerCapture(e.pointerId); e.preventDefault(); });
+    node.addEventListener("pointerdown", e => { active = true; node.setPointerCapture(e.pointerId); e.preventDefault(); if (opt.start) opt.start(); });
     node.addEventListener("pointermove", e => { if (active) opt.set(...P.toData(e)); });
     node.addEventListener("pointerup", () => { active = false; if (opt.end) opt.end(); });
     node.addEventListener("keydown", e => {
@@ -513,7 +525,7 @@ const LX = (() => {
   }
   /* Limit buttons: one click jumps to a named regime. items: [{label, title, apply}] */
   function limits(parent, items, title = "Jump to a limit", o = {}) {
-    const grp = h("div", { class: "lx-group", id: o.id }, parent);   /* pass {id} to lock the whole group in a step */
+    const grp = h("div", { class: "lx-group", id: o.id }, parent);
     h("span", { text: title }, grp);
     const row = h("div", { class: "lx-row" }, grp);
     items.forEach(it => button(row, it.label, it.apply, { title: it.title, cls: "lx-limit", id: it.id }));
@@ -522,7 +534,7 @@ const LX = (() => {
   function readout(parent, label) {
     const r = parent.classList && parent.classList.contains("lx-readouts") ? parent : h("div", { class: "lx-readouts" }, parent);
     const span = h("span", { html: label + " " }, r); const b = h("b", {}, span); typeset(span);
-    return { el: span, set(v) { b.textContent = v; } };
+    return { el: span, b, set(v) { b.textContent = v; }, html(v) { setHTML(b, v); } };
   }
   /* Animation loop with a play/pause button. onFrame(dt in seconds). Starts paused under reduced motion. */
   function player(parent, o) {
@@ -573,6 +585,7 @@ const LX = (() => {
 
   /* ---------- gates and inline questions ---------- */
   /* Hide a result (figure, readout, paragraph) until a question that lists it in `reveal` is answered.
+     The message is plain text (CSS content), no TeX.
      A gate only ever opens. Do not gate controls the learner has already used. */
   function gate(el, message = "Answer the question above to reveal") {
     el.classList.add("lx-gated"); el.dataset.gate = message; el.setAttribute("aria-hidden", "true");
@@ -584,7 +597,8 @@ const LX = (() => {
        prompt (html), kicker (small label, defaults by type), reveal: [elements to un-gate],
        right / wrong (html feedback), onAnswer(correct, value)
      Types:
-       choice   options: [html], answer: index
+       choice   options: [html], answer: index; grade: false only acknowledges the choice (for a hook whose
+                answer the text resolves later); then `right` is shown whatever was picked
        number   answer: value, tol: relative tolerance (0.1), unit (html after the box)
        set      the learner sets the widget, then presses Check. check(): {pass, msg}; solve(): optional,
                 puts the widget into the right state (offered after a wrong attempt)
@@ -611,8 +625,9 @@ const LX = (() => {
     if (type === "choice") {
       const opts = h("div", { class: "lx-opts" }, body);
       const bs = o.options.map((op, k) => h("button", { type: "button", class: "lx-opt", html: op, onclick: () => {
-        bs.forEach((b, j) => { b.disabled = true; if (j === o.answer) b.classList.add("right"); else if (j === k) b.classList.add("wrong"); });
-        done(k === o.answer, k);
+        const graded = o.grade !== false;
+        bs.forEach((b, j) => { b.disabled = true; if (!graded) { if (j === k) b.classList.add("picked"); } else if (j === o.answer) b.classList.add("right"); else if (j === k) b.classList.add("wrong"); });
+        done(graded ? k === o.answer : null, k);
       } }, opts));
     } else if (type === "number") {
       const row = h("div", { class: "lx-row" }, body); row.style.alignItems = "center";
@@ -649,7 +664,7 @@ const LX = (() => {
         dots.forEach((c, i) => { c.setAttribute("cx", P.X(o.xs[i])); c.setAttribute("cy", P.Y(ys[i])); });
       }
       draw();
-      h("p", { html: o.hint || "Drag the pink points to sketch your guess, then compare.", style: "margin:0;font-size:13.5px" }, body);
+      h("p", { html: o.hint || "Drag the pink points to sketch your guess, then compare with the real curve (blue).", style: "margin:0;font-size:13.5px" }, body);
       const row = h("div", { class: "lx-row" }, body);
       button(row, "Compare with the real curve", () => {
         tg.replaceChildren();
@@ -685,7 +700,7 @@ const LX = (() => {
   }
   const near = (a, b, tol = 1e-9) => Math.abs(a - b) <= tol * Math.max(1, Math.abs(a), Math.abs(b));
 
-  return { h, s, typeset, linspace, clamp, sample, C, eigSym, niceTicks, fig, plot, drag, camera, widget, guide, legend,
+  return { h, s, typeset, setHTML, linspace, clamp, sample, C, eigSym, niceTicks, fig, plot, drag, camera, widget, guide, legend,
            controls, slider, segmented, button, limits, readout, player, ask, gate, check, near, rng, reduceMotion };
 })();
 /* LX:LIB-END */

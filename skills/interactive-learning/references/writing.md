@@ -21,7 +21,7 @@ A **Chapter** (one topic) follows all eight parts. An **Explainer** (one confusi
 
 ### 1. Hook: challenge a prior belief
 
-Open with a specific situation and a question whose intuitive answer is wrong, or at least incomplete. Ask the reader to commit: an `LX.ask` of type `choice`, `number` or `sketch`. Do not give the answer yet; the rest of the text earns it.
+Open with a specific situation and a question whose intuitive answer is wrong, or at least incomplete. Ask the reader to commit: an `LX.ask` of type `choice` (with `grade: false`, so the choice is only acknowledged), `number` or `sketch`. Do not give the answer yet; the rest of the text earns it. Section 6 can quote the reader's choice back (`onAnswer`).
 
 Good hooks are concrete and slightly surprising:
 - "A chain of identical atoms, alternating only in bond strength. Can its ends host states that its bulk does not?"

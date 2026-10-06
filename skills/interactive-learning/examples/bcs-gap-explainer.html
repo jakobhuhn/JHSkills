@@ -1,39 +1,19 @@
-<title>Self-Consistent Mean Field</title>
+<title>BCS Gap Square Root</title>
 <!--
-PATTERN 10 · SELF-CONSISTENCY / FIXED POINTS
-Concept shape   A quantity is defined in terms of itself, x = f(x): the answer is a fixed point, found by
-                feeding a guess back in until it stops changing. Which fixed points exist, and which ones the
-                iteration can actually reach, is the physics.
-Use it for      Mean-field / Weiss molecular field, BCS gap equation, Hartree(-Fock) and Kohn-Sham SCF loops,
-                DMFT self-consistency, self-consistent Born approximation, any "solve by iteration" equation.
-Widget anatomy  (1) cobweb diagram: y = f(m) against y = m, the iteration staircase from a draggable
-                    initial guess, fixed points marked (filled = stable, faint = metastable, open = unstable);
-                (2) all fixed points m*(T) at the current h: equilibrium branch solid, metastable branch dashed,
-                    unstable branch dashed pink; paths break where a branch ends (no vertical connectors), and
-                    the metastable and unstable branches meet at the spinodal; current T and the converged
-                    value marked; LX.legend under the plot;
-                (3) sliders T, h, initial guess m₀; "Iterate once", "Run" (to convergence), "Reset";
-                (4) readouts: step n, m_n, |m_{n+1} − m_n|, iterations to converge, slope f'(m*), and which
-                    kind of fixed point the iteration reached.
-Layout          grid2: the two plots on top; sliders in the third cell, iteration buttons and readouts in the
-                fourth, so no cell is empty and every control sits under the plot it mostly drives.
-Teaching moments  (suggestions for the surrounding chapter)
-                  choice: where the staircase goes above T_c from any guess (to m = 0);
-                  choice: whether a tiny guess stays near 0 below T_c (no: f'(0) = 1/T > 1);
-                  choice: the stability criterion |f'(m*)| < 1 (read off the slope readout);
-                  choice / number: how the iteration count behaves as T → T_c (diverges; critical slowing);
-                  set: with h = 0.05 and m₀ = −0.6, find the field at which the metastable branch disappears
-                       (≈ 0.185 at T = 0.6);
-                  explain: why f'(0) = 1 at a continuous mean-field transition (transfer: BCS T_c).
-Adapt by        Replace f(m) and its derivative by your self-consistency map (e.g. the BCS gap map
-                Δ -> g Σ_k Δ tanh(βE_k/2)/(2E_k)). Keep fixedPoints() (scan + bisection) for the branch plot and
-                iterate() for the staircase. For a vector-valued loop, plot one component or the residual.
-                Which stable branch is the equilibrium one needs the free energy; here it is the one aligned with h.
-Physics         Curie-Weiss mean field with Jz = 1, k_B = 1: m = tanh((m + h)/T), so T_c = 1.
-                f'(m) = sech²((m + h)/T)/T; at h = 0, f'(0) = 1/T, so m = 0 is unstable for T < 1.
-                Near T_c (h = 0): m*² ≈ 3T²(1 - T). At T_c the error decays only as n^(-1/2).
-                For h ≠ 0 the stable branch opposite to h is metastable (higher Landau free energy) and ends
-                at the spinodal, where it merges with the unstable branch (saddle-node, f'(m*) = 1).
+  EXAMPLE · EXPLAINER · Why does the BCS gap open like a square root below T_c?
+  An Explainer (references/writing.md): one confusion, about one screen of text, ONE widget.
+  Compressed arc: hook (choice; reveals the gap curve) → short exploration of the gap equation
+  read as a crossing I(Δ,T) = 1 → resolution (parabolic top + linear rise ⇒ square root) →
+  two checks: number (Δ(0)/T_c from the widget) and a transfer choice (what if I(0,T) touched 1
+  quadratically?).
+
+  Physics       Weak-coupling BCS: constant N(0), attraction for |ξ| < ω_D, λ = N(0)V = 0.3,
+                ω_D = 1, k_B = ħ = 1. I(Δ,T) = λ ∫_0^{ω_D} dξ tanh(E/2T)/E, E = √(ξ² + Δ²).
+                Gap equation (Δ ≠ 0): I(Δ,T) = 1. T_c from I(0,T_c) = 1 (bisection), Δ(T) by bisection
+                (I decreases monotonically in Δ), integrals by Simpson in ξ = c sinh u.
+                Near T_c: I ≈ I(0,T) − λ 7ζ(3)Δ²/(8π²T²), I(0,T) − 1 = λ ln(T_c/T), so
+                Δ ≈ 3.06 T_c √(1 − T/T_c). Δ(0)/T_c = π e^{−γ} ≈ 1.764. Ratios in units of T_c are
+                λ-independent at weak coupling.
 -->
 <!-- LX:HEAD-BEGIN -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
@@ -209,22 +189,67 @@ span.lx-gated::after { font-size: 12px; white-space: nowrap; padding: 0; }
 .lx-drag:active { cursor: grabbing; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 /* LX:STYLE-END */
-.fp-open { fill: var(--surface); stroke: var(--c4); stroke-width: 2; }
-.lx-group > .lx-seg { justify-self: start; }
+/* page-specific styles go below */
+.lx-hook p { margin: 0 0 .5em; } .lx-hook p:last-child { margin: 0; }
+.lx-page a { color: var(--accent); }
+mjx-container[jax="SVG"] > svg a { fill: var(--accent); stroke: var(--accent); }
+.fp-open { fill: var(--surface); stroke: var(--c2); stroke-width: 2; }
 </style>
 
 <main class="lx-page">
   <header class="lx-head">
-    <p class="lx-eyebrow">Statistical mechanics · Mean-field theory</p>
-    <h1>How does a self-consistent solution find itself?</h1>
-    <p class="lx-lede">Guess a magnetisation, compute the field it produces, compute the magnetisation that field produces, and repeat. The staircase shows the loop; where it stops is the answer.</p>
+    <p class="lx-eyebrow">Condensed matter · BCS theory · Explainer</p>
+    <h1>Why does the BCS gap open like a square root?</h1>
+    <p class="lx-lede">The critical temperature depends on the coupling in a wildly non-analytic way. The gap below it does not. One picture of the gap equation shows why.</p>
     <div class="lx-meta">
-      <span>\(m = \tanh\!\big((m + h)/T\big)\), \(Jz = k_B = 1\), so \(T_c = 1\)</span>
+      <span>Weak-coupling BCS: constant density of states \(N(0)\), attraction for \(|\xi| \lt \omega_D\), \(\lambda = N(0)V = 0.3\); \(k_B = \hbar = 1\). Energies in units of \(T_c\), where the results do not depend on \(\lambda\).</span>
     </div>
   </header>
-  <div class="lx-stage" id="stage"></div>
+
+  <article class="lx-article" id="article">
+    <div class="lx-hook">
+      <p>The BCS critical temperature, \(T_c \approx 1.13\,\omega_D\,e^{-1/\lambda}\), is not even analytic in the coupling: no power series in \(\lambda\) reaches it. So how does the gap \(\Delta(T)\) appear as the metal is cooled through \(T_c\)?</p>
+    </div>
+    <div id="q-hook"></div>
+
+    <p>Dividing the BCS gap equation by \(\Delta\) leaves a condition on a single function of \(\Delta\) and \(T\):</p>
+    <p>\begin{equation}
+      \begin{aligned}
+        1 &= I(\Delta, T), \\
+        I(\Delta, T) &= \lambda \int_0^{\omega_D} \! \dd\xi\, \frac{\tanh(E/2T)}{E},
+      \end{aligned}
+      \label{eq:gap}
+    \end{equation}</p>
+    <p>with quasiparticle energy \(E = \sqrt{\xi^2 + \Delta^2}\). The equilibrium gap is where the curve \(I(\Delta, T)\) crosses the level 1. A gap raises every \(E\), and \(\tanh(E/2T)/E\) falls with \(E\), so \(I\) is largest at \(\Delta = 0\). As \(T\) falls, \(I(0, T)\) grows and passes 1 exactly at \(T_c\).</p>
+    <div class="lx-wide" id="w-gap"></div>
+    <ul>
+      <li>Start at \(T = 1.2\,T_c\): the curve stays below 1 everywhere, so only \(\Delta = 0\) solves the gap equation.</li>
+      <li>Lower \(T\) slowly through \(T_c\) and watch the top of the curve near \(\Delta = 0\), and how far out it crosses 1.</li>
+      <li>Go to low \(T\) and compare the curve with the dashed parabola.</li>
+    </ul>
+
+    <h2>Where the square root comes from</h2>
+    <p>Near \(T_c\) only the top of the curve matters, and the top is a parabola. \(I\) depends on \(\Delta\) only through \(\Delta^2\) and is smooth there for \(T \gt 0\), so to leading order</p>
+    <p>\begin{equation}
+      I(\Delta, T) \approx I(0, T) - \frac{7\zeta(3)\,\lambda}{8\pi^2}\,\frac{\Delta^2}{T^2} .
+      \label{eq:top}
+    \end{equation}</p>
+    <p>Meanwhile the height of the top above 1 grows <i>linearly</i>: \(I(0, T) - 1 = \lambda \ln(T_c/T) \approx \lambda\,(1 - T/T_c)\). A parabola raised by \(\varepsilon\) crosses the level at \(\Delta \propto \sqrt{\varepsilon}\). Setting \eqref{eq:top} equal to 1:</p>
+    <p>\begin{equation}
+      \begin{aligned}
+        \Delta^2 &\approx \frac{8\pi^2}{7\zeta(3)}\, T_c^2 \Big(1 - \frac{T}{T_c}\Big), \\
+        \Delta &\approx 3.06\, T_c \sqrt{1 - T/T_c} .
+      \end{aligned}
+      \label{eq:sqrt}
+    \end{equation}</p>
+    <p>The coupling \(\lambda\) cancels. Its essential singularity sits entirely in the scale \(T_c\); measured in units of \(T_c\), the gap equation near \(T_c\) is a smooth function of \(\Delta^2\) and \(T\), and \(\Delta^2\) comes out linear in \(T_c - T\). Switch the gap plot to \((\Delta/T_c)^2\) to see the straight line. This is the mean-field exponent \(\beta = 1/2\), the same mechanism as in Landau theory. At low \(T\) the expansion \eqref{eq:top} fails (the dashed parabola leaves the curve): at \(T = 0\), \(I\) has a \(\ln\Delta\) term instead of a \(\Delta^2\) term.</p>
+    <div id="q-num"></div>
+    <div id="q-transfer"></div>
+  </article>
+
   <footer class="lx-foot">
-    <span>Source: model knowledge. Standard treatment: Chaikin &amp; Lubensky, <i>Principles of Condensed Matter Physics</i>, ch. 4; Kardar, <i>Statistical Physics of Fields</i>, ch. 1.</span>
+    <span>Source: model knowledge. Standard results as in J. Bardeen, L. N. Cooper, J. R. Schrieffer, Phys. Rev. <b>108</b>, 1175 (1957), and M. Tinkham, <i>Introduction to Superconductivity</i>, 2nd ed. (McGraw-Hill, 1996), ch. 3.</span>
+    <span>Widget: computed. \(I(\Delta, T)\) by Simpson quadrature, \(T_c\) and \(\Delta(T)\) by bisection; self-tests check \(T_c\), \(\Delta(0)/T_c\), the near-\(T_c\) law and the curvature in \eqref{eq:top}.</span>
   </footer>
 </main>
 
@@ -710,172 +735,125 @@ const LX = (() => {
 </script>
 
 <script>
-/* PATTERN */
-const S = { T: 0.6, h: 0, m0: 0.15, n: 0, full: true };
-const TOL = 1e-7, NMAX = 60000;
-const f  = (m, T = S.T, h = S.h) => Math.tanh((m + h) / T);
-const df = (m, T = S.T, h = S.h) => { const c = Math.cosh((m + h) / T); return 1 / (T * c * c); };
+/* EXPLAINER — BCS gap equation read as the crossing I(Δ,T) = 1. */
+/* Model: constant N(0), pairing V for |ξ| < ω_D, λ = N(0)V = 0.3, ω_D = 1, k_B = ħ = 1. */
+const LAM = 0.3, WD = 1, ZETA3 = 1.2020569031595942;
+const $ = id => document.getElementById(id);
 const fmt = (v, d = 3) => v.toFixed(d).replace("-", "−");
 
-/* Iterate m_{n+1} = f(m_n) until |Δ| < TOL. Returns the sequence (capped) and the count. */
-function iterate(m0, T = S.T, h = S.h, keep = 400) {
-  const seq = [m0]; let m = m0, n = 0, d = Infinity;
-  while (n < NMAX) { const next = f(m, T, h); d = Math.abs(next - m); m = next; n++; if (seq.length <= keep) seq.push(m); if (d < TOL) break; }
-  return { seq, n, m, converged: d < TOL };
-}
-/* All fixed points on [-1.05, 1.05]: sign changes of f(m) - m, refined by bisection. */
-function fixedPoints(T, h) {
-  const g = m => f(m, T, h) - m, out = [], xs = LX.linspace(-1.05, 1.0517, 840);
-  for (let i = 0; i < xs.length - 1; i++) {
-    let a = xs[i], b = xs[i + 1], ga = g(a), gb = g(b);
-    if (ga * gb > 0) continue;
-    for (let k = 0; k < 60; k++) { const c = (a + b) / 2, gc = g(c); if (ga * gc <= 0) { b = c; } else { a = c; ga = gc; } }
-    const r = (a + b) / 2; if (!out.length || r - out[out.length - 1] > 1e-7) out.push(r);
+/* I(Δ,T) = λ ∫_0^{ω_D} dξ tanh(E/2T)/E, Simpson in ξ = c·sinh(u): smooth integrand for any Δ, T. */
+function I(D, T) {
+  const c = Math.max(D, T, 1e-12), U = Math.asinh(WD / c), N = 200, h = U / N;
+  let s = 0;
+  for (let i = 0; i <= N; i++) {
+    const u = i * h, xi = c * Math.sinh(u), E = Math.hypot(xi, D);
+    const g = (E < 1e-300 ? 1 / (2 * T) : Math.tanh(E / (2 * T)) / E) * c * Math.cosh(u);
+    s += g * (i === 0 || i === N ? 1 : i % 2 ? 4 : 2);
   }
-  return out;
+  return LAM * s * h / 3;
 }
-/* Kind of a fixed point: unstable (|f'| ≥ 1), or stable; a stable one opposite to h is metastable
-   (higher Landau free energy). At h = 0 both ordered solutions are equilibrium states. */
-function kind(p, T = S.T, h = S.h) {
-  if (Math.abs(df(p, T, h)) >= 1) return "unstable";
-  const roots = fixedPoints(T, h);
-  if (roots.length < 3 || h === 0) return "equilibrium";
-  return (h > 0 ? p > roots[1] : p < roots[1]) ? "equilibrium" : "metastable";
+/* T_c from I(0, T_c) = 1 (bisection; I(0,T) decreases with T). */
+const Tc = (() => { let a = 1e-4, b = 0.5; for (let k = 0; k < 70; k++) { const m = (a + b) / 2; if (I(0, m) > 1) a = m; else b = m; } return (a + b) / 2; })();
+/* Everything below in units of T_c: d = Δ/T_c, t = T/T_c. */
+const Id = (d, t) => I(d * Tc, t * Tc);
+/* Equilibrium gap: the unique root of I(Δ,T) = 1 for t < 1 (I decreases in Δ), else 0. */
+function gap(t) {
+  if (Id(0, t) <= 1) return 0;
+  let a = 0, b = 4; for (let k = 0; k < 40; k++) { const m = (a + b) / 2; if (Id(m, t) > 1) a = m; else b = m; }
+  return (a + b) / 2;
 }
-/* Branches of m*(T) at field h: upper, middle (unstable) and lower root, as separate polylines.
-   Where the three-root region ends, the vanishing pair is joined at the spinodal point (found by bisection
-   in T) instead of being connected to the surviving branch by a vertical line. */
-function branches(h, Ta = 0.2, Tb = 1.6, n = 281) {
-  const up = [], mid = [], lo = [];
-  const pick1 = r => h >= 0 ? r[r.length - 1] : r[0];
-  const Ts = LX.linspace(Ta, Tb, n); let prev = null;
-  for (const T of Ts) {
-    const r = fixedPoints(T, h), three = r.length >= 3;
-    if (prev && prev.three !== three) {
-      /* bisect the spinodal between prev.T and T */
-      let a = prev.T, b = T;
-      for (let k = 0; k < 40; k++) { const c = (a + b) / 2; if ((fixedPoints(c, h).length >= 3) === prev.three) a = c; else b = c; }
-      const rr = fixedPoints(prev.three ? a : b, h);
-      if (rr.length >= 3) {
-        const Tsp = (a + b) / 2;
-        if (h > 0) { const ms = (rr[0] + rr[1]) / 2; lo.push([Tsp, ms]); mid.push([Tsp, ms]); }
-        else if (h < 0) { const ms = (rr[1] + rr[2]) / 2; up.push([Tsp, ms]); mid.push([Tsp, ms]); }
-        else { const ms = (rr[0] + rr[1] + rr[2]) / 3; lo.push([Tsp, ms]); mid.push([Tsp, ms]); up.push([Tsp, ms]); }
-      }
-    }
-    if (three) { lo.push([T, r[0]]); mid.push([T, r[1]]); up.push([T, r[r.length - 1]]); }
-    else if (r.length) (h >= 0 ? up : lo).push([T, pick1(r)]);
-    prev = { T, three };
-  }
-  /* split a series wherever consecutive samples are not neighbours (a missing stretch of T) */
-  const runs = pts => { const out = []; let seg = []; pts.forEach((p, i) => { if (i && (p[0] - pts[i - 1][0] > 0.011 || Math.abs(p[1] - pts[i - 1][1]) > 0.3)) { out.push(seg); seg = []; } seg.push(p); }); if (seg.length) out.push(seg); return out; };
-  return { up: runs(up), mid: runs(mid), lo: runs(lo) };
-}
+const B2 = 7 * ZETA3 / (8 * Math.PI ** 2);                 // I ≈ I(0,T) − λ B2 Δ²/T²
+const AGL = Math.sqrt(1 / B2);                              // 3.063: Δ ≈ AGL·T_c·√(1 − T/T_c)
+const D0 = gap(0.01);                                       // ≈ 1.764
+const branch = LX.linspace(0.02, 1.3, 130).map(t => [t, gap(t)]);
 
-/* ---- layout: grid2 (two plots on top, controls and readouts below) ---- */
-const W = LX.widget(document.getElementById("stage"), { layout: "grid2", title: "Mean-field iteration \\(m_{n+1} = f(m_n)\\)", badge: "exact" });
-const fC = LX.fig(W, "Cobweb. Drag the orange start point.");
-const PC = LX.plot(fC, { xlim: [-1.1, 1.1], ylim: [-1.1, 1.1], xlabel: "m_n", ylabel: "m_{n+1}", height: 360, width: 420 });
-LX.legend(fC, [["\\(y = f(m)\\)", "--accent", "line"], ["\\(y = m\\)", "--muted", "dash"], ["iteration", "--c2", "line"], ["fixed point", "--c4", "dot"]]);
-const fT = LX.fig(W, "All fixed points \\(m^*(T)\\) at the current field \\(h\\)");
-const PT = LX.plot(fT, { xlim: [0.2, 1.6], ylim: [-1.1, 1.1], xlabel: "T", ylabel: "m^*", height: 360, width: 420 });
-LX.legend(fT, [["equilibrium", "--accent", "line"], ["metastable", "--accent", "dash"], ["unstable", "--c4", "dash"], ["where the iteration ends", "--c2", "dot"]]);
-
-const ctl = LX.controls(W);
-const TS = LX.slider(ctl, { id: "T", label: "temperature \\(T/T_c\\)", min: 0.3, max: 1.6, step: 0.005, value: S.T, onInput: v => { S.T = v; update(); } });
-const HS = LX.slider(ctl, { id: "h", label: "field \\(h\\)", min: -0.2, max: 0.2, step: 0.005, value: S.h, onInput: v => { S.h = v; update(); } });
-const MS = LX.slider(ctl, { id: "m0", label: "initial guess \\(m_0\\)", min: -1, max: 1, step: 0.01, value: S.m0, onInput: v => { S.m0 = v; update(); } });
-const ctl2 = LX.controls(W);
-const grp = LX.h("div", { class: "lx-group" }, ctl2);
-LX.h("span", { text: "Iteration" }, grp);
-const row = LX.h("div", { class: "lx-row" }, grp);
-LX.button(row, "Iterate once", () => { if (S.full) { S.full = false; S.n = 0; } S.n++; update(); }, { id: "iter" });
-LX.button(row, "Run", () => { S.full = true; update(); }, { id: "run", cls: "lx-primary" });
-LX.button(row, "Reset", () => { S.full = false; S.n = 0; update(); }, { id: "reset" });
-const rN = LX.readout(ctl2, "step \\(n\\) =");
-const box = rN.el.parentNode; box.style.flexDirection = "column"; box.style.gap = "4px";
-const rM = LX.readout(box, "\\(m_n\\) =");
-const rD = LX.readout(box, "\\(|m_{n+1}-m_n|\\) =");
-const rC = LX.readout(box, "iterations to converge:");
-const rS = LX.readout(box, "slope \\(f'(m^*)\\) =");
-const rK = LX.readout(box, "ends on:");
-
+/* ---------- widget ---------- */
+const S = { t: 0.9, view: "d" };
+const W = LX.widget($("w-gap"), { layout: "split", title: "The gap equation as a crossing", badge: "computed" });
+const PI_ = LX.plot(LX.fig(W, "\\(I(\\Delta, T)\\) at the current temperature (blue), the level 1 (orange) and the crossing (dot). Faint: the same curve at \\(T/T_c = 0.25, 0.5, 0.75, 1\\). Dashed: the parabola \\eqref{eq:top}."),
+  { xlim: [0, 2.4], ylim: [0.75, 1.45], xlabel: "\\Delta/T_c", ylabel: "I(\\Delta, T)", width: 420, height: 320 });
+const fB = LX.fig(W, "Equilibrium gap against temperature (blue); dashed: the near-\\(T_c\\) law \\eqref{eq:sqrt}; dot: the current \\(T\\).");
+const PB = LX.plot(fB, { xlim: [0, 1.3], ylim: [0, 2], xlabel: "T/T_c", ylabel: "\\Delta/T_c", width: 420, height: 320 });
+const ctl = LX.controls(W); ctl.classList.add("lx-span2");
+LX.slider(ctl, { id: "T", label: "temperature \\(T/T_c\\)", min: 0.05, max: 1.3, step: 0.005, value: S.t, onInput: v => { S.t = v; update(); } });
+LX.segmented(ctl, { id: "view", label: "Gap plot shows", value: "d",
+  options: [{ value: "d", label: "\\(\\Delta/T_c\\)" }, { value: "d2", label: "\\((\\Delta/T_c)^2\\)" }],
+  onChange: v => { S.view = v; drawBranch(); update(); } });
+const ro = LX.h("div", { class: "lx-readouts" }, ctl);
+const rI = LX.readout(ro, "\\(I(0,T) - 1\\) =");
+const rD = LX.readout(ro, "\\(\\Delta/T_c\\) =");
+const rR = LX.readout(ro, "\\((\\Delta/T_c)^2/(1 - T/T_c)\\) =");
 LX.guide(W, [
-  ["Cobweb", "Each step goes vertically to the blue curve (compute \\(m_{n+1} = f(m_n)\\)) and horizontally to the dashed diagonal (use it as the next guess). Where the curve crosses the diagonal, \\(m = f(m)\\): a fixed point. Filled dots are stable, open ones unstable, faint ones metastable."],
-  ["Branch plot", "Every solution of \\(m = f(m)\\) for each temperature at the current field. Solid: the equilibrium state. Dashed blue: metastable, a stable fixed point with higher free energy. Dashed pink: unstable. With \\(h \\neq 0\\) the metastable branch ends where it meets the unstable one (the spinodal); beyond it only one solution is left. The orange line is the current \\(T\\), the dot the value the iteration reaches."],
-  ["Sliders", "\\(T\\) and \\(h\\) change the curve \\(f\\); \\(m_0\\) is the starting guess (or drag the orange point). Try \\(h = 0.05\\) with \\(m_0 = -0.6\\): the iteration lands on the metastable branch."],
-  ["Iteration", "<i>Iterate once</i> adds one step to the staircase, <i>Run</i> goes to convergence, <i>Reset</i> starts again at \\(m_0\\). The slope readout tells you why it converges: an error shrinks by \\(|f'(m^*)|\\) per step."]
+  ["\\(I\\) plot", "The function in the gap equation \\eqref{eq:gap} against a trial gap \\(\\Delta\\). Where it crosses the orange level 1 is the equilibrium gap. Its maximum is always at \\(\\Delta = 0\\)."],
+  ["Gap plot", "The crossing point, followed as a function of temperature: the BCS gap \\(\\Delta(T)\\). The toggle plots \\(\\Delta^2\\) instead."],
+  ["Slider", "Temperature. Near \\(T_c\\), watch how little the top of the blue curve rises above 1, and how far out it still crosses."],
+  ["Readouts", "Height of the top above 1; the gap; and \\(\\Delta^2/(1 - T/T_c)\\), which tends to \\(8\\pi^2/7\\zeta(3) \\approx 9.4\\) as \\(T \\to T_c\\)."]
 ]);
 
-/* draggable start point lives in the "top" layer and is moved, never recreated */
-const handle = LX.s("circle", { r: 7, class: "f2", "aria-label": "initial guess; drag or use arrow keys" }, PC.g.top);
-LX.drag(PC, handle, { get: () => [S.m0, S.m0], set: x => MS.set(LX.clamp(Math.round(x * 100) / 100, -1, 1)), step: [0.01, 0.01] });
-PT.vline(1, { layer: "fill" }); PT.tex(1, 1.08, "T_c", { anchor: "nw" });
+/* reference curves (independent of the controls) */
+[0.25, 0.5, 0.75, 1].forEach(t => PI_.path(LX.linspace(0, 2.4, 61).map(d => [d, Id(d, t)]), { cls: "s1 thin faint", layer: "ghost" }));
+PI_.g.ghost.classList.remove("g-ghost");
 
-/* branch plot depends on h only: cache it */
-let branchKey = null;
-function drawBranches() {
-  if (branchKey === S.h) return; branchKey = S.h;
-  PT.clear("fill"); PT.vline(1, { layer: "fill" });
-  const b = branches(S.h);
-  const upCls = S.h >= 0 ? "s1" : "s1 dash", loCls = S.h <= 0 ? "s1" : "s1 dash";
-  b.up.forEach(r => PT.path(r, { cls: upCls, layer: "fill" }));
-  b.lo.forEach(r => PT.path(r, { cls: loCls, layer: "fill" }));
-  b.mid.forEach(r => PT.path(r, { cls: "s4 dash thin", layer: "fill" }));
+function drawBranch() {
+  const sq = S.view === "d2", top = sq ? 3.6 : 2;
+  PB.setLim(null, [0, top]); PB.setLabels(null, sq ? "(\\Delta/T_c)^2" : "\\Delta/T_c");
+  PB.clear("fill");
+  PB.fn(t => (sq ? AGL * AGL * (1 - t) : AGL * Math.sqrt(Math.max(0, 1 - t))), { a: sq ? 0.6 : 0.55, b: 1, cls: "sm dash", layer: "fill" });
+  PB.path(branch.map(([t, d]) => [t, sq ? d * d : d]), { cls: "s1", layer: "fill" });
+  PB.line(1, 0, 1, top, { cls: "sm thin", layer: "fill" });
 }
-
 function update() {
-  const run = iterate(S.m0);
-  const n = S.full ? Math.min(run.n, run.seq.length - 1) : Math.min(S.n, NMAX);
-  /* sequence up to step n (recompute beyond the kept prefix if a user steps that far) */
-  let seq = run.seq.slice(0, n + 1);
-  while (seq.length < n + 1) seq.push(f(seq[seq.length - 1]));
-  const mn = S.full ? run.m : seq[seq.length - 1];
-
-  PC.clear();
-  PC.line(-1.1, -1.1, 1.1, 1.1, { cls: "sm dash" });
-  PC.hline(0, { cls: "gr" }); PC.vline(0, { cls: "gr" });
-  PC.fn(m => f(m), { n: 400 });
-  const stair = [[S.m0, S.m0]];
-  for (let k = 0; k < Math.min(seq.length - 1, 300); k++) { stair.push([seq[k], seq[k + 1]]); stair.push([seq[k + 1], seq[k + 1]]); }
-  PC.path(stair, { cls: "s2 thin" });
-  for (const p of fixedPoints(S.T, S.h)) {
-    const k = kind(p);
-    LX.s("circle", { cx: PC.X(p), cy: PC.Y(p), r: 5.5, class: k === "unstable" ? "fp-open" : k === "metastable" ? "f4 faint" : "f4" }, PC.g.main);
-  }
-  if (!S.full && n > 0) PC.dot(mn, mn, { r: 4, cls: "f1", layer: "main" });
-  handle.setAttribute("cx", PC.X(S.m0)); handle.setAttribute("cy", PC.Y(S.m0));
-
-  drawBranches();
-  PT.clear();
-  PT.line(S.T, -1.1, S.T, 1.1, { cls: "s2 thin" });
-  PT.dot(S.T, run.m, { r: 6, cls: "f2", layer: "main" });
-
-  rN.set(S.full ? `${run.n} (run)` : String(n));
-  rM.set(fmt(mn, 5));
-  rD.set(Math.abs(f(mn) - mn).toExponential(2).replace("-", "−"));
-  rC.set(run.converged ? String(run.n) : `> ${NMAX}`);
-  const s = df(run.m);
-  rS.set(fmt(s, 3) + (Math.abs(s) < 1 - 1e-3 ? "  (stable)" : "  (marginal)"));
-  rK.set(run.converged ? kind(run.m) + " solution" : "not converged");
+  const t = S.t, I0 = Id(0, t), d = gap(t), sq = S.view === "d2";
+  PI_.clearAll();
+  PI_.hline(1, { cls: "s2 dash" });
+  PI_.fn(x => I0 - LAM * B2 * x * x / (t * t), { cls: "s3 dash thin", n: 200 });
+  PI_.path(LX.linspace(0, 2.4, 97).map(x => [x, Id(x, t)]), { cls: "s1" });
+  if (d > 0) { PI_.vline(d, { cls: "sm thin dash" }); PI_.dot(d, 1, { r: 5.5, cls: "f2" }); }
+  else PI_.dot(0, I0, { r: 5.5, cls: "f2" });
+  PB.clear("main");
+  PB.dot(t, sq ? d * d : d, { r: 6, cls: "f2", layer: "main" });
+  rI.set(fmt(I0 - 1, 4));
+  rD.set(fmt(d, 3));
+  rR.set(t < 0.999 && d > 0 ? fmt(d * d / (1 - t), 2) : "—");
 }
+drawBranch();
 update();
+LX.gate(PB.svg.parentNode, "Answer the question above to see Δ(T)");
 
-/* ---- self-tests ---- */
-LX.check("T = 0.5: m* solves m = tanh(2m), m* ≈ 0.957504", () => { const r = iterate(0.5, 0.5, 0); return { pass: Math.abs(r.m - 0.957504) < 1e-5 && Math.abs(Math.tanh(2 * r.m) - r.m) < 1e-6, detail: r.m }; });
-LX.check("T > T_c, h = 0: iteration from 0.9 goes to 0 and it is the only fixed point", () => { const r = iterate(0.9, 1.2, 0), fp = fixedPoints(1.2, 0); return Math.abs(r.m) < 1e-5 && fp.length === 1 && Math.abs(fp[0]) < 1e-9; });
-LX.check("slope at m = 0 is 1/T", () => [0.5, 1, 1.5].every(T => LX.near(df(0, T, 0), 1 / T, 1e-12)));
-LX.check("near T_c: m*² ≈ 3T²(1 − T)", () => { const T = 0.99, m = iterate(0.5, T, 0).m, est = Math.sqrt(3 * T * T * (1 - T)); return { pass: Math.abs(m - est) / est < 0.02, detail: `${m} vs ${est}` }; });
-LX.check("iterations to converge grow as T → T_c⁺", () => { const n = [1.6, 1.3, 1.05].map(T => iterate(0.8, T, 0).n); return { pass: n[0] < n[1] && n[1] < n[2], detail: n.join(",") }; });
-LX.check("T = 0.6: three fixed points at h = 0.05, one at h = 0.2 (spinodal ≈ 0.185)", () => fixedPoints(0.6, 0.05).length === 3 && fixedPoints(0.6, 0.2).length === 1);
-LX.check("h = −0.1, T = 0.6: three solutions, the positive stable one is metastable, the negative one equilibrium", () => {
-  const r = fixedPoints(0.6, -0.1); return r.length === 3 && kind(r[2], 0.6, -0.1) === "metastable" && kind(r[0], 0.6, -0.1) === "equilibrium" && kind(r[1], 0.6, -0.1) === "unstable";
+/* ---------- questions ---------- */
+LX.ask($("q-hook"), {
+  type: "choice", kicker: "Predict",
+  prompt: "Just below \\(T_c\\), how does the gap grow?",
+  options: [
+    "Linearly: \\(\\Delta \\propto T_c - T\\).",
+    "As a square root: \\(\\Delta \\propto \\sqrt{T_c - T}\\).",
+    "Essentially singular, like \\(T_c\\) itself: \\(\\Delta \\propto e^{-c/(T_c - T)}\\).",
+    "Discontinuously: \\(\\Delta\\) jumps to a finite value at \\(T_c\\)."
+  ], answer: 1, reveal: [PB.svg.parentNode],
+  right: "That is what the gap equation gives. The point of this page is why a non-analytic \\(T_c\\) still produces such a simple law.",
+  wrong: "The gap plot in the widget below now shows the computed \\(\\Delta(T)\\): it leaves \\(T_c\\) vertically, like a square root. The rest of the page shows where that shape comes from."
 });
-LX.check("branches at h = −0.1: no vertical jumps; metastable and unstable branches meet at the spinodal", () => {
-  const b = branches(-0.1), all = [...b.up, ...b.mid, ...b.lo];
-  const smooth = all.every(r => r.every((p, i) => !i || Math.abs(p[1] - r[i - 1][1]) < 0.3));
-  const eUp = b.up[b.up.length - 1], eMid = b.mid[b.mid.length - 1];
-  const meet = eUp && eMid && LX.near(eUp[eUp.length - 1][1], eMid[eMid.length - 1][1], 1e-12);
-  return { pass: smooth && meet, detail: `smooth ${smooth}, meet ${meet}` };
+LX.ask($("q-num"), {
+  type: "number", kicker: "Check", answer: D0, tol: 0.02,
+  prompt: "Use the widget at the lowest temperature: what is \\(\\Delta(0)/k_B T_c\\)?",
+  right: "\\(\\Delta(0)/k_BT_c = \\pi e^{-\\gamma} \\approx 1.764\\), the universal weak-coupling BCS ratio. Like the square-root law, it does not depend on \\(\\lambda\\).",
+  wrong: "Set \\(T/T_c = 0.05\\) and read the \\(\\Delta/T_c\\) readout. The weak-coupling value is \\(\\pi e^{-\\gamma} \\approx 1.764\\), independent of \\(\\lambda\\)."
 });
+LX.ask($("q-transfer"), {
+  type: "choice", kicker: "Transfer",
+  prompt: "Suppose a model had the same parabolic top \\eqref{eq:top}, but its height rose only quadratically below \\(T_c\\): \\(I(0,T) - 1 \\propto (T_c - T)^2\\). How would its gap open?",
+  options: ["Still as \\(\\sqrt{T_c - T}\\).", "Linearly, \\(\\Delta \\propto T_c - T\\).", "As \\((T_c - T)^2\\)."], answer: 1,
+  right: "The crossing of a parabola raised by \\(\\varepsilon\\) sits at \\(\\Delta \\propto \\sqrt{\\varepsilon}\\). With \\(\\varepsilon \\propto (T_c - T)^2\\) that gives \\(\\Delta \\propto T_c - T\\). The exponent \\(1/2\\) needs both ingredients: a parabolic top and a linear rise.",
+  wrong: "Use the same argument: \\(\\Delta^2 \\propto I(0,T) - 1\\). If that is \\(\\propto (T_c - T)^2\\), then \\(\\Delta \\propto T_c - T\\)."
+});
+
+/* ---------- self-tests ---------- */
+LX.check("T_c ≈ 1.134 ω_D e^{−1/λ} (weak coupling)", () => { const p = 1.13387 * WD * Math.exp(-1 / LAM); return { pass: Math.abs(Tc - p) / p < 1e-3, detail: `${Tc} vs ${p}` }; });
+LX.check("Δ(0)/T_c ≈ 1.764 and Δ(0) = ω_D/sinh(1/λ)", () => { const ex = WD / Math.sinh(1 / LAM) / Tc; return { pass: Math.abs(D0 - ex) / ex < 2e-3 && Math.abs(D0 - 1.764) < 0.01, detail: `${D0} vs ${ex}` }; });
+LX.check("near T_c: Δ ≈ 3.063 T_c √(1 − T/T_c)", () => { const d = gap(0.98), e = AGL * Math.sqrt(0.02); return { pass: Math.abs(d - e) / e < 0.02, detail: `${d} vs ${e}` }; });
+LX.check("Δ²/(1 − T/T_c) → 8π²/7ζ(3) ≈ 9.38 as T → T_c", () => { const r = gap(0.995) ** 2 / 0.005; return { pass: Math.abs(r - AGL * AGL) / (AGL * AGL) < 0.01, detail: `${r}` }; });
+LX.check("curvature at the top: ∂I/∂(Δ²) = −λ 7ζ(3)/(8π² T²) at T = T_c", () => { const e = 0.02, c = (Id(e, 1) - Id(0, 1)) / (e * e); return { pass: Math.abs(c + LAM * B2) / (LAM * B2) < 0.01, detail: `${c} vs ${-LAM * B2}` }; });
+LX.check("I(0,T) − 1 = λ ln(T_c/T) for T ≪ ω_D", () => [0.1, 0.5, 0.9].every(t => Math.abs(Id(0, t) - 1 - LAM * Math.log(1 / t)) < 2e-4));
+LX.check("I(Δ,T) decreases monotonically in Δ", () => [0.3, 0.9, 1.2].every(t => LX.linspace(0, 2.4, 25).every((d, i, a) => i === 0 || Id(d, t) < Id(a[i - 1], t))));
+LX.check("no nonzero solution above T_c", () => gap(1.05) === 0 && Id(0, 1.05) < 1 && Id(0, 0.95) > 1);
 </script>

@@ -16,22 +16,22 @@ Then ask for each relationship: *what kind of change is it?* That is its concept
 
 | # | Concept shape | Recognise it when… | Widget type | Pattern file |
 |---|---|---|---|---|
-| 01 | Phase transition | something changes qualitatively at a parameter value; minima split, a symmetry breaks | landscape that reshapes + order-parameter curve; first-order vs continuous; hysteresis | `patterns/01-phase-transition.html` |
-| 02 | Dynamics | something evolves in time | play/pause/scrub timeline, trajectory, linked state view | `patterns/02-dynamics.html` |
+| 01 | Phase transition | something changes qualitatively at a parameter value; minima split, a symmetry breaks | landscape with a draggable ball + order-parameter curve with a draggable sweep and its path; first-order vs continuous; hysteresis | `patterns/01-phase-transition.html` |
+| 02 | Dynamics | something evolves in time | choose a pulse length, run exactly that long, see short / right / overshoot; free-drive mode with timeline | `patterns/02-dynamics.html` |
 | 03 | 3D geometry | the object lives in 3D (or a 2D projection hides something) | drag-to-rotate view + linked projections and readouts | `patterns/03-geometry-3d.html` |
 | 04 | Optimisation / extremum | a principle selects a minimum, maximum or saddle | draggable trial point on a landscape, slope arrow, "find the minimum" | `patterns/04-optimisation.html` |
 | 05 | Spectral flow | eigenvalues move with a parameter; levels cross or repel | eigenvalues vs parameter with cursor + eigenvector inspector | `patterns/05-spectral-flow.html` |
 | 06 | Superposition / interference | amplitudes add, then get squared | phasors added head to tail → intensity | `patterns/06-interference.html` |
-| 07 | Dual representations | the same object in two bases or spaces | linked side-by-side views driven by one control | `patterns/07-dual-representations.html` |
+| 07 | Dual representations | the same object in two bases or spaces | linked views manipulated directly (drag width and centre in either picture) + the uncertainty plane | `patterns/07-dual-representations.html` |
 | 08 | Topology / invariants | an integer that changes only at singular events | closed curve around a singular point, live invariant counter | `patterns/08-topology-winding.html` |
-| 09 | Measurement / statistics | probabilities emerge from repeated sampling | shot sampler, histogram converging to the prediction | `patterns/09-measurement-statistics.html` |
+| 09 | Measurement / statistics | probabilities emerge from repeated sampling | shot sampler, histogram with ±1σ/±2σ bands, repeated experiments that show how often results fall outside | `patterns/09-measurement-statistics.html` |
 | 10 | Self-consistency / fixed points | a solution feeds back into itself | cobweb diagram + iteration stepper | `patterns/10-self-consistency.html` |
-| 11 | Flows | a vector field drives a state (RG, dynamical systems) | clickable flow field, trajectories, fixed points, separatrices | `patterns/11-flows.html` |
+| 11 | Flows | a vector field drives a state (RG, dynamical systems) | click to drop a ball into the flow; a physical parameter moves the starting point; separatrix | `patterns/11-flows.html` |
 | 12 | Spatial structure / locality | properties vary across a lattice; a length scale matters | clickable lattice, correlation decay, length-scale readout | `patterns/12-spatial-structure.html` |
-| 13 | Scaling / limits | behaviour depends on size or scale; asymptotics matter | size families, rescaled axes, data collapse | `patterns/13-scaling-collapse.html` |
-| 14 | Approximation order | a series or expansion converges, or does not | order stepper, truncated vs exact, error plot | `patterns/14-approximation-order.html` |
-| 15 | Composition / circuits | operations are built step by step and order matters | gate stepper with state readout per step | `patterns/15-circuits.html` |
-| 16 | Symmetry | an operation leaves something invariant or forces degeneracy | apply-the-operation buttons; what changes, what stays | `patterns/16-symmetry.html` |
+| 13 | Scaling / limits | behaviour depends on size or scale; asymptotics matter | choose trial exponents, watch the curves collapse, with a collapse-quality score | `patterns/13-scaling-collapse.html` |
+| 14 | Approximation order | a series or expansion converges, or does not | order slider, truncated vs exact, size of each term, complex-plane singularities | `patterns/14-approximation-order.html` |
+| 15 | Composition / circuits | operations are built step by step and order matters | Back/Forward through gates with an amplitude–phase table per step | `patterns/15-circuits.html` |
+| 16 | Symmetry | an operation leaves something invariant or forces degeneracy | one apply-the-operation button that visibly acts, one parameter slider | `patterns/16-symmetry.html` |
 
 Each pattern file is a single widget with a "What you are looking at" block, and no questions. Its header comment says when to use it, the widget anatomy, the layout and why, the teaching moments (questions a text could ask around it), how to adapt it and the physics it implements. Read that header first. The widget code is in the `PATTERN` script at the end of the file; the marked `LX:` blocks are the shared library, identical in every file, so skip them. Some patterns also have page-specific CSS after `/* LX:STYLE-END */`; copy it along with the code you reuse.
 

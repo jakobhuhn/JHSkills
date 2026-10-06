@@ -1,0 +1,1229 @@
+<title>SSH Chain Chapter</title>
+<!--
+  EXAMPLE · CHAPTER · The Su–Schrieffer–Heeger chain
+  A full Chapter (references/writing.md): a textbook section with display math, four embedded
+  widgets and inline questions. Use it as the model for "teach me <topic>" requests.
+
+  Arc and where the questions sit
+    1 Hook       "Can the ends host states the bulk does not?"  choice; its answer reveals the
+                 results of the first widget (LX.gate) and is echoed back in the Resolve section.
+    2 Orient     Hamiltonian (1), conventions, "by the end you can" callout. No question.
+    3 Explore    Widget 1 (open chain: chain + |psi|^2 of the two states nearest zero, spectral
+                 flow vs v). Ungated controls, four "try this" bullets with contrasting cases.
+    4 Build      3 segments, one idea each:
+                   bulk bands (widget 2, exact) + light check (choice: swap v and w);
+                   winding of d(k) (widget 3, exact) + light check (choice: what happens at the jump);
+                   end-state localisation (widget 4, computed), pointer only.
+    5 Formalise  chiral symmetry, winding number via the argument principle, bulk-boundary
+                 statement, zero-mode ansatz and xi = 1/ln(w/v) (derivation in <details>).
+    6 Resolve    answers the hook explicitly; refutes the two plausible wrong answers.
+    7 Practise   number (xi for v/w = 0.8) · sketch (smallest |E| of the open chain vs v/w) ·
+                 set (widget 4: density down by 100 over two cells) · choice (misconception: every
+                 gap closing is topological) · transfer number (odd chain: how many zero modes) ·
+                 explain (why pinned at zero; what a staggered potential does).
+    8 Close      five bullets; sources in the footer.
+
+  Physics       H = v sum_n (c†_{n,A} c_{n,B} + h.c.) + w sum_n (c†_{n+1,A} c_{n,B} + h.c.), v, w >= 0,
+                lattice constant 1, spinless, zero on-site energies. Chain starts on A, ends on B.
+                d(k) = (v + w cos k, w sin k), E = ±|v + w e^{ik}|, gap 2|v - w| at k = pi.
+                W = 1 (v < w), 0 (v > w). Zero mode psi_{n,A} = (-v/w)^{n-1} psi_{1,A}, xi = 1/ln(w/v).
+                Widgets 1 and 4 diagonalise the open chain (LX.eigSym, <= 60 x 60); the spectral flow
+                and the sketch truth use Sturm-sequence bisection on the tridiagonal matrix.
+-->
+<!-- LX:HEAD-BEGIN -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]], tags: "ams",
+    macros: {
+      ket: ["\\left|#1\\right\\rangle", 1], bra: ["\\left\\langle#1\\right|", 1],
+      braket: ["\\left\\langle#1\\middle|#2\\right\\rangle", 2], expval: ["\\left\\langle#1\\right\\rangle", 1],
+      Tr: "\\operatorname{Tr}", dd: "\\mathrm{d}", ii: "\\mathrm{i}", ee: "\\mathrm{e}"
+    }
+  },
+  svg: { fontCache: "global" },
+  startup: {
+    pageReady() {
+      return MathJax.startup.defaultPageReady().then(() => document.dispatchEvent(new Event("lx:mathjax")));
+    }
+  }
+};
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg.js" async></script>
+<!-- LX:HEAD-END -->
+<style>
+/* LX:STYLE-BEGIN */
+/* Theme tokens, page, article typography, widget layouts, inline questions, SVG marks. */
+:root {
+  --bg: #f5f6f8; --surface: #ffffff; --fg: #17202c; --muted: #5b6676; --line: #d6dce5; --grid: #eaeef3;
+  --accent: #2f5bd3; --c2: #c9700c; --c3: #12857a; --c4: #b0377a; --good: #1f8a4c; --bad: #c2412d;
+  --accent-soft: rgba(47, 91, 211, .10);
+  --f-prose: "Source Serif 4", "Iowan Old Style", Georgia, serif;
+  --f-ui: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0f141b; --surface: #161d27; --fg: #e5eaf1; --muted: #94a0b2; --line: #2b3544; --grid: #1d2531;
+  --accent: #7ea2ff; --c2: #f0a54a; --c3: #45c2b0; --c4: #e47ab4; --good: #4cc184; --bad: #f07a62;
+  --accent-soft: rgba(126, 162, 255, .14); color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --bg: #0f141b; --surface: #161d27; --fg: #e5eaf1; --muted: #94a0b2; --line: #2b3544; --grid: #1d2531;
+  --accent: #7ea2ff; --c2: #f0a54a; --c3: #45c2b0; --c4: #e47ab4; --good: #4cc184; --bad: #f07a62;
+  --accent-soft: rgba(126, 162, 255, .14); color-scheme: dark;
+}
+body { background: var(--bg); color: var(--fg); font: 15px/1.55 var(--f-ui); margin: 0; }
+.lx-page { max-width: 1180px; margin: 0 auto; padding-inline: 16px; padding-block: 20px 40px; display: grid; gap: 20px; }
+.lx-head { display: grid; gap: 6px; }
+.lx-eyebrow { margin: 0; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.lx-head h1 { margin: 0; font: 600 clamp(24px, 3.2vw, 32px)/1.15 var(--f-prose); text-wrap: balance; }
+.lx-lede { margin: 0; max-width: 68ch; font: 17px/1.5 var(--f-prose); color: var(--muted); }
+.lx-meta { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; font-size: 13px; color: var(--muted); }
+.lx-badge { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: 999px; border: 1px solid currentColor; font-weight: 500; font-size: 12px; letter-spacing: .02em; }
+.lx-badge::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.lx-badge[data-kind="exact"] { color: var(--good); }
+.lx-badge[data-kind="schematic"] { color: var(--c2); }
+.lx-badge[data-kind="computed"] { color: var(--accent); }
+/* article: a reading column for text and math; widgets may break out with .lx-wide */
+.lx-article { display: grid; grid-template-columns: minmax(0, 1fr) min(720px, 100%) minmax(0, 1fr); row-gap: 16px; }
+.lx-article > * { grid-column: 2; min-width: 0; margin: 0; }
+.lx-article > .lx-wide { grid-column: 1 / -1; }
+.lx-article > p, .lx-article > ul, .lx-article > ol, .lx-prose { font: 17px/1.65 var(--f-prose); }
+.lx-article > ul, .lx-article > ol { padding-left: 1.3em; }
+.lx-article h2 { font: 600 24px/1.25 var(--f-prose); margin-top: 18px; text-wrap: balance; }
+.lx-article h3 { font: 600 19px/1.3 var(--f-prose); margin-top: 6px; }
+.lx-prose p { margin: 0 0 .6em; } .lx-prose p:last-child { margin-bottom: 0; }
+mjx-container[display="true"] { overflow-x: auto; overflow-y: hidden; max-width: 100%; padding: 2px 0; }
+.lx-callout { border-left: 3px solid var(--c3); padding: 8px 14px; background: var(--surface); border-radius: 0 8px 8px 0; font: 16px/1.6 var(--f-prose); }
+.lx-callout > b:first-child { font-family: var(--f-ui); font-size: 13px; letter-spacing: .04em; text-transform: uppercase; color: var(--c3); display: block; }
+.lx-hook { border: 1px solid var(--line); border-top: 3px solid var(--c2); background: var(--surface); border-radius: 10px; padding: 14px 16px; font: 18px/1.55 var(--f-prose); }
+.lx-stage { display: grid; gap: 14px; min-width: 0; }
+/* widget card: one framed unit of figures + controls; the layout class sets the arrangement */
+.lx-widget { container-type: inline-size; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: grid; gap: 12px; min-width: 0; }
+.lx-w-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px 12px; }
+.lx-w-head h3 { margin: 0; font: 600 16px/1.3 var(--f-ui); }
+.lx-w { display: grid; gap: 12px; min-width: 0; align-items: start; }
+.lx-w > *, .lx-col > * { min-width: 0; }
+.lx-col { display: grid; gap: 12px; align-content: start; min-width: 0; }
+.lx-split { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.lx-grid2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.lx-aside { grid-template-columns: minmax(0, 1fr) minmax(210px, 32%); }
+.lx-aside.lx-left { grid-template-columns: minmax(210px, 32%) minmax(0, 1fr); }
+.lx-hero { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+.lx-hero > :first-child { grid-row: span 3; }
+.lx-span2 { grid-column: 1 / -1; }
+@container (max-width: 620px) {
+  .lx-split, .lx-grid2, .lx-aside, .lx-aside.lx-left, .lx-hero { grid-template-columns: minmax(0, 1fr); }
+  .lx-hero > :first-child { grid-row: auto; }
+}
+.lx-figs { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); }
+.lx-fig { position: relative; min-width: 0; display: grid; gap: 6px; margin: 0; }
+.lx-fig > figcaption { font-size: 12.5px; color: var(--muted); }
+.lx-plot { position: relative; width: 100%; }
+.lx-plot > svg { display: block; width: 100%; height: auto; overflow: visible; touch-action: none; }
+.lx-overlay { position: absolute; inset: 0; pointer-events: none; }
+.lx-tex { position: absolute; white-space: nowrap; font-size: 13px; color: var(--fg); line-height: 1; }
+.lx-float { position: absolute; top: 4px; right: 4px; z-index: 2; display: flex; flex-wrap: wrap; gap: 6px; justify-content: end; }
+.lx-controls { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: end; background: var(--bg); border-radius: 8px; padding: 10px 12px; }
+:is(.lx-aside, .lx-hero, .lx-grid2) > .lx-controls, .lx-controls.lx-vert { flex-direction: column; flex-wrap: nowrap; align-items: stretch; }
+:is(.lx-aside, .lx-hero, .lx-grid2) > .lx-controls .lx-slider, .lx-controls.lx-vert .lx-slider { flex: none; min-width: 0; }
+.lx-slider { display: grid; gap: 2px; min-width: min(100%, 200px); flex: 1 1 200px; }
+.lx-slider .lx-lab { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--muted); }
+.lx-slider output, .lx-readouts b { font-family: var(--f-mono); font-variant-numeric: tabular-nums; color: var(--fg); font-weight: 500; }
+.lx-slider input[type=range] { width: 100%; accent-color: var(--accent); }
+.lx-group { display: grid; gap: 4px; }
+.lx-group > span { font-size: 12px; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
+.lx-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.lx-btn { font: 500 13px var(--f-ui); color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; cursor: pointer; line-height: 1.3; }
+.lx-btn:hover:not(:disabled) { border-color: var(--accent); }
+.lx-btn:focus-visible, .lx-seg input:focus-visible + span, .lx-drag:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.lx-btn[aria-pressed="true"], .lx-btn.lx-primary { background: var(--accent); color: var(--surface); border-color: var(--accent); }
+.lx-btn:disabled { opacity: .45; cursor: not-allowed; }
+.lx-btn mjx-container, .lx-seg mjx-container, .lx-opt mjx-container { display: inline-block !important; margin: 0 !important; }
+.lx-group > .lx-seg { justify-self: start; }
+.lx-seg { display: inline-flex; flex-wrap: wrap; max-width: 100%; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--surface); }
+.lx-seg label { cursor: pointer; }
+.lx-seg input { position: absolute; opacity: 0; pointer-events: none; }
+.lx-seg span { display: block; padding: 5px 10px; font-size: 13px; line-height: 1.3; }
+.lx-seg input:checked + span { background: var(--accent); color: var(--surface); }
+.lx-readouts { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); }
+.lx-readouts.lx-vert { flex-direction: column; gap: 4px; }
+.lx-page a { color: var(--accent); }
+mjx-container[jax="SVG"] > svg a { fill: var(--accent); stroke: var(--accent); }
+.lx-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; color: var(--fg); }
+.lx-legend i { display: inline-block; width: 16px; height: 0; border-top: 2.5px solid currentColor; vertical-align: middle; margin-right: 5px; }
+.lx-legend i.dash { border-top-style: dashed; } .lx-legend i.dot { width: 9px; height: 9px; border: none; border-radius: 50%; background: currentColor; }
+/* "What you are looking at" */
+.lx-guide { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 12px; margin: 0; font-size: 13.5px; line-height: 1.45; border-top: 1px solid var(--line); padding-top: 10px; }
+.lx-guide > b { grid-column: 1 / -1; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+.lx-guide dt { font-weight: 600; } .lx-guide dd { margin: 0; color: var(--fg); }
+@container (max-width: 480px) { .lx-guide { grid-template-columns: minmax(0, 1fr); } .lx-guide dd { margin: 0 0 6px; } }
+/* inline questions */
+.lx-ask { display: grid; gap: 8px; border-left: 3px solid var(--accent); padding: 10px 12px; background: var(--accent-soft); border-radius: 0 8px 8px 0; }
+.lx-ask > .lx-kicker { font: 500 12px var(--f-ui); letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
+.lx-ask > .lx-q { font: 500 16px/1.5 var(--f-prose); }
+.lx-opts { display: grid; gap: 6px; }
+.lx-opt { text-align: left; font: 14px/1.4 var(--f-ui); color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; cursor: pointer; }
+.lx-opt:hover:not(:disabled) { border-color: var(--accent); }
+.lx-opt:disabled { cursor: default; }
+.lx-opt.right { border-color: var(--good); box-shadow: inset 3px 0 0 var(--good); }
+.lx-opt.wrong { border-color: var(--bad); box-shadow: inset 3px 0 0 var(--bad); }
+.lx-opt.picked { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+.lx-ask input[type=text] { font: 15px var(--f-mono); color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; width: 9em; }
+.lx-ask textarea { width: 100%; box-sizing: border-box; font: 15px/1.5 var(--f-prose); color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 8px; min-height: 84px; resize: vertical; }
+.lx-feedback { font: 15px/1.5 var(--f-prose); }
+.lx-feedback b { font-family: var(--f-ui); }
+.lx-feedback.good b { color: var(--good); } .lx-feedback.bad b { color: var(--bad); }
+.lx-model { border: 1px dashed var(--line); border-radius: 8px; padding: 10px; background: var(--surface); font: 15px/1.55 var(--f-prose); }
+/* gate: a result stays hidden until its question is answered, then stays visible */
+.lx-gated { position: relative; }
+.lx-gated > * { filter: blur(7px); opacity: .45; pointer-events: none; user-select: none; }
+.lx-gated::after { content: attr(data-gate); position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 4px 8px; font: 500 14px var(--f-ui); color: var(--fg); }
+span.lx-gated { display: inline-block; min-width: 9em; }
+span.lx-gated::after { font-size: 12px; white-space: nowrap; padding: 0; }
+.lx-foot { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 12px; display: grid; gap: 4px; max-width: 90ch; }
+/* svg marks: color via classes so both themes work */
+.lx-plot text { font: calc(11px * var(--lx-k, 1)) var(--f-mono); fill: var(--muted); }
+.lx-plot path, .lx-plot line, .lx-plot rect, .lx-plot circle, .lx-plot ellipse, .lx-plot polygon { vector-effect: non-scaling-stroke; }
+.ax { stroke: var(--muted); stroke-width: 1; fill: none; }
+.gr { stroke: var(--grid); stroke-width: 1; fill: none; }
+.s1, .s2, .s3, .s4, .sm { fill: none; stroke-width: 2.2; stroke-linejoin: round; stroke-linecap: round; }
+.s1 { stroke: var(--accent); } .s2 { stroke: var(--c2); } .s3 { stroke: var(--c3); } .s4 { stroke: var(--c4); } .sm { stroke: var(--muted); stroke-width: 1.2; }
+.dash { stroke-dasharray: 5 4; }
+.thin { stroke-width: 1.2; }
+.faint { opacity: .45; }
+.sk { fill: none; stroke: var(--c4); stroke-width: 2.6; stroke-dasharray: 7 5; stroke-linecap: round; }
+.f1 { fill: var(--accent); } .f2 { fill: var(--c2); } .f3 { fill: var(--c3); } .f4 { fill: var(--c4); } .fm { fill: var(--muted); } .fs { fill: var(--surface); }
+.sg { stroke: var(--good); } .sb { stroke: var(--bad); } .fg { fill: var(--good); } .fb { fill: var(--bad); }
+.lx-plot text.f1 { fill: var(--accent); } .lx-plot text.f2 { fill: var(--c2); } .lx-plot text.f3 { fill: var(--c3); } .lx-plot text.f4 { fill: var(--c4); } .lx-plot text.fg { fill: var(--good); } .lx-plot text.fb { fill: var(--bad); }
+.a1 { fill: var(--accent); fill-opacity: .16; stroke: none; } .a2 { fill: var(--c2); fill-opacity: .18; stroke: none; } .a3 { fill: var(--c3); fill-opacity: .18; stroke: none; }
+.g-ghost { opacity: .32; }
+.g-ghost path { stroke-dasharray: 4 3; }
+.lx-drag { cursor: grab; }
+.lx-drag:active { cursor: grabbing; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+/* LX:STYLE-END */
+/* page-specific styles go below */
+.lx-hook p { margin: 0 0 .5em; } .lx-hook p:last-child { margin: 0; }
+.lx-callout ul { margin: 4px 0 0; padding-left: 1.2em; }
+.lx-article details { border: 1px solid var(--line); border-radius: 8px; background: var(--surface); padding: 8px 14px; font: 16px/1.6 var(--f-prose); }
+.lx-article details > summary { cursor: pointer; font: 500 14px/1.4 var(--f-ui); color: var(--accent); }
+.lx-article details[open] > summary { margin-bottom: 8px; }
+.lx-article details p { margin: 0 0 .6em; }
+.lx-article ol li, .lx-article ul li { margin-bottom: 4px; }
+.ssh-echo { border-left: 3px solid var(--c2); padding: 2px 0 2px 12px; color: var(--muted); }
+.ssh-echo:empty { display: none; }
+.ask-fig { background: var(--surface); border-radius: 6px; padding: 6px; }
+.lx-ask textarea { width: 100%; box-sizing: border-box; }
+.lx-page a { color: var(--accent); }
+mjx-container[jax="SVG"] > svg a { fill: var(--accent); stroke: var(--accent); }
+</style>
+
+<main class="lx-page">
+  <header class="lx-head">
+    <p class="lx-eyebrow">Condensed matter · Topological band theory · Chapter</p>
+    <h1>The SSH chain: end states from a bulk winding number</h1>
+    <p class="lx-lede">A chain of identical atoms with alternating bonds has two insulating phases with the same bands. Only one of them has states at its ends. This chapter shows why, and what protects them.</p>
+    <div class="lx-meta">
+      <span>Conventions: lattice constant 1; spinless electrons, one orbital per site, on-site energies 0; hoppings \(v, w \ge 0\); energies in the units of \(v, w\)</span>
+      <span>Reading time about 20 minutes</span>
+    </div>
+  </header>
+
+  <article class="lx-article" id="article">
+    <h2 id="hook">An end that should not be special</h2>
+    <div class="lx-hook">
+      <p>Take a long chain of identical atoms, one orbital per atom, and let an electron hop between nearest neighbours. With equal bonds you get a single cosine band, and nothing interesting happens at the ends.</p>
+      <p>Now let the bonds alternate: strong, weak, strong, weak. Every atom is still the same, with the same on-site energy. The alternation opens a gap in the middle of the band. Then cut the chain.</p>
+    </div>
+    <div id="q-hook"></div>
+
+    <h2 id="model">The model</h2>
+    <p>This is the Su–Schrieffer–Heeger (SSH) model. It was introduced for polyacetylene and is now the standard first example of a topological band structure. Group the atoms into unit cells of two sites, A and B. An electron hops inside a cell with amplitude \(v\) and between neighbouring cells with amplitude \(w\):</p>
+    <p>\begin{equation}
+      \begin{aligned}
+        H &= v \sum_{n=1}^{N} \big( c^\dagger_{n,A} c_{n,B} + \text{h.c.} \big) \\
+          &+ w \sum_{n=1}^{N-1} \big( c^\dagger_{n+1,A} c_{n,B} + \text{h.c.} \big).
+      \end{aligned}
+      \label{eq:H}
+    \end{equation}</p>
+    <p>The chain has \(N\) cells and \(2N\) sites. It starts with site \(A_1\) and ends with site \(B_N\), so both outermost bonds are intracell \(v\) bonds. When only the ratio matters, we set \(w = 1\). The model has no on-site energies at all: whatever happens at the ends cannot come from the end atoms being different.</p>
+    <div class="lx-callout"><b>By the end you can</b>
+      <ul>
+        <li>compute the bulk bands and the gap of the SSH chain;</li>
+        <li>compute its winding number and predict from it, without diagonalising anything, whether an open chain has zero-energy end states;</li>
+        <li>derive how far such a state reaches into the chain;</li>
+        <li>name the symmetry that protects it, and say what destroys it.</li>
+      </ul>
+    </div>
+
+    <h2 id="explore">First look: an open chain</h2>
+    <p>The widget below diagonalises \eqref{eq:H} numerically for an open chain. The large panel shows the chain and, below it, where the two eigenstates closest to \(E = 0\) live. The spectrum panel shows all energies as a function of \(v\), with a cursor at the current value. Spend a few minutes with it before reading on.</p>
+    <div class="lx-wide" id="w-explore"></div>
+    <ul>
+      <li>Set \(v = 0.2\), \(w = 1\). Look at the two pink levels nearest zero in the spectrum, and at where those states sit on the chain.</li>
+      <li>Press <b>Swap v and w</b>. The atoms, the two hopping values and the chain length are the same. Compare the states nearest zero.</li>
+      <li>Move \(v\) slowly from 0 up to \(w\). Watch the width of the end peaks, and the value of \(v\) at which the pink levels leave zero.</li>
+      <li>Set \(v = 0\) exactly. Which sites are not bonded to anything?</li>
+    </ul>
+    <p>Three questions should now be on your mind. Why do the end states sit at exactly zero energy, not just somewhere in the gap? Why do they exist for \(v \lt w\) but not for \(v \gt w\), when the ends look the same? And why do they spread out as \(v \to w\)? The rest of the chapter answers them, starting from the bulk.</p>
+
+    <h2 id="bulk">The bulk: bands and a gap</h2>
+    <p>In an infinite chain, translation by one cell is a symmetry. The Fourier transform \(c_{n,\alpha} = N^{-1/2} \sum_k e^{ikn} c_{k,\alpha}\) turns \eqref{eq:H} into independent \(2\times2\) blocks, one per wavenumber \(k\), with the Bloch Hamiltonian</p>
+    <p>\begin{equation}
+      \begin{aligned}
+        h(k) &= \begin{pmatrix} 0 & v + w e^{-ik} \\ v + w e^{ik} & 0 \end{pmatrix} \\
+             &= d_x(k)\,\sigma_x + d_y(k)\,\sigma_y ,
+      \end{aligned}
+      \label{eq:hk}
+    \end{equation}</p>
+    <p>in the basis \((A, B)\). The vector \(\mathbf d(k)\) and the band energies are</p>
+    <p>\begin{align}
+      \mathbf d(k) &= \big(v + w\cos k,\ w \sin k,\ 0\big), \label{eq:d} \\
+      E_\pm(k) &= \pm|\mathbf d(k)| \nonumber \\
+                &= \pm\sqrt{v^2 + w^2 + 2vw\cos k}. \label{eq:E}
+    \end{align}</p>
+    <p>The two terms of \(v + w e^{ik}\) partly cancel at the zone boundary \(k = \pi\), so the gap is \(2|v - w|\). It closes only at \(v = w\), where the chain is uniform and the spectrum is the gapless cosine band folded into the smaller zone.</p>
+    <div id="w-bands"></div>
+    <div id="q-swap"></div>
+
+    <h2 id="winding">What the bands do not show: winding</h2>
+    <p>The energies forget something that the eigenstates remember. Because \(h(k)\) has no \(\sigma_z\) term, \(\mathbf d(k)\) lies in the \(d_x\)–\(d_y\) plane, and the eigenstates are fixed by the angle \(\varphi(k)\) of \(\mathbf d(k)\) in that plane: the lower band is \(\ket{u_-(k)} = \tfrac{1}{\sqrt2}\,(e^{-i\varphi(k)}, -1)^T\).</p>
+    <p>As \(k\) runs once through the Brillouin zone, \(\mathbf d(k)\) traces a closed loop. By \eqref{eq:d} it is a circle of radius \(w\) centred at \((v, 0)\). The <i>winding number</i> \(W\) counts how many times this loop goes around the origin, which is the same as the total change of \(\varphi\) divided by \(2\pi\).</p>
+    <div class="lx-wide" id="w-wind"></div>
+    <div id="q-wind"></div>
+    <p>So the bulk carries an integer that tells \((v, w)\) apart from \((w, v)\) and can change only where the gap closes. It also matches what the open chain did: \(W = 1\) with end states, \(W = 0\) without. The section <a href="#formal">The general statement</a> makes this connection precise. First, a closer look at the end states.</p>
+
+    <h2 id="edge">Where the end states live</h2>
+    <p>For a finite chain, the two states nearest zero are, up to an exponentially small mixing, even and odd combinations of a left end state and a right end state. The first panel averages their densities, which does not depend on how the pair mixes. The log panel shows the left end state alone, on a logarithmic axis, where exponential decay is a straight line.</p>
+    <div class="lx-wide" id="w-edge"></div>
+    <p>Two things are visible. Near the left end the weight sits only on A sites, near the right end only on B sites. And on the log plot the computed points fall on a straight line, so the decay is exponential, with a length that grows as \(v \to w\). Close to \(v = w\) the points leave the line at the far end: the state now reaches the other end of the chain and mixes with the right end state.</p>
+
+    <h2 id="formal">The general statement</h2>
+    <h3>Chiral symmetry</h3>
+    <p>Every term of \eqref{eq:H} moves an electron from A to B or back. Let \(\Gamma = \sum_n \big(\ket{n,A}\!\bra{n,A} - \ket{n,B}\!\bra{n,B}\big)\) be the sublattice operator, \(\sigma_z\) in every cell. Then</p>
+    <p>\begin{equation}
+      \Gamma H \Gamma = -H, \qquad \Gamma^2 = 1 .
+      \label{eq:chiral}
+    \end{equation}</p>
+    <ol>
+      <li>If \(H\psi = E\psi\), then \(H(\Gamma\psi) = -E\,\Gamma\psi\): the spectrum is symmetric about zero. The flow plot in the first widget is mirror symmetric.</li>
+      <li>The zero-energy eigenspace is mapped to itself by \(\Gamma\), so zero modes can be chosen to live on one sublattice only.</li>
+      <li>A state on one sublattice is its own chiral partner (\(\Gamma\psi = \pm\psi\)). It cannot move away from \(E = 0\) on its own: that needs a partner at \(-E\), so it must mix with a state on the other sublattice.</li>
+    </ol>
+    <p>In \(k\)-space, \eqref{eq:chiral} reads \(\sigma_z h(k) \sigma_z = -h(k)\), which forces \(d_z = 0\). That is why \(\mathbf d(k)\) lies in a plane and why its winding around the origin is defined at all.</p>
+
+    <h3>The winding number</h3>
+    <p>Write \(q(k) = d_x + i d_y\). The winding number is the number of turns of \(q(k)\) around zero:</p>
+    <p>\begin{equation}
+      \begin{aligned}
+        W &= \frac{1}{2\pi i} \oint_{-\pi}^{\pi} \dd k\ \partial_k \ln q(k), \\
+        q(k) &= v + w\, e^{ik}.
+      \end{aligned}
+      \label{eq:W}
+    \end{equation}</p>
+    <p>With \(z = e^{ik}\) the integral runs around the unit circle, and by the argument principle it counts the zeros of \(v + wz\) inside it. The only zero, \(z = -v/w\), is inside if and only if \(v \lt w\). Hence \(W = 1\) for \(v \lt w\) and \(W = 0\) for \(v \gt w\). At \(v = w\) the zero sits on the circle, \(q(\pi) = 0\), and \(W\) is undefined: the gap is closed.</p>
+
+    <h3>Bulk–boundary correspondence</h3>
+    <div class="lx-callout"><b>Statement</b>
+      Take a chain with chiral symmetry \eqref{eq:chiral}, short-range hopping and a gapped bulk with winding number \(W\). At an edge far from the other edge, the number of zero-energy states on sublattice A minus the number on sublattice B equals \(W\) (the sign convention flips at the opposite end).
+    </div>
+    <p>The argument fits in three steps. By point 3 above, zero modes at one edge can leave \(E = 0\) only in A–B pairs, so \(N_A - N_B\) cannot change under any deformation that keeps chiral symmetry and a bulk gap. It therefore depends only on the bulk phase. Finally, evaluate it in the two dimer limits: at \(v = 0\), site \(A_1\) is isolated (\(N_A - N_B = 1 = W\)); at \(w = 0\), every site is paired (\(0 = W\)).</p>
+
+    <h3>The zero mode and its length</h3>
+    <p>On a semi-infinite chain \(n = 1, 2, \dots\), the zero mode is exact. Its amplitudes are</p>
+    <p>\begin{equation}
+      \psi_{n,A} = \Big(-\frac{v}{w}\Big)^{n-1} \psi_{1,A}, \qquad \psi_{n,B} = 0,
+      \label{eq:zm}
+    \end{equation}</p>
+    <p>so its density decays as</p>
+    <p>\begin{equation}
+      |\psi_{n,A}|^2 \propto e^{-2(n-1)/\xi}, \qquad \xi = \frac{1}{\ln(w/v)} .
+      \label{eq:xi}
+    \end{equation}</p>
+    <details>
+      <summary>Derivation of \eqref{eq:zm}</summary>
+      <p>Write \(\psi = \sum_n \big(a_n \ket{n,A} + b_n \ket{n,B}\big)\) and project \(H\psi = 0\) onto each site. On \(B_n\): \(v\,a_n + w\,a_{n+1} = 0\). On \(A_n\): \(v\,b_n + w\,b_{n-1} = 0\), with \(b_0 = 0\) because there is no site \(B_0\).</p>
+      <p>The second equation at \(n = 1\) gives \(b_1 = 0\), and then \(b_n = 0\) for all \(n\). The first gives \(a_{n+1} = -(v/w)\,a_n\), which is \eqref{eq:zm}. The norm \(\sum_n |a_n|^2 = |a_1|^2 / (1 - v^2/w^2)\) is finite only for \(v \lt w\), so \(a_1 = \sqrt{1 - v^2/w^2}\). For \(v \gt w\) there is no normalisable zero mode at the left end.</p>
+      <p>This exact envelope is the dashed line in the first widget and in the end-state widget.</p>
+    </details>
+    <p>The mode is normalisable only for \(v \lt w\), which is exactly the condition \(W = 1\) found from the bulk. Near the transition \(\xi \approx w/(w - v)\) diverges, as it must where the gap closes. In a chain of \(N\) cells the two end modes overlap by about \(e^{-N/\xi} = (v/w)^N\). That overlap splits their energies to \(\pm\varepsilon\) with \(\varepsilon \propto (v/w)^N\): the tiny number in the readout of the first widget.</p>
+
+    <h2 id="resolve">Back to the opening question</h2>
+    <p class="ssh-echo" id="echo"></p>
+    <p>It depends on where the chain is cut. Our chain ends with an intracell \(v\) bond at both ends. If that end bond is the weak one (\(v \lt w\)), each end carries one state at exactly \(E = 0\), in the middle of the gap. If it is the strong one (\(v \gt w\)), there is none. Nothing about the end atoms differs between the two cases: same atoms, same missing bond, opposite result.</p>
+    <p>The reason is in the bulk. The two phases have identical bands, but their eigenstates wind differently: \(W = 1\) or \(0\), and \(W\) can change only where the gap closes. Chiral symmetry makes zero modes sublattice-polarised and holds them at \(E = 0\), so the count of zero modes at an edge is protected and must equal \(W\).</p>
+    <p>“No, the atoms are all identical” is a reasonable answer: it is correct about the atoms and wrong about what decides the question, which is the topology of the bulk eigenstates. “Any end binds a state” fails too: the \(v \gt w\) chain has ends and no end states. Ordinary surface states do occur in many systems, but they need something at the surface to bind them, and their energy is not pinned to the middle of the gap.</p>
+
+    <h2 id="practise">Practice</h2>
+    <p>These questions are harder than the ones above. Some need a widget, some need the equations, and one needs neither.</p>
+    <div id="q-num"></div>
+    <div id="q-sketch"></div>
+    <div id="q-set"></div>
+    <div id="q-mis"></div>
+    <div id="q-odd"></div>
+    <div id="q-explain"></div>
+
+    <h2 id="close">Summary</h2>
+    <ul>
+      <li>The SSH chain has two gapped phases with identical bulk bands \(E_\pm = \pm|v + w e^{ik}|\). They differ by the winding number of \(\mathbf d(k)\) around the origin: \(W = 1\) for \(v \lt w\), \(W = 0\) for \(v \gt w\).</li>
+      <li>\(W\) is defined because chiral symmetry keeps \(d_z = 0\). It can change only where the gap closes; a gap closing is necessary for a change of \(W\), not sufficient.</li>
+      <li>Bulk–boundary correspondence: at an edge, (zero modes on A) − (zero modes on B) \(= W\). For SSH this is one end state per edge at \(E = 0\), on one sublattice, decaying over \(\xi = 1/\ln(w/v)\).</li>
+      <li>Pitfall: the protection relies on chiral symmetry. A staggered potential or hopping within one sublattice moves the end states away from zero, although they may stay inside the gap for a while.</li>
+      <li>Next: the Rice–Mele model (SSH plus a staggered potential) and adiabatic charge pumping; then two-dimensional Chern insulators, where the winding becomes a Chern number and the end states become edge channels.</li>
+    </ul>
+  </article>
+
+  <footer class="lx-foot">
+    <span>Source: model knowledge, checked against standard references: J. K. Asbóth, L. Oroszlány, A. Pályi, <i>A Short Course on Topological Insulators</i>, Lecture Notes in Physics 919 (Springer, 2016), ch. 1; W. P. Su, J. R. Schrieffer, A. J. Heeger, Phys. Rev. Lett. <b>42</b>, 1698 (1979); S. Ryu, Y. Hatsugai, Phys. Rev. Lett. <b>89</b>, 077002 (2002).</span>
+    <span>Widgets: bands and winding are exact (closed form); the open-chain spectra and states are computed by exact diagonalisation of at most 60 × 60 matrices, checked by self-tests against the formulas above.</span>
+  </footer>
+</main>
+
+<script>
+/* LX:LIB-BEGIN */
+/* LX — small helper library for interactive-learning widgets. API summary:
+   DOM      LX.h(tag, attrs, parent) · LX.fig(parent, caption) · LX.typeset(el)
+   Numbers  LX.linspace · LX.clamp · LX.sample(f,a,b,n) · LX.C (complex) · LX.eigSym(A) · LX.niceTicks · LX.rng(seed)
+   Plots    LX.plot(parent, {xlim, ylim, ticks, frame, xlabel, ylabel, width, height}) → path/fn/dot/line/vline/hline/
+            area/text/tex/arrow/clear/clearAll/ghost/setLim/setLabels/X/Y/inv/svg/g
+            layers: grid, axes, ghost, fill, main, top, handles (handles is never cleared by clearAll: put draggables there)
+            LX.drag(plot, node, {get, set, step, start, end}) · LX.fig(parent, caption, {below}) · LX.setHTML(el, html)
+   3D       LX.camera({yaw, pitch, scale}) → project([x,y,z]) · rotate by dragging an element
+   Widget   LX.widget(mount, {layout: stack|split|grid2|aside|hero, left, title, badge}) → body element
+            LX.guide(widgetOrBody, [[term, description], ...]) — the "What you are looking at" block
+            LX.legend(parent, [[label, colorVar, "line"|"dash"|"dot"], ...])
+   Controls LX.controls(parent) · LX.slider · LX.segmented · LX.button · LX.limits · LX.readout · LX.player
+   Text     LX.ask(parent, {type: choice|number|set|sketch|explain, prompt, ..., reveal}) — inline question
+            LX.gate(el, message) — hide a result until a question that lists it in `reveal` is answered
+   Checks   LX.check(name, fn) → window.__lxTests */
+const LX = (() => {
+  const NS = "http://www.w3.org/2000/svg";
+  const reduceMotion = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function h(tag, attrs, parent, svg) {
+    const e = svg ? document.createElementNS(NS, tag) : document.createElement(tag);
+    for (const k in attrs || {}) {
+      const v = attrs[k];
+      if (v == null || v === false) continue;
+      if (k === "text") e.textContent = v;
+      else if (k === "html") e.innerHTML = v;
+      else if (k.startsWith("on") && typeof v === "function") e.addEventListener(k.slice(2), v);
+      else e.setAttribute(k, v === true ? "" : v);
+    }
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+  const s = (tag, attrs, parent) => h(tag, attrs, parent, true);
+
+  /* ---------- MathJax ---------- */
+  let mjReady = false; const mjPending = new Set();
+  document.addEventListener("lx:mathjax", () => { mjReady = true; mjPending.forEach(el => typeset(el)); mjPending.clear(); });
+  /* Typesetting is queued: MathJax must not run concurrently, and labels that were
+     removed while waiting (plots redraw often) are skipped. */
+  let mjChain = Promise.resolve();
+  function typeset(el) {
+    const MJ = window.MathJax;
+    if (!mjReady || !MJ || !MJ.typesetPromise) { if (el) mjPending.add(el); return Promise.resolve(); }
+    mjChain = mjChain.then(() => {
+      if (el && !el.isConnected) return;
+      const els = el ? [el] : undefined;
+      try { MJ.typesetClear(els); } catch (e) {}
+      return MJ.typesetPromise(els);
+    }).catch(err => console.warn("MathJax:", err && err.message));
+    return mjChain;
+  }
+
+  /* ---------- numerics ---------- */
+  const linspace = (a, b, n) => Array.from({ length: n }, (_, i) => a + (b - a) * i / (n - 1));
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+  const sample = (f, a, b, n = 400) => linspace(a, b, n).map(x => [x, f(x)]);
+  const C = {
+    of: (re, im = 0) => ({ re, im }),
+    add: (a, b) => ({ re: a.re + b.re, im: a.im + b.im }),
+    sub: (a, b) => ({ re: a.re - b.re, im: a.im - b.im }),
+    mul: (a, b) => ({ re: a.re * b.re - a.im * b.im, im: a.re * b.im + a.im * b.re }),
+    scale: (a, k) => ({ re: a.re * k, im: a.im * k }),
+    conj: a => ({ re: a.re, im: -a.im }),
+    abs2: a => a.re * a.re + a.im * a.im,
+    abs: a => Math.hypot(a.re, a.im),
+    arg: a => Math.atan2(a.im, a.re),
+    expi: t => ({ re: Math.cos(t), im: Math.sin(t) }),
+    exp: a => { const r = Math.exp(a.re); return { re: r * Math.cos(a.im), im: r * Math.sin(a.im) }; },
+    sqrt: a => { const r = Math.sqrt(Math.hypot(a.re, a.im)), t = Math.atan2(a.im, a.re) / 2; return { re: r * Math.cos(t), im: r * Math.sin(t) }; },
+    div: (a, b) => { const d = b.re * b.re + b.im * b.im; return { re: (a.re * b.re + a.im * b.im) / d, im: (a.im * b.re - a.re * b.im) / d }; }
+  };
+  /* Seeded PRNG (mulberry32): deterministic sampling for reproducible lessons and self-tests. */
+  function rng(seed = 1) {
+    let a = seed >>> 0;
+    return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  }
+  /* Real symmetric eigenproblem (cyclic Jacobi). Returns ascending values and matching unit vectors. */
+  function eigSym(M) {
+    const n = M.length, A = M.map(r => r.slice());
+    const V = Array.from({ length: n }, (_, i) => Array.from({ length: n }, (_, j) => +(i === j)));
+    for (let sweep = 0; sweep < 100; sweep++) {
+      let off = 0;
+      for (let p = 0; p < n; p++) for (let q = p + 1; q < n; q++) off += A[p][q] * A[p][q];
+      if (off < 1e-24) break;
+      for (let p = 0; p < n; p++) for (let q = p + 1; q < n; q++) {
+        if (Math.abs(A[p][q]) < 1e-300) continue;
+        const th = (A[q][q] - A[p][p]) / (2 * A[p][q]);
+        const t = (th >= 0 ? 1 : -1) / (Math.abs(th) + Math.sqrt(th * th + 1));
+        const c = 1 / Math.sqrt(t * t + 1), sn = t * c;
+        for (let k = 0; k < n; k++) { const a = A[k][p], b = A[k][q]; A[k][p] = c * a - sn * b; A[k][q] = sn * a + c * b; }
+        for (let k = 0; k < n; k++) { const a = A[p][k], b = A[q][k]; A[p][k] = c * a - sn * b; A[q][k] = sn * a + c * b; }
+        for (let k = 0; k < n; k++) { const a = V[k][p], b = V[k][q]; V[k][p] = c * a - sn * b; V[k][q] = sn * a + c * b; }
+      }
+    }
+    const idx = [...Array(n).keys()].sort((i, j) => A[i][i] - A[j][j]);
+    return { values: idx.map(i => A[i][i]), vectors: idx.map(i => V.map(r => r[i])) };
+  }
+  function niceTicks(a, b, n = 5) {
+    const span = Math.abs(b - a) || 1, raw = span / n, mag = Math.pow(10, Math.floor(Math.log10(raw)));
+    const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(st => span / st <= n) || 10 * mag;
+    const lo = Math.ceil(Math.min(a, b) / step - 1e-9) * step, out = [];
+    for (let v = lo; v <= Math.max(a, b) + 1e-9 * step; v += step) out.push(Math.abs(v) < step * 1e-9 ? 0 : v);
+    const dec = Math.max(0, -Math.floor(Math.log10(step) + 1e-9) + (step / mag === 2.5 ? 1 : 0));
+    return out.map(v => ({ v, label: v.toFixed(dec).replace("-", "−") }));
+  }
+
+  /* ---------- plots ---------- */
+  let uid = 0;
+  function fig(parent, caption, o = {}) {
+    const f = h("figure", { class: "lx-fig" }, parent);
+    if (caption) { const c = h("figcaption", { html: caption }, f); typeset(c); if (o.below) c.style.order = "1"; }
+    return f;
+  }
+  /* Replace an element's content with HTML/TeX and typeset it (e.g. a button label or a readout). */
+  function setHTML(el, html) { el.innerHTML = html; typeset(el); return el; }
+  function plot(parent, o = {}) {
+    const W = o.width || 560, H = o.height || 340, ticks = o.ticks !== false;
+    const m = Object.assign(ticks ? { l: 56, r: 16, t: o.ylabel ? 30 : 14, b: 50 } : { l: 26, r: 22, t: o.ylabel ? 30 : 16, b: o.xlabel ? 34 : 16 }, o.margin || {});
+    let [x0, x1] = o.xlim || [0, 1], [y0, y1] = o.ylim || [0, 1];
+    const wrap = h("div", { class: "lx-plot" }, parent);
+    const svg = s("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": o.aria || "plot" }, wrap);
+    const overlay = h("div", { class: "lx-overlay" }, wrap);
+    /* keep tick text at a constant on-screen size when the SVG is scaled down */
+    if (window.ResizeObserver) new ResizeObserver(() => { const w = wrap.clientWidth; if (w) wrap.style.setProperty("--lx-k", (W / w).toFixed(3)); }).observe(wrap);
+    const id = "lxclip" + (++uid);
+    const defs = s("defs", {}, svg);
+    const clipRect = s("rect", {}, s("clipPath", { id }, defs));
+    const mk = s("marker", { id: id + "a", viewBox: "0 0 10 10", refX: 9, refY: 5, markerWidth: 7, markerHeight: 7, orient: "auto-start-reverse" }, defs);
+    s("path", { d: "M0,0 L10,5 L0,10 z", fill: "context-stroke" }, mk);
+    const g = {};
+    for (const name of ["grid", "axes", "ghost", "fill", "main", "top", "handles"]) {
+      g[name] = s("g", name === "ghost" ? { class: "g-ghost", "clip-path": `url(#${id})` } : ["fill", "main"].includes(name) ? { "clip-path": `url(#${id})` } : {}, svg);
+    }
+    const pw = () => W - m.l - m.r, ph = () => H - m.t - m.b;
+    const X = v => m.l + (v - x0) / (x1 - x0) * pw();
+    const Y = v => H - m.b - (v - y0) / (y1 - y0) * ph();
+    const inv = (px, py) => [x0 + (px - m.l) / pw() * (x1 - x0), y0 + (H - m.b - py) / ph() * (y1 - y0)];
+    const cy = v => clamp(v, -1e4, 1e4);
+    const P = {
+      svg, g, overlay, W, H, X, Y, inv, margin: m,
+      get xlim() { return [x0, x1]; }, get ylim() { return [y0, y1]; },
+      setLim(xl, yl) { if (xl) [x0, x1] = xl; if (yl) [y0, y1] = yl; drawAxes(); return P; },
+      setLabels(xl, yl) { if (xl != null) o.xlabel = xl; if (yl != null) o.ylabel = yl; drawAxes(); return P; },
+      /* Clear everything a redraw owns: main, fill, top and the TeX overlay (not grid/axes/ghost). */
+      clearAll() { for (const l of ["main", "fill", "top", "tex"]) P.clear(l); return P; },
+      clear(layer = "main") {
+        if (layer === "tex") { [...overlay.children].filter(c => !c.dataset.axis && !c.dataset.keep).forEach(c => c.remove()); return P; }
+        g[layer].replaceChildren(); return P;
+      },
+      path(pts, opt = {}) {
+        let d = "", pen = false;
+        for (const [x, y] of pts) {
+          if (!isFinite(x) || !isFinite(y)) { pen = false; continue; }
+          d += (pen ? "L" : "M") + X(x).toFixed(2) + "," + cy(Y(y)).toFixed(2); pen = true;
+        }
+        if (opt.close) d += "Z";
+        return s("path", { d, class: opt.cls || "s1" }, g[opt.layer || "main"]);
+      },
+      fn(f, opt = {}) { return P.path(sample(f, opt.a ?? x0, opt.b ?? x1, opt.n || 400), opt); },
+      area(pts, opt = {}) {
+        const base = opt.base ?? 0, first = pts[0], last = pts[pts.length - 1];
+        return P.path([[first[0], base], ...pts, [last[0], base]], { cls: opt.cls || "a1", layer: opt.layer || "fill", close: true });
+      },
+      dot(x, y, opt = {}) { return s("circle", { cx: X(x), cy: cy(Y(y)), r: opt.r || 4.5, class: opt.cls || "f1" }, g[opt.layer || "top"]); },
+      line(xa, ya, xb, yb, opt = {}) { return s("line", { x1: X(xa), y1: cy(Y(ya)), x2: X(xb), y2: cy(Y(yb)), class: opt.cls || "sm" }, g[opt.layer || "main"]); },
+      vline(x, opt = {}) { return P.line(x, y0, x, y1, Object.assign({ cls: "sm dash" }, opt)); },
+      hline(y, opt = {}) { return P.line(x0, y, x1, y, Object.assign({ cls: "sm dash" }, opt)); },
+      arrow(xa, ya, xb, yb, opt = {}) { const l = P.line(xa, ya, xb, yb, Object.assign({ cls: "s1", layer: "top" }, opt)); l.setAttribute("marker-end", `url(#${id}a)`); return l; },
+      text(x, y, str, opt = {}) { return s("text", { x: X(x) + (opt.dx || 0), y: Y(y) + (opt.dy || 0), "text-anchor": opt.anchor || "middle", class: opt.cls || "", text: str }, g[opt.layer || "top"]); },
+      /* TeX label in an HTML overlay. anchor: c, n, s, e, w, ne, nw, se, sw (which side of the label sits on the point). */
+      tex(x, y, src, opt = {}) {
+        const el = h("div", { class: "lx-tex" + (opt.cls ? " " + opt.cls : ""), html: `\\(${src}\\)` }, overlay);
+        P.placeTex(el, x, y, opt.anchor || "c", opt.px);
+        if (opt.axis) el.dataset.axis = "1";
+        if (opt.keep) el.dataset.keep = "1";   /* survives clear("tex")/clearAll: create once, move with placeTex */
+        if (opt.color) el.style.color = opt.color;
+        typeset(el); return el;
+      },
+      placeTex(el, x, y, anchor = "c", px) {
+        const [ux, uy] = px ? [x, y] : [X(x), Y(y)];
+        el.style.display = isFinite(ux) && isFinite(uy) ? "" : "none";
+        el.style.left = (100 * ux / W) + "%"; el.style.top = (100 * uy / H) + "%";
+        const tx = anchor.includes("w") ? "0%" : anchor.includes("e") ? "-100%" : "-50%";
+        const ty = anchor.includes("n") ? "0%" : anchor.includes("s") ? "-100%" : "-50%";
+        el.style.transform = `translate(${tx},${ty})`;
+      },
+      /* Copy the current main layer into the faded ghost layer (compare before/after). */
+      ghost() { g.ghost.replaceChildren(...[...g.main.children].map(n => n.cloneNode(true))); return P; },
+      clearGhost() { g.ghost.replaceChildren(); return P; },
+      /* Client pointer event → data coordinates. */
+      toData(ev) { const pt = svg.createSVGPoint(); pt.x = ev.clientX; pt.y = ev.clientY; const q = pt.matrixTransform(svg.getScreenCTM().inverse()); return inv(q.x, q.y); }
+    };
+    function drawAxes() {
+      clipRect.setAttribute("x", m.l); clipRect.setAttribute("y", m.t); clipRect.setAttribute("width", pw()); clipRect.setAttribute("height", ph());
+      g.grid.replaceChildren(); g.axes.replaceChildren();
+      [...overlay.children].filter(c => c.dataset.axis).forEach(c => c.remove());
+      if (o.frame === false) { /* bare drawing area: no axes, no grid (3D views, diagrams) */ }
+      else if (ticks) {
+        for (const t of niceTicks(x0, x1, o.xticks || 6)) {
+          s("line", { x1: X(t.v), x2: X(t.v), y1: m.t, y2: H - m.b, class: "gr" }, g.grid);
+          s("text", { x: X(t.v), y: H - m.b, dy: "1.25em", "text-anchor": "middle", text: t.label }, g.axes);
+        }
+        for (const t of niceTicks(y0, y1, o.yticks || 5)) {
+          s("line", { x1: m.l, x2: W - m.r, y1: Y(t.v), y2: Y(t.v), class: "gr" }, g.grid);
+          s("text", { x: m.l, dx: "-0.45em", y: Y(t.v), dy: "0.35em", "text-anchor": "end", text: t.label }, g.axes);
+        }
+        s("rect", { x: m.l, y: m.t, width: pw(), height: ph(), class: "ax" }, g.axes);
+      } else {
+        /* Schematic: axes with arrowheads, no numbers. Only named marks (P.tex) may label positions. */
+        s("path", { d: `M${m.l},${H - m.b} V${m.t}`, class: "ax", "marker-end": `url(#${id}a)` }, g.axes);
+        s("path", { d: `M${m.l},${H - m.b} H${W - m.r}`, class: "ax", "marker-end": `url(#${id}a)` }, g.axes);
+        if (o.zeroLine && y0 < 0 && y1 > 0) s("line", { x1: m.l, x2: W - m.r, y1: Y(0), y2: Y(0), class: "gr" }, g.grid);
+      }
+      /* axis names sit outside the plotting area: x below the right end, y above the top-left corner */
+      if (o.xlabel) P.tex(W - m.r, H - 2, o.xlabel, { anchor: "se", px: true, axis: true });
+      if (o.ylabel) P.tex(m.l - (ticks ? 4 : 0), m.t - 6, o.ylabel, { anchor: "sw", px: true, axis: true });
+    }
+    drawAxes();
+    return P;
+  }
+  /* Make an SVG node draggable in data coordinates; arrow keys nudge by opt.step. */
+  function drag(P, node, opt) {
+    node.classList.add("lx-drag"); node.setAttribute("tabindex", "0");
+    if (!node.getAttribute("aria-label")) node.setAttribute("aria-label", "draggable point; use arrow keys");
+    let active = false;
+    node.addEventListener("pointerdown", e => { active = true; node.setPointerCapture(e.pointerId); e.preventDefault(); if (opt.start) opt.start(); });
+    node.addEventListener("pointermove", e => { if (active) opt.set(...P.toData(e)); });
+    node.addEventListener("pointerup", () => { active = false; if (opt.end) opt.end(); });
+    node.addEventListener("keydown", e => {
+      const [dx, dy] = opt.step || [(P.xlim[1] - P.xlim[0]) / 100, (P.ylim[1] - P.ylim[0]) / 100];
+      const d = { ArrowLeft: [-dx, 0], ArrowRight: [dx, 0], ArrowUp: [0, dy], ArrowDown: [0, -dy] }[e.key];
+      if (!d) return; e.preventDefault(); const [x, y] = opt.get(); opt.set(x + d[0], y + d[1]);
+    });
+    return node;
+  }
+
+  /* ---------- 3D ---------- */
+  /* Orthographic camera. project([x,y,z]) → [u, v, depth] with u right, v up, depth toward viewer. z is "up". */
+  function camera(o = {}) {
+    const cam = { yaw: o.yaw ?? 0.6, pitch: o.pitch ?? 0.35, onChange: o.onChange || (() => {}) };
+    cam.project = ([x, y, z]) => {
+      const cy = Math.cos(cam.yaw), sy = Math.sin(cam.yaw), cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
+      const u = cy * x - sy * y, w = sy * x + cy * y;   // w: horizontal axis pointing away from the viewer
+      return [u, cp * z + sp * w, -cp * w + sp * z];     // pitch > 0 looks down from above; depth: larger = closer
+    };
+    cam.attach = (el) => {
+      let last = null; el.style.touchAction = "none"; el.classList.add("lx-drag");
+      el.addEventListener("pointerdown", e => { last = [e.clientX, e.clientY]; el.setPointerCapture(e.pointerId); });
+      el.addEventListener("pointermove", e => {
+        if (!last) return;
+        cam.yaw += (e.clientX - last[0]) * 0.01; cam.pitch = clamp(cam.pitch + (e.clientY - last[1]) * 0.01, -1.45, 1.45);
+        last = [e.clientX, e.clientY]; cam.onChange();
+      });
+      el.addEventListener("pointerup", () => { last = null; });
+      return cam;
+    };
+    return cam;
+  }
+
+  /* ---------- controls ---------- */
+  const controls = (parent, cls = "") => h("div", { class: "lx-controls " + cls }, parent);
+  function slider(parent, o) {
+    const id = o.id || "lxs" + (++uid);
+    const wrap = h("div", { class: "lx-slider", id: id + "-wrap" }, parent);
+    const lab = h("label", { class: "lx-lab", for: id }, wrap);
+    h("span", { html: o.label }, lab);
+    const out = h("output", { for: id }, lab);
+    const input = h("input", { type: "range", id, min: o.min, max: o.max, step: o.step ?? (o.max - o.min) / 200, value: o.value }, wrap);
+    const fmt = o.fmt || (v => (+v).toFixed(2).replace("-", "−"));
+    const show = () => { out.textContent = fmt(+input.value); };
+    input.addEventListener("input", () => { show(); o.onInput && o.onInput(+input.value); });
+    show(); typeset(lab);
+    return { el: wrap, input, get: () => +input.value, set(v, fire = true) { input.value = v; show(); if (fire && o.onInput) o.onInput(+input.value); } };
+  }
+  function segmented(parent, o) {
+    const id = o.id || "lxg" + (++uid);
+    const grp = h("div", { class: "lx-group", id }, parent);
+    if (o.label) h("span", { html: o.label }, grp);
+    const seg = h("div", { class: "lx-seg", role: "radiogroup" }, grp);
+    let value = o.value ?? o.options[0].value;
+    const inputs = o.options.map((op, i) => {
+      const l = h("label", {}, seg);
+      const inp = h("input", { type: "radio", name: id, id: `${id}-${i}`, value: op.value }, l);
+      inp.checked = op.value === value;
+      h("span", { html: op.label }, l);
+      inp.addEventListener("change", () => { value = op.value; o.onChange && o.onChange(value); });
+      return inp;
+    });
+    typeset(grp);
+    return { el: grp, get: () => value, set(v, fire = true) { value = v; inputs.forEach(i => i.checked = i.value == v); if (fire && o.onChange) o.onChange(v); } };
+  }
+  function button(parent, label, onClick, o = {}) {
+    const b = h("button", { type: "button", class: "lx-btn" + (o.cls ? " " + o.cls : ""), id: o.id, html: label, onclick: onClick, title: o.title }, parent);
+    if (/\\\(/.test(label)) typeset(b);
+    return b;
+  }
+  /* Limit buttons: one click jumps to a named regime. items: [{label, title, apply}] */
+  function limits(parent, items, title = "Jump to a limit", o = {}) {
+    const grp = h("div", { class: "lx-group", id: o.id }, parent);
+    h("span", { text: title }, grp);
+    const row = h("div", { class: "lx-row" }, grp);
+    items.forEach(it => button(row, it.label, it.apply, { title: it.title, cls: "lx-limit", id: it.id }));
+    typeset(grp); return grp;
+  }
+  function readout(parent, label) {
+    const r = parent.classList && parent.classList.contains("lx-readouts") ? parent : h("div", { class: "lx-readouts" }, parent);
+    const span = h("span", { html: label + " " }, r); const b = h("b", {}, span); typeset(span);
+    return { el: span, b, set(v) { b.textContent = v; }, html(v) { setHTML(b, v); } };
+  }
+  /* Animation loop with a play/pause button. onFrame(dt in seconds). Starts paused under reduced motion. */
+  function player(parent, o) {
+    let playing = false, last = 0, raf = 0;
+    const btn = button(parent, "Play", () => (playing ? pause() : play()), { id: o.id });
+    btn.setAttribute("aria-pressed", "false");
+    function frame(t) { const dt = last ? Math.min(0.05, (t - last) / 1000) : 0; last = t; o.onFrame(dt); if (playing) raf = requestAnimationFrame(frame); }
+    function play() { if (playing) return; playing = true; last = 0; btn.textContent = "Pause"; btn.setAttribute("aria-pressed", "true"); raf = requestAnimationFrame(frame); }
+    function pause() { playing = false; cancelAnimationFrame(raf); btn.textContent = "Play"; btn.setAttribute("aria-pressed", "false"); }
+    if (o.autoplay && !reduceMotion) play();
+    return { btn, play, pause, get playing() { return playing; } };
+  }
+
+  /* ---------- widget card, guide, legend ---------- */
+  const BADGE = { exact: "Exact", computed: "Computed", schematic: "Schematic" };
+  /* A framed widget. Returns the body element to fill; its children are arranged by the layout:
+     stack (one column) · split (two equal columns) · grid2 (2×2; a cell may hold controls)
+     aside (figures + a controls column; {left:true} puts the column first) · hero (big first child + a column)
+     Every layout falls back to one column when the card is narrower than ~620 px. */
+  function widget(parent, o = {}) {
+    const card = h("section", { class: "lx-widget" + (o.cls ? " " + o.cls : ""), id: o.id }, parent);
+    if (o.title || o.badge) {
+      const hd = h("div", { class: "lx-w-head" }, card);
+      if (o.title) h("h3", { html: o.title }, hd);
+      if (o.badge) h("span", { class: "lx-badge", "data-kind": o.badge, text: o.badgeText || BADGE[o.badge] }, hd);
+      typeset(hd);
+    }
+    const body = h("div", { class: `lx-w lx-${o.layout || "stack"}` + (o.left ? " lx-left" : "") }, card);
+    body.card = card;
+    return body;
+  }
+  /* "What you are looking at": one line per figure and per control. */
+  function guide(parent, items, title = "What you are looking at") {
+    const card = parent.card || parent;
+    const dl = h("dl", { class: "lx-guide" }, card);
+    if (title) h("b", { text: title }, dl);
+    for (const [t, d] of items) { h("dt", { html: t }, dl); h("dd", { html: d }, dl); }
+    typeset(dl); return dl;
+  }
+  function legend(parent, items) {
+    const lg = h("div", { class: "lx-legend" }, parent);
+    for (const [label, color, kind] of items) {
+      const sp = h("span", {}, lg); const i = h("i", { class: kind && kind !== "line" ? kind : "" }, sp);
+      i.style.color = `var(${color})`; h("span", { html: label }, sp);
+    }
+    typeset(lg); return lg;
+  }
+
+  /* ---------- gates and inline questions ---------- */
+  /* Hide a result (figure, readout, paragraph) until a question that lists it in `reveal` is answered.
+     The message is plain text (CSS content), no TeX.
+     A gate only ever opens. Do not gate controls the learner has already used. */
+  function gate(el, message = "Answer the question above to reveal") {
+    el.classList.add("lx-gated"); el.dataset.gate = message; el.setAttribute("aria-hidden", "true");
+    return { el, open: () => openGate(el) };
+  }
+  function openGate(el) { el.classList.remove("lx-gated"); el.removeAttribute("data-gate"); el.removeAttribute("aria-hidden"); }
+
+  /* Inline question in the text. Common options:
+       prompt (html), kicker (small label, defaults by type), reveal: [elements to un-gate],
+       right / wrong (html feedback), onAnswer(correct, value)
+     Types:
+       choice   options: [html], answer: index; grade: false only acknowledges the choice (for a hook whose
+                answer the text resolves later); then `right` is shown whatever was picked
+       number   answer: value, tol: relative tolerance (0.1), unit (html after the box)
+       set      the learner sets the widget, then presses Check. check(): {pass, msg}; solve(): optional,
+                puts the widget into the right state (offered after a wrong attempt)
+       sketch   plot: LX.plot, xs: handle positions, y0: start value (or ys), truth: x → y, tol: 0.15
+                (rms error relative to the truth's range); the learner drags handles, then compares
+       explain  model: html model answer, shown after the learner writes */
+  const KICK = { choice: "Predict", number: "Estimate", set: "Try it", sketch: "Sketch", explain: "Explain" };
+  function ask(parent, o) {
+    const type = o.type || "choice";
+    const box = h("div", { class: "lx-ask", "data-type": type }, parent);
+    h("div", { class: "lx-kicker", text: o.kicker || KICK[type] }, box);
+    h("div", { class: "lx-q", html: o.prompt }, box);
+    const body = h("div", { class: "lx-ask-body" }, box);
+    const fb = h("div", { class: "lx-feedback", "aria-live": "polite" }, box);
+    let answered = false;
+    function done(ok, value, extra) {
+      fb.className = "lx-feedback " + (ok == null ? "" : ok ? "good" : "bad");
+      const head = ok == null ? "" : `<b>${ok ? "Right." : "Not quite."}</b> `;
+      fb.innerHTML = head + (extra || "") + ((ok ? o.right : o.wrong) || (ok == null ? o.right || "" : ""));
+      typeset(fb);
+      if (!answered) { answered = true; box.dataset.answered = "1"; (o.reveal || []).forEach(openGate); }
+      if (o.onAnswer) o.onAnswer(ok, value);
+    }
+    if (type === "choice") {
+      const opts = h("div", { class: "lx-opts" }, body);
+      const bs = o.options.map((op, k) => h("button", { type: "button", class: "lx-opt", html: op, onclick: () => {
+        const graded = o.grade !== false;
+        bs.forEach((b, j) => { b.disabled = true; if (!graded) { if (j === k) b.classList.add("picked"); } else if (j === o.answer) b.classList.add("right"); else if (j === k) b.classList.add("wrong"); });
+        done(graded ? k === o.answer : null, k);
+      } }, opts));
+    } else if (type === "number") {
+      const row = h("div", { class: "lx-row" }, body); row.style.alignItems = "center";
+      const inp = h("input", { type: "text", inputmode: "decimal", "aria-label": "your estimate" }, row);
+      if (o.unit) h("span", { html: o.unit }, row);
+      const go = () => {
+        const v = parseFloat(inp.value.replace(",", ".").replace("−", "-"));
+        if (!isFinite(v)) { fb.className = "lx-feedback"; fb.textContent = "Enter a number."; return; }
+        const tol = o.tol ?? 0.1, err = (v - o.answer) / (Math.abs(o.answer) || 1), ok = Math.abs(err) <= tol;
+        const dir = ok ? "" : `Your estimate is too ${err > 0 ? "high" : "low"}. `;
+        done(ok, v, dir);
+      };
+      button(row, "Check", go, { cls: "lx-primary" });
+      inp.addEventListener("keydown", e => { if (e.key === "Enter") go(); });
+    } else if (type === "set") {
+      const row = h("div", { class: "lx-row" }, body);
+      let solveBtn = null;
+      button(row, o.checkLabel || "Check", () => {
+        const r = o.check(); const ok = typeof r === "object" ? !!r.pass : !!r;
+        done(ok, null, (typeof r === "object" && r.msg ? r.msg + " " : ""));
+        if (!ok && o.solve && !solveBtn) solveBtn = button(row, "Show me", () => { o.solve(); }, {});
+      }, { cls: "lx-primary" });
+    } else if (type === "sketch") {
+      const P = o.plot, n = o.xs.length, ys = o.ys ? o.ys.slice() : o.xs.map(() => o.y0 ?? (P.ylim[0] + P.ylim[1]) / 2);
+      const g = s("g", { class: "lx-sketch" }, P.svg);
+      const tg = s("g", {}, g), line = s("path", { class: "sk" }, g);
+      const dots = o.xs.map((x, i) => {
+        const c = s("circle", { r: 7, class: "f4", "aria-label": `sketch point ${i + 1}; arrow keys move it` }, g);
+        drag(P, c, { get: () => [x, ys[i]], set: (_, y) => { ys[i] = clamp(y, P.ylim[0], P.ylim[1]); draw(); }, step: [0, (P.ylim[1] - P.ylim[0]) / 40] });
+        return c;
+      });
+      function draw() {
+        line.setAttribute("d", o.xs.map((x, i) => (i ? "L" : "M") + P.X(x).toFixed(1) + "," + P.Y(ys[i]).toFixed(1)).join(""));
+        dots.forEach((c, i) => { c.setAttribute("cx", P.X(o.xs[i])); c.setAttribute("cy", P.Y(ys[i])); });
+      }
+      draw();
+      h("p", { html: o.hint || "Drag the pink points to sketch your guess, then compare with the real curve (blue).", style: "margin:0;font-size:13.5px" }, body);
+      const row = h("div", { class: "lx-row" }, body);
+      button(row, "Compare with the real curve", () => {
+        tg.replaceChildren();
+        const pts = sample(o.truth, P.xlim[0], P.xlim[1], 300);
+        let d = ""; pts.forEach(([x, y], i) => { d += (i ? "L" : "M") + P.X(x).toFixed(1) + "," + P.Y(clamp(y, P.ylim[0] - 10, P.ylim[1] + 10)).toFixed(1); });
+        s("path", { d, class: "s1" }, tg);
+        const tv = o.xs.map(o.truth), span = (Math.max(...tv) - Math.min(...tv)) || 1;
+        const rms = Math.sqrt(o.xs.reduce((a, _, i) => a + (ys[i] - tv[i]) ** 2, 0) / n) / span;
+        done(rms <= (o.tol ?? 0.15), rms, `Your sketch is off by ${(100 * rms).toFixed(0)}% of the curve's range. `);
+      }, { cls: "lx-primary" });
+    } else if (type === "explain") {
+      const ta = h("textarea", { placeholder: "In your own words…", "aria-label": "your explanation" }, body);
+      const row = h("div", { class: "lx-row" }, body);
+      button(row, o.compareLabel || "Compare with a model answer", () => {
+        if (box.querySelector(".lx-model")) return;
+        const m = h("div", { class: "lx-model", html: o.model }, body); typeset(m);
+        done(null, ta.value);
+      });
+    }
+    typeset(box);
+    return { el: box, get answered() { return answered; } };
+  }
+
+  /* ---------- self-tests ---------- */
+  window.__lxTests = window.__lxTests || [];
+  function check(name, fn) {
+    let pass = false, detail = "";
+    try { const r = fn(); if (typeof r === "object" && r) { pass = !!r.pass; detail = r.detail || ""; } else pass = !!r; }
+    catch (e) { detail = "threw: " + e.message; }
+    window.__lxTests.push({ name, pass, detail });
+    if (!pass) console.warn("LX check failed:", name, detail);
+    return pass;
+  }
+  const near = (a, b, tol = 1e-9) => Math.abs(a - b) <= tol * Math.max(1, Math.abs(a), Math.abs(b));
+
+  return { h, s, typeset, setHTML, linspace, clamp, sample, C, eigSym, niceTicks, fig, plot, drag, camera, widget, guide, legend,
+           controls, slider, segmented, button, limits, readout, player, ask, gate, check, near, rng, reduceMotion };
+})();
+/* LX:LIB-END */
+</script>
+
+<script>
+/* CHAPTER — SSH chain. Shared physics first, then one block per widget, then the questions, then self-tests. */
+const TAU = 2 * Math.PI, PI = Math.PI;
+const $ = id => document.getElementById(id);
+const fmt = (x, d = 2) => x.toFixed(d).replace("-", "−");
+
+/* ---------- physics ---------- */
+const dvec = (k, v, w) => [v + w * Math.cos(k), w * Math.sin(k)];
+const band = (k, v, w) => Math.hypot(v + w * Math.cos(k), w * Math.sin(k));        // E₊(k) = |v + w e^{ik}|
+/* Winding number of d(k) around the origin; NaN when the loop touches it (gap closed). */
+function winding(v, w, n = 2000) {
+  let tot = 0, prev = Math.atan2(0, v + w);
+  for (let i = 1; i <= n; i++) {
+    const d = dvec(TAU * i / n, v, w);
+    if (Math.hypot(d[0], d[1]) < 1e-9) return NaN;
+    const a = Math.atan2(d[1], d[0]); let da = a - prev;
+    da -= TAU * Math.round(da / TAU); tot += da; prev = a;
+  }
+  return Math.round(tot / TAU);
+}
+/* Unwrapped angle φ(k) of d(k), continuous from φ(0) = 0, sampled on (−π, π). */
+function phase(v, w, n = 401) {
+  const ks = LX.linspace(-PI + 1e-6, PI - 1e-6, n), mid = (n - 1) / 2, phi = new Array(n);
+  const ang = k => Math.atan2(w * Math.sin(k), v + w * Math.cos(k));
+  phi[mid] = ang(ks[mid]);
+  for (let i = mid + 1; i < n; i++) { let d = ang(ks[i]) - ang(ks[i - 1]); d -= TAU * Math.round(d / TAU); phi[i] = phi[i - 1] + d; }
+  for (let i = mid - 1; i >= 0; i--) { let d = ang(ks[i]) - ang(ks[i + 1]); d -= TAU * Math.round(d / TAU); phi[i] = phi[i + 1] + d; }
+  return ks.map((k, i) => [k, phi[i]]);
+}
+/* Open chain, sites ordered A1 B1 A2 B2 …: off-diagonals alternate v (intracell), w (intercell).
+   sites = 2N (ends on B_N) or 2N + 1 (ends on A_{N+1}); m = staggered potential (+m on A, −m on B). */
+const offdiag = (v, w, sites) => Array.from({ length: sites - 1 }, (_, i) => (i % 2 ? w : v));
+function hamiltonian(v, w, sites, m = 0) {
+  const H = Array.from({ length: sites }, (_, i) => { const r = new Array(sites).fill(0); r[i] = i % 2 ? -m : m; return r; });
+  offdiag(v, w, sites).forEach((b, i) => { H[i][i + 1] = H[i + 1][i] = b; });
+  return H;
+}
+/* Eigenvalues of a zero-diagonal symmetric tridiagonal matrix by Sturm-sequence bisection (fast: spectral flow). */
+function sturmEig(b) {
+  const M = b.length + 1, R = Math.max(0, ...b) * 2 + 1e-9;
+  const below = x => { let q = -x, c = q < 0; for (let i = 1; i < M; i++) { q = -x - b[i - 1] * b[i - 1] / (q || 1e-300); c += q < 0; } return c; };
+  return Array.from({ length: M }, (_, j) => {
+    let lo = -R, hi = R;
+    for (let it = 0; it < 46; it++) { const mid = (lo + hi) / 2; below(mid) > j ? (hi = mid) : (lo = mid); }
+    return (lo + hi) / 2;
+  });
+}
+/* Spectrum, eigenvectors, and the density of the two states nearest E = 0 (their average). */
+function chain(v, w, N) {
+  const { values, vectors } = LX.eigSym(hamiltonian(v, w, 2 * N));
+  const rho = new Array(2 * N).fill(0);
+  for (const j of [N - 1, N]) vectors[j].forEach((c, i) => { rho[i] += c * c / 2; });
+  return { E: values, V: vectors, rho, pairE: [values[N - 1], values[N]] };
+}
+const xi = r => (r < 1 ? (r <= 0 ? 0 : 1 / Math.log(1 / r)) : Infinity);       // r = v/w
+const minAbsE = (v, w, N) => Math.min(...sturmEig(offdiag(v, w, 2 * N)).map(Math.abs));
+
+/* Chain drawing shared by widgets 1 and 4: bond width ∝ hopping, A sites accent, B sites orange. */
+function drawChain(P, v, w, N) {
+  P.clear("main"); P.clear("top");
+  const tmax = Math.max(v, w, 1e-9), r = Math.min(4.5, 48 / N);
+  const bond = (xa, xb, t) => { if (t <= 1e-9) return; const l = P.line(xa, 0, xb, 0, { cls: "sm" }); l.style.strokeWidth = (0.6 + 4.4 * t / tmax).toFixed(2); };
+  for (let n = 1; n <= N; n++) { bond(n - 0.25, n + 0.25, v); if (n < N) bond(n + 0.25, n + 0.75, w); }
+  for (let n = 1; n <= N; n++) { P.dot(n - 0.25, 0, { r, cls: "f1" }); P.dot(n + 0.25, 0, { r, cls: "f2" }); }
+}
+/* Site-resolved density as bars: A at n − 0.25, B at n + 0.25. */
+function drawBars(P, rhoA, rhoB, N) {
+  const wpx = Math.max(1.5, Math.min(7, 110 / N)).toFixed(1);
+  for (let n = 1; n <= N; n++) {
+    [[n - 0.25, rhoA[n - 1], "s1"], [n + 0.25, rhoB[n - 1], "s2"]].forEach(([x, y, cls]) => {
+      if (y <= 0) return; const l = P.line(x, 0, x, y, { cls }); l.style.strokeWidth = wpx; l.style.strokeLinecap = "butt";
+    });
+  }
+}
+
+/* ================= Widget 1: explore the open chain ================= */
+const X = { v: 0.4, w: 1, N: 16 }, VM = 1.5, EM = 3.2;
+const wX = LX.widget($("w-explore"), { layout: "hero", title: "An open SSH chain", badge: "computed" });
+const xCol = LX.h("div", { class: "lx-col" }, wX);
+const xFig = LX.fig(xCol, "Top: the chain; bond thickness is proportional to the hopping. Bottom: \\(|\\psi|^2\\) on each site, averaged over the two eigenstates closest to \\(E = 0\\).");
+const PC = LX.plot(xFig, { xlim: [0.4, X.N + 0.6], ylim: [-1, 1], ticks: false, frame: false, height: 64, margin: { l: 56, r: 16, t: 4, b: 4 } });
+const lv = PC.tex(1, 0.45, "v", { anchor: "s" }), lw = PC.tex(2.5, 0.45, "w", { anchor: "s" });
+const PD = LX.plot(xFig, { xlim: [0.4, X.N + 0.6], ylim: [0, 0.5], xlabel: "\\text{cell } n", ylabel: "|\\psi|^2", height: 250 });
+LX.legend(xFig, [["A sites", "--accent", "line"], ["B sites", "--c2", "line"], ["exact semi-infinite end state", "--muted", "dash"]]);
+const fFig = LX.fig(wX, "All \\(2N\\) energies of the open chain against \\(v\\), at the current \\(w\\) and \\(N\\). Pink: the two levels nearest zero. Orange line: the current \\(v\\).");
+const PF = LX.plot(fFig, { xlim: [0, VM], ylim: [-EM, EM], xlabel: "v", ylabel: "E", width: 400, height: 340 });
+const xc = LX.controls(wX);
+const xv = LX.slider(xc, { id: "x-v", label: "intracell hopping \\(v\\)", min: 0, max: VM, step: 0.01, value: X.v, onInput: x => { X.v = x; xUpdate(); } });
+const xw = LX.slider(xc, { id: "x-w", label: "intercell hopping \\(w\\)", min: 0, max: VM, step: 0.01, value: X.w, onInput: x => { X.w = x; xUpdate(true); } });
+const xn = LX.slider(xc, { id: "x-N", label: "cells \\(N\\)", min: 4, max: 30, step: 1, value: X.N, fmt: x => String(x), onInput: x => { X.N = x; xUpdate(true); } });
+LX.button(LX.h("div", { class: "lx-row" }, xc), "Swap \\(v\\) and \\(w\\)", () => {
+  [X.v, X.w] = [X.w, X.v]; xv.set(X.v, false); xw.set(X.w, false); xUpdate(true);
+}, { id: "x-swap" });
+const xr = LX.h("div", { class: "lx-readouts" }, xc);
+const rPair = LX.readout(xr, "levels nearest 0: \\(\\pm\\)");
+const rGap = LX.readout(xr, "bulk gap \\(2|v-w|\\) =");
+LX.guide(wX, [
+  ["Chain", "Blue dots are A sites, orange dots B sites. Each cell is an A–B pair joined by a \\(v\\) bond; neighbouring cells are joined by \\(w\\) bonds. Thicker line, larger hopping."],
+  ["\\(|\\psi|^2\\) panel", "Where the two states closest to zero energy live, site by site. Peaks at the ends mean end states; a spread-out pattern means bulk states. Dashed: the exact end-state envelope \\eqref{eq:xi}, drawn when \\(v \\lt w\\)."],
+  ["Spectrum", "Each line is one eigenvalue of the open chain as \\(v\\) varies. Bulk states form the two bands; a level that stays near \\(E = 0\\) inside the gap is not a bulk state."],
+  ["Sliders", "\\(v\\) moves the cursor only; \\(w\\) and \\(N\\) recompute the whole spectrum. <b>Swap</b> exchanges \\(v\\) and \\(w\\), which leaves the bulk bands unchanged."],
+  ["Readouts", "The energy of the two levels nearest zero, and the bulk gap from \\eqref{eq:E}."]
+]);
+let flow = null;
+function xUpdate(recompute = false) {
+  const { v, w, N } = X;
+  if (recompute) { PC.setLim([0.4, N + 0.6], null); PD.setLim([0.4, N + 0.6], null); }
+  PC.placeTex(lv, 1, 0.45, "s"); PC.placeTex(lw, 2.5, 0.45, "s");
+  drawChain(PC, v, w, N);
+  const C = chain(v, w, N);
+  const top = Math.max(...C.rho) * 1.15 || 1;
+  PD.setLim(null, [0, top]); PD.clearAll();
+  drawBars(PD, C.rho.filter((_, i) => i % 2 === 0), C.rho.filter((_, i) => i % 2 === 1), N);
+  if (v < w) {   // exact semi-infinite end states, each carrying half of the pair's weight
+    const q = (v / w) ** 2, a = (1 - q) / 2;
+    PD.path(Array.from({ length: N }, (_, i) => [i + 1 - 0.25, a * q ** i]), { cls: "sm dash", layer: "top" });
+    PD.path(Array.from({ length: N }, (_, i) => [N - i + 0.25, a * q ** i]), { cls: "sm dash", layer: "top" });
+  }
+  if (recompute || !flow) flow = LX.linspace(0, VM, 76).map(vv => [vv, sturmEig(offdiag(vv, w, 2 * N))]);
+  PF.clearAll();
+  PF.hline(0, { cls: "gr" });
+  for (let j = 0; j < 2 * N; j++) {
+    const mid = j === N - 1 || j === N;
+    PF.path(flow.map(([vv, E]) => [vv, E[j]]), { cls: mid ? "s4" : "s1 thin" });
+  }
+  if (w > 0.02 && w < VM) { PF.vline(w); PF.tex(w, EM - 0.1, "v=w", { anchor: "nw" }); }
+  PF.vline(v, { cls: "s2 thin", layer: "top" });
+  C.E.forEach((E, j) => { const mid = j === N - 1 || j === N; PF.dot(v, E, { r: mid ? 4.5 : 2.5, cls: mid ? "f4" : "f2" }); });
+  const e = Math.abs(C.pairE[1]);
+  rPair.set(e < 1e-12 ? "0 (to machine precision)" : e.toExponential(1).replace("-", "−"));
+  rGap.set(fmt(2 * Math.abs(v - w)));
+}
+xUpdate(true);
+LX.gate(PD.svg.parentNode, "Answer the opening question to see the states");
+LX.gate(PF.svg.parentNode, "Answer the opening question to see the spectrum");
+LX.gate(xr, "Hidden until you answer");
+
+/* ================= Widget 2: bulk bands ================= */
+const B = { v: 0.4, w: 1 };
+const wB = LX.widget($("w-bands"), { layout: "aside", title: "Bulk bands", badge: "exact" });
+const PB = LX.plot(LX.fig(wB, "\\(E_\\pm(k) = \\pm|v + w\\,e^{ik}|\\) over the Brillouin zone. Shaded: the gap."), { xlim: [-PI, PI], ylim: [-EM, EM], xlabel: "k", ylabel: "E", height: 330 });
+const gapLab = PB.tex(0, 0, "2|v-w|", { anchor: "c" });
+const bc = LX.controls(wB);
+LX.slider(bc, { id: "b-v", label: "\\(v\\)", min: 0, max: VM, step: 0.01, value: B.v, onInput: x => { B.v = x; bDraw(); } });
+LX.slider(bc, { id: "b-w", label: "\\(w\\)", min: 0, max: VM, step: 0.01, value: B.w, onInput: x => { B.w = x; bDraw(); } });
+LX.button(LX.h("div", { class: "lx-row" }, bc), "Keep a copy of these bands", () => PB.ghost(), { id: "b-ghost" });
+const rBG = LX.readout(bc, "gap \\(2|v-w|\\) =");
+LX.guide(wB, [
+  ["Blue curves", "The two bands \\(E_\\pm(k)\\) of the infinite chain, \\eqref{eq:E}."],
+  ["Green band", "The gap between them, smallest at the zone edge \\(k = \\pm\\pi\\); the dots mark the band edges there."],
+  ["Copy", "<b>Keep a copy</b> freezes the current bands as a faint dashed curve, so you can compare two parameter sets."]
+]);
+function bDraw() {
+  const { v, w } = B, g = Math.abs(v - w);
+  PB.clear("main"); PB.clear("fill"); PB.clear("top");
+  PB.path([[-PI, -g], [PI, -g], [PI, g], [-PI, g]], { cls: "a3", layer: "fill", close: true });
+  PB.fn(k => band(k, v, w), { cls: "s1" }); PB.fn(k => -band(k, v, w), { cls: "s1" });
+  [-PI, PI].forEach(k => { PB.dot(k, g, { r: 4, cls: "f3" }); PB.dot(k, -g, { r: 4, cls: "f3" }); });
+  gapLab.style.display = g > 0.15 ? "" : "none";
+  rBG.set(fmt(2 * g));
+}
+bDraw();
+
+/* ================= Widget 3: winding of d(k) ================= */
+const Wd = { r: 0.5, k: 2.2 };
+const wW = LX.widget($("w-wind"), { layout: "split", title: "The loop traced by \\(\\mathbf d(k)\\)", badge: "exact" });
+const PL = LX.plot(LX.fig(wW, "\\(\\mathbf d(k)\\) in the plane as \\(k\\) runs from \\(-\\pi\\) to \\(\\pi\\) (\\(w = 1\\)). Grey dot: the origin. Orange arrow: \\(\\mathbf d\\) at the current \\(k\\)."),
+  { xlim: [-1.5, 3.3], ylim: [-1.507, 1.507], xlabel: "d_x", ylabel: "d_y", width: 420, height: 300, margin: { l: 44, r: 16, t: 30, b: 44 } });
+const PP = LX.plot(LX.fig(wW, "The angle \\(\\varphi(k)\\) of \\(\\mathbf d(k)\\), followed continuously from \\(\\varphi(0) = 0\\). Its total change over the zone is \\(2\\pi W\\)."),
+  { xlim: [-PI, PI], ylim: [-1.3, 1.3], xlabel: "k", ylabel: "\\varphi/\\pi", width: 420, height: 300 });
+const wc = LX.controls(wW); wc.classList.add("lx-span2");
+LX.slider(wc, { id: "w-r", label: "ratio \\(v/w\\)", min: 0, max: 2, step: 0.01, value: Wd.r, onInput: x => { Wd.r = x; wDraw(); } });
+LX.slider(wc, { id: "w-k", label: "wavenumber \\(k\\)", min: -PI, max: PI, step: 0.01, value: Wd.k, onInput: x => { Wd.k = x; wDraw(); } });
+const rW = LX.readout(wc, "winding \\(W\\) =");
+LX.guide(wW, [
+  ["Loop", "The circle of radius \\(w\\) centred at \\((v, 0)\\) traced by \\(\\mathbf d(k)\\); the small arrow on it shows the direction of increasing \\(k\\). Does it enclose the grey origin?"],
+  ["Angle", "The same information as one number per \\(k\\): the angle of the orange arrow. It ends at \\(\\pm\\pi\\) when the loop encloses the origin, and returns to 0 when it does not."],
+  ["Sliders", "\\(v/w\\) moves the circle sideways; \\(k\\) moves the orange arrow and the dot in the angle plot."]
+]);
+function wDraw() {
+  const v = Wd.r, w = 1, k = Wd.k;
+  PL.clearAll();
+  PL.hline(0, { cls: "gr" }); PL.vline(0, { cls: "gr" });
+  PL.path(LX.linspace(0, TAU, 300).map(q => dvec(q, v, w)), { cls: "s1" });
+  const a = dvec(PI / 2 - 0.3, v, w), b = dvec(PI / 2 + 0.05, v, w);
+  PL.arrow(a[0], a[1], b[0], b[1], { cls: "s1", layer: "main" });
+  PL.dot(0, 0, { r: 5, cls: "fm", layer: "main" });
+  const d = dvec(k, v, w);
+  if (Math.hypot(d[0], d[1]) > 1e-3) PL.arrow(0, 0, d[0], d[1], { cls: "s2" });
+  PL.dot(d[0], d[1], { r: 5, cls: "f2" });
+  PP.clearAll();
+  PP.hline(0, { cls: "gr" }); PP.hline(1, { cls: "sm dash" }); PP.hline(-1, { cls: "sm dash" });
+  const ph = phase(v, w);
+  PP.path(ph.map(([q, p]) => [q, p / PI]), { cls: "s1" });
+  PP.vline(k, { cls: "s2 thin", layer: "top" });
+  let i = Math.round((k + PI) / TAU * (ph.length - 1)); i = LX.clamp(i, 0, ph.length - 1);
+  PP.dot(k, ph[i][1] / PI, { r: 5, cls: "f2" });
+  const W = Math.abs(v - w) < 0.005 ? NaN : winding(v, w);
+  rW.set(isNaN(W) ? "undefined: the loop passes through the origin" : String(W));
+}
+wDraw();
+
+/* ================= Widget 4: the left end state ================= */
+const Ed = { r: 0.5 }, NE = 20;
+const wE = LX.widget($("w-edge"), { layout: "split", title: "The end states, up close", badge: "computed" });
+const eFig1 = LX.fig(wE, "\\(|\\psi|^2\\) on A (blue) and B (orange) sites, averaged over the two states nearest \\(E = 0\\). Open chain of 20 cells, \\(w = 1\\).");
+const PE = LX.plot(eFig1, { xlim: [0.4, NE + 0.6], ylim: [0, 1], xlabel: "\\text{cell } n", ylabel: "|\\psi|^2", width: 420, height: 300 });
+const eFig2 = LX.fig(wE, "The left end state alone: its density on A sites on a log scale (dots), and the exact envelope \\eqref{eq:xi} (dashed).");
+const PE2 = LX.plot(eFig2, { xlim: [0.5, NE + 0.5], ylim: [-8, 0.4], xlabel: "\\text{cell } n", ylabel: "\\log_{10}|\\psi_{n,A}|^2", width: 420, height: 300 });
+const ec = LX.controls(wE); ec.classList.add("lx-span2");
+const eS = LX.slider(ec, { id: "e-r", label: "ratio \\(v/w\\)", min: 0.05, max: 1.5, step: 0.005, value: Ed.r, fmt: x => x.toFixed(3), onInput: x => { Ed.r = x; eDraw(); } });
+const rXi = LX.readout(ec, "decay length \\(\\xi = 1/\\ln(w/v)\\) =");
+LX.guide(wE, [
+  ["Densities", "Where the two states nearest zero live, averaged over the pair (the average does not depend on how the two nearly degenerate states mix). For \\(v \\lt w\\): a blue peak at the left end, an orange one at the right end. For \\(v \\gt w\\): bulk standing waves."],
+  ["Log plot", "\\(\\log_{10}|\\psi_{n,A}|^2\\) of the left end state, which is twice the blue bar (the left state carries half of the pair's weight). A straight line means exponential decay, with slope \\(-2/(\\xi \\ln 10)\\) per cell. Points below \\(10^{-8}\\) are not drawn."],
+  ["Slider", "\\(v/w\\). Watch the slope of the line and the far end of the chain as \\(v/w \\to 1\\)."]
+]);
+function eDraw() {
+  const r = Ed.r, C = chain(r, 1, NE);
+  const a = C.rho.filter((_, i) => i % 2 === 0), b = C.rho.filter((_, i) => i % 2 === 1);
+  PE.setLim(null, [0, Math.max(...C.rho) * 1.15]); PE.clearAll();
+  drawBars(PE, a, b, NE);
+  PE2.clearAll();
+  if (r < 1) PE2.path(LX.linspace(1, NE, 60).map(n => [n, Math.log10(1 - r * r) + 2 * (n - 1) * Math.log10(r)]), { cls: "sm dash" });
+  a.forEach((x, i) => { const y = Math.log10(2 * x); if (y > -8) PE2.dot(i + 1, y, { r: 3.5, cls: "f1", layer: "main" }); });
+  rXi.set(r < 1 ? fmt(xi(r)) + " cells" : "no end state (v ≥ w)");
+}
+eDraw();
+
+/* ================= Questions ================= */
+const hookOpts = [
+  "No. All atoms are identical, so every state belongs to the two bulk bands; the ends only shift them slightly.",
+  "Yes, always: any end of a gapped chain binds a state inside the gap.",
+  "It depends on which bond is cut: one way of ending the chain gives a state in the middle of the gap, the other gives none.",
+  "Only if the end atoms are made different, for example by an extra on-site potential."
+];
+LX.ask($("q-hook"), {
+  type: "choice", kicker: "Predict",
+  prompt: "Can the ends of this chain host electronic states with energies inside the bulk gap, states that the infinite chain does not have?",
+  options: hookOpts, answer: 2, grade: false, reveal: [PD.svg.parentNode, PF.svg.parentNode, xr],
+  right: "Noted. Keep your answer in mind: the first widget below shows what an actual chain does, and the section <a href=\"#resolve\">Back to the opening question</a> returns to the reasoning.",
+  onAnswer: (_, k) => { const e = $("echo"); e.textContent = "At the start you chose: “" + hookOpts[k] + "”"; }
+});
+LX.ask($("q-swap"), {
+  type: "choice", kicker: "Check",
+  prompt: "Set \\(v = 0.4\\), \\(w = 1\\), press <b>Keep a copy</b>, then exchange the two values. Before you do it: what will the bands look like?",
+  options: ["Identical to the copy.", "The copy mirrored about \\(E = 0\\).", "Different: the gap moves to \\(k = 0\\)."], answer: 0,
+  right: "By \\eqref{eq:E}, \\(E\\) depends on \\(v\\) and \\(w\\) only through \\(v^2 + w^2\\) and \\(vw\\), which are symmetric under the swap. Yet the open chains of the first widget looked completely different for \\((0.4, 1)\\) and \\((1, 0.4)\\). Whatever distinguishes the two phases is not in \\(E(k)\\).",
+  wrong: "Try it: the new bands land exactly on the copy. By \\eqref{eq:E}, \\(E\\) depends only on \\(v^2 + w^2\\) and \\(vw\\). So whatever distinguished the two open chains in the first widget is not in \\(E(k)\\)."
+});
+LX.ask($("q-wind"), {
+  type: "choice", kicker: "Check",
+  prompt: "Move \\(v/w\\) from 0.5 to 1.5. The winding jumps from 1 to 0. What must happen at the moment of the jump?",
+  options: ["The loop passes through the origin, so \\(|\\mathbf d(k)| = 0\\) for some \\(k\\): the bulk gap closes.", "The loop shrinks to a point.", "Nothing visible in the bulk: the jump is a property of the chain's ends."], answer: 0,
+  right: "Deforming a loop that avoids the origin cannot change how often it winds around it. The only way to change \\(W\\) is to drag the loop across the origin, and there \\(|\\mathbf d(k)| = E_+(k) = 0\\): the gap closes. This is why \\(v = w\\) is a phase transition between two insulators with the same bands, not a crossover.",
+  wrong: "Watch the loop as \\(v/w\\) crosses 1: the circle (radius \\(w\\)) slides sideways across the grey origin without shrinking. At the crossing \\(|\\mathbf d(\\pi)| = 0\\), which is the gap closing at \\(k = \\pi\\)."
+});
+
+/* Practice */
+LX.ask($("q-num"), {
+  type: "number", tol: 0.08, answer: 1 / Math.log(1.25), unit: "unit cells",
+  prompt: "A chain has \\(v = 0.8\\) and \\(w = 1.0\\). How many unit cells is the localisation length \\(\\xi\\) of its end states?",
+  right: "\\(\\xi = 1/\\ln 1.25 \\approx 4.5\\) cells. The density falls by \\(e^2 \\approx 7.4\\) every 4.5 cells, so the state reaches 10–15 cells into the chain. Compare with the end-state widget at \\(v/w = 0.8\\).",
+  wrong: "Use \\(\\xi = 1/\\ln(w/v)\\) with \\(w/v = 1.25\\), so \\(\\ln 1.25 \\approx 0.22\\). The end-state widget at \\(v/w = 0.8\\) shows the same number."
+});
+const skFig = LX.h("div", { class: "lx-fig ask-fig" });
+const PS = LX.plot(skFig, { xlim: [0, 2], ylim: [0, 1.3], xlabel: "v/w", ylabel: "\\min_j |E_j|", height: 280, margin: { b: 62 } });
+PS.vline(1); PS.tex(1.03, 1.25, "v=w", { anchor: "nw" });
+const skAsk = LX.ask($("q-sketch"), {
+  type: "sketch", plot: PS, xs: LX.linspace(0, 2, 9), y0: 0.65, tol: 0.15,
+  truth: v => minAbsE(v, 1, 20),
+  prompt: "Open chain, \\(N = 20\\) cells, \\(w = 1\\). Sketch the smallest \\(|E|\\) among all 40 levels as \\(v/w\\) goes from 0 to 2.",
+  hint: "Drag the pink points, then compare with the computed curve (blue).",
+  right: "The end-state pair stays at \\(E \\approx 0\\) (splitting \\(\\propto (v/w)^N\\)) and lifts off only when \\(\\xi\\) becomes comparable to \\(N\\), just below \\(v = w\\). On the trivial side there is no state in the gap, and the smallest \\(|E|\\) is the band edge, close to \\(|v - w|\\). The bulk gap is symmetric about \\(v = w\\); this curve is not. That asymmetry is the bulk–boundary correspondence.",
+  wrong: "Look at the computed curve: flat at zero for \\(v \\lt w\\) (the end-state pair), a small finite-size value at \\(v = w\\), then the band edge \\(\\approx |v - w|\\) for \\(v \\gt w\\). The bulk gap is symmetric about \\(v = w\\); the open-chain spectrum is not."
+});
+skAsk.el.insertBefore(skFig, skAsk.el.querySelector(".lx-ask-body"));
+LX.ask($("q-set"), {
+  type: "set",
+  prompt: "Use the <a href=\"#edge\">end-state widget</a>: set \\(v/w\\) so that the density of the left end state drops by a factor of 100 between cell 1 and cell 3. The state is then essentially gone within two unit cells.",
+  check: () => {
+    const r = Ed.r, ratio = r ** 4;
+    return { pass: r >= 0.29 && r <= 0.345, msg: `At v/w = ${r.toFixed(3)} the density drops by a factor ${(1 / ratio).toFixed(0)} from cell 1 to cell 3.` };
+  },
+  solve: () => { eS.set(0.316); $("w-edge").scrollIntoView({ behavior: "smooth", block: "center" }); },
+  right: "Over two cells the density falls by \\((v/w)^4\\), so \\((v/w)^4 = 0.01\\) gives \\(v/w \\approx 0.32\\) and \\(\\xi \\approx 0.87\\) cells.",
+  wrong: "Over two cells the density falls by \\((v/w)^4\\). On the log plot you need a drop of two decades between \\(n = 1\\) and \\(n = 3\\)."
+});
+LX.ask($("q-mis"), {
+  type: "choice", kicker: "Misconception",
+  prompt: "A colleague says: “The SSH transition is topological because the gap closes at \\(v = w\\). So every gap closing in a one-dimensional insulator is a topological transition.” Which reply is right?",
+  options: [
+    "They are right: a gap closing always changes some topological invariant.",
+    "A gap closing is necessary for \\(W\\) to change, not sufficient: tune \\(v/w\\) from 0.5 up to 1 and back to 0.5, and the gap closes once while \\(W\\) ends where it started.",
+    "\\(W\\) can even change without a gap closing, if \\(v\\) and \\(w\\) are changed quickly enough."
+  ], answer: 1,
+  right: "\\(W\\) can change only where the gap closes, but a gap can close and reopen without \\(W\\) changing: here by touching the origin and moving back, in other models by two closings that cancel. Closing is necessary; a change of the invariant on the two sides is what makes the transition topological.",
+  wrong: "\\(W\\) is a property of \\(h(k)\\) at each parameter value, not of how fast the parameters change. And while \\(W\\) can change only where the loop crosses the origin, touching the origin and moving back leaves \\(W\\) unchanged. A gap closing is necessary, not sufficient."
+});
+LX.ask($("q-odd"), {
+  type: "number", kicker: "Transfer", answer: 1, tol: 0.01, unit: "zero-energy states",
+  prompt: "Add one more A site at the right end, so the chain has \\(2N + 1\\) sites and starts and ends on A. For arbitrary \\(v, w \\gt 0\\), how many eigenstates have exactly \\(E = 0\\)?",
+  right: "Exactly one, for every \\(v\\) and \\(w\\). \\(H\\) only connects A to B, so it maps the \\((N+1)\\)-dimensional A space into the \\(N\\)-dimensional B space, and some combination of A sites is annihilated. That zero mode lives on A only, at the left end for \\(v \\lt w\\) and at the right end for \\(v \\gt w\\). The same counting is behind the zero mode bound to a domain wall between the two dimerisations, the soliton of the original SSH paper.",
+  wrong: "Count dimensions. \\(H\\) only connects A to B. With \\(N + 1\\) A sites and \\(N\\) B sites, \\(H\\) maps an \\((N+1)\\)-dimensional space into an \\(N\\)-dimensional one, so it annihilates at least one vector. Here it is exactly one, whatever \\(v\\) and \\(w\\)."
+});
+LX.ask($("q-explain"), {
+  type: "explain",
+  prompt: "Why is the end state pinned to exactly \\(E = 0\\) as long as the gap is open? And what does a staggered on-site potential \\(m\\,(n_A - n_B)\\) do to the two end states?",
+  model: "<p>\\(H\\) only hops between A and B, so \\(\\Gamma H \\Gamma = -H\\) and the spectrum is symmetric: each state at \\(E\\) has a partner \\(\\Gamma\\psi\\) at \\(-E\\). The left end state lives on A only, so \\(\\Gamma\\psi = \\psi\\): it is its own partner. To move to \\(\\varepsilon \\neq 0\\) it would need a distinct partner at \\(-\\varepsilon\\), that is, it would have to mix with a B state at the same end and the same energy. Inside the gap there is none: bulk states have \\(|E| \\ge |v - w|\\), and the right end state is \\(N\\) cells away, which gives only the splitting \\(\\propto (v/w)^N\\). So the state stays at zero until the gap closes.</p><p>The potential adds \\(m\\Gamma\\) to \\(H\\), which commutes with \\(\\Gamma\\): chiral symmetry is broken. The A-only left state is still an eigenstate of the semi-infinite chain, now at \\(E = +m\\); the B-only right state moves to \\(-m\\). For \\(|m|\\) smaller than the gap they stay inside it, but they are no longer pinned. \\(W\\) loses its meaning too: \\(\\mathbf d(k)\\) gets \\(d_z = m\\), so the loop no longer lies in a plane through the origin and can be slid past the origin without touching it.</p>"
+});
+
+/* ================= Self-tests ================= */
+LX.check("gap from bands = 2|v−w| (min of |v + w e^{ik}| at k = π)", () => {
+  const bad = [[0.4, 1], [1.3, 0.7], [0.9, 0.9]].filter(([v, w]) => !LX.near(2 * Math.min(...LX.linspace(-PI, PI, 2001).map(k => band(k, v, w))), 2 * Math.abs(v - w), 1e-9));
+  return { pass: !bad.length, detail: JSON.stringify(bad) };
+});
+LX.check("bands symmetric under v ↔ w", () => LX.linspace(-PI, PI, 50).every(k => LX.near(band(k, 0.4, 1), band(k, 1, 0.4), 1e-12)));
+LX.check("winding W = 1 for v < w, 0 for v > w", () => {
+  const r = [winding(0.5, 1), winding(0, 1), winding(1.5, 1), winding(1, 0), winding(0.99, 1), winding(1.01, 1)];
+  return { pass: r.join() === "1,1,0,0,1,0", detail: r.join() };
+});
+LX.check("unwrapped phase changes by 2πW over the zone", () => {
+  const t = (v) => { const p = phase(v, 1); return (p[p.length - 1][1] - p[0][1]) / TAU; };
+  return { pass: Math.abs(t(0.5) - 1) < 1e-3 && Math.abs(t(1.5)) < 1e-3, detail: `${t(0.5)}, ${t(1.5)}` };
+});
+LX.check("open chain at v = 0 has exactly two zero modes, the rest at ±w", () => {
+  const E = chain(0, 1, 10).E, z = E.filter(e => Math.abs(e) < 1e-12).length;
+  return { pass: z === 2 && E.every(e => Math.abs(e) < 1e-12 || LX.near(Math.abs(e), 1, 1e-10)), detail: z };
+});
+LX.check("end-state decay length = 1/ln(w/v) (v = 0.5, w = 1, N = 20)", () => {
+  const { rho } = chain(0.5, 1, 20), fit = -2 / Math.log(rho[4] / rho[2]);
+  return { pass: LX.near(fit, 1 / Math.log(2), 1e-6) && rho[1] < 1e-10, detail: fit };
+});
+LX.check("end-state pair splitting ∝ (v/w)^N", () => {
+  const e = N => Math.abs(chain(0.5, 1, N).pairE[1]), q = e(11) / e(10);
+  return { pass: Math.abs(q - 0.5) < 0.01, detail: q };
+});
+LX.check("chiral symmetry: open-chain spectrum symmetric about 0", () => {
+  const E = chain(0.7, 1.1, 15).E;
+  return E.every((e, i) => Math.abs(e + E[E.length - 1 - i]) < 1e-10);
+});
+LX.check("Sturm bisection agrees with eigSym", () => {
+  const a = sturmEig(offdiag(0.8, 1.2, 24)), b = chain(0.8, 1.2, 12).E;
+  return { pass: a.every((e, i) => Math.abs(e - b[i]) < 1e-9), detail: Math.max(...a.map((e, i) => Math.abs(e - b[i]))) };
+});
+LX.check("sketch truth: min|E| ≈ 0 for v/w = 0.5, ≈ |v − w| for v/w = 2 (N = 20)", () => {
+  const a = minAbsE(0.5, 1, 20), b = minAbsE(2, 1, 20);
+  return { pass: a < 1e-4 && Math.abs(b - 1) < 0.03, detail: `${a}, ${b}` };
+});
+LX.check("odd chain (2N+1 sites): exactly one zero mode, on A, at the end with the weak bond", () => {
+  const one = (v, w) => {
+    const { values, vectors } = LX.eigSym(hamiltonian(v, w, 21)), z = values.map((e, j) => [e, j]).filter(([e]) => Math.abs(e) < 1e-9);
+    if (z.length !== 1) return null;
+    const u = vectors[z[0][1]], onB = u.filter((_, i) => i % 2).reduce((s, c) => s + c * c, 0), left = u.slice(0, 6).reduce((s, c) => s + c * c, 0);
+    return { onB, left };
+  };
+  const a = one(0.5, 1), b = one(1, 0.5);
+  return { pass: !!a && !!b && a.onB < 1e-12 && b.onB < 1e-12 && a.left > 0.95 && b.left < 0.05, detail: JSON.stringify([a, b]) };
+});
+LX.check("staggered potential m moves the end states to ±m", () => {
+  const E = LX.eigSym(hamiltonian(0.3, 1, 40, 0.2)).values, inGap = E.filter(e => Math.abs(e) < 0.5);
+  return { pass: inGap.length === 2 && Math.abs(inGap[0] + 0.2) < 1e-6 && Math.abs(inGap[1] - 0.2) < 1e-6, detail: inGap.join() };
+});
+LX.check("practice number: ξ(v/w = 0.8) ≈ 4.48 cells", () => Math.abs(xi(0.8) - 4.4814) < 1e-3);
+</script>

@@ -57,7 +57,8 @@ Rules: no empty grid cells; the most important view is the largest; controls sit
 - Name axes with TeX (`xlabel`, `ylabel` in `LX.plot`). Use units or "dimensionless" in the caption.
 - Captions say what the figure shows in one line. Put conventions in the header meta line.
 - Unstable, metastable or reference branches are dashed (`dash`) or faint (`faint`); break a path at jumps instead of drawing a vertical connector line.
-- Draggable handles are created once and moved on redraw, never recreated (recreating them breaks pointer capture and leaves copies). Clamp them to the plot range.
+- Draggable handles are created once, in the plot's `handles` layer (which `clearAll` never clears), and moved on redraw. Recreating them breaks pointer capture and leaves copies. Clamp them to the plot range.
+- TeX labels that stay on the plot are created once with `P.tex(..., { keep: true })` and moved with `P.placeTex`; `clearAll` removes only the other labels.
 - The page must work at 400 px width: figures stack, controls wrap. The test harness checks this.
 - The page must be complete at rest: the first frame, before any interaction, already shows a meaningful state.
 
