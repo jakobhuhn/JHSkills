@@ -2,32 +2,47 @@
 <!--
 PATTERN 09 · MEASUREMENT / STATISTICS
 Concept shape   Single outcomes are random; only their statistics carry the physics. The insight lives in
-                how a histogram or a running average converges, and how fast (1/√N).
+                how a histogram or a running average converges, how fast (1/√N), and how often an honest
+                measurement lands outside its own error bar.
 Use it for      Born rule and projective measurement, shot noise, quantum state tomography, estimating
                 gate fidelities, Stern–Gerlach sequences, photon counting statistics, Monte Carlo
                 sampling error, any "what does one run tell you vs many runs" question.
-Widget anatomy  (1) histogram of outcome frequencies with the exact probabilities (dashed) and a ±1σ
-                    binomial error band that shrinks as shots accumulate;
-                (2) running mean of the outcome vs log₁₀(shots), converging into a 1/√n funnel around the
-                    exact expectation value;
-                (3) "Measure 1 / 10 / 100 / 1000" buttons and a Reset; state and basis controls (changing
-                    the setup clears the record, since data belong to one setup);
-                (4) a seeded PRNG so runs and self-tests are reproducible.
-Teaching moments  Predict a single outcome (random); predict the size of fluctuations at N = 100; predict
-                  the shots needed for 10× more precision; predict which basis reveals the phase φ;
-                  predict a Born probability for a tilted axis.
+Widget anatomy  (1) histogram of outcome frequencies with the exact probabilities (dashed) and the ±1σ and ±2σ
+                    bands of the standard error √(p(1−p)/N); the bar outline and the label above it say whether
+                    the observed frequency is inside ±1σ, between 1σ and 2σ, or outside ±2σ;
+                (2) running mean of the outcome vs log₁₀(shots) inside the 1σ and 2σ funnels;
+                (3) "Repeat this experiment": runs 100 (or 1000) further experiments with the same N and the same
+                    setup, plots each one's deviation z = (f − p)/σ as a dot on a strip with the ±1σ, ±2σ zones,
+                    and tallies the fraction outside ±1σ and ±2σ against the exact binomial expectation
+                    (≈ 32% and ≈ 5% for large N);
+                (4) state θ, φ, basis σ_z / σ_x / tilted (the tilt slider is disabled unless "tilted" is chosen),
+                    "Measure 1 / 10 / 100 / 1000", Reset; readouts N, f₊, p₊, σ, z with a verdict;
+                (5) a seeded PRNG so runs and self-tests are reproducible.
+Layout          grid2: histogram and running mean on top; controls with the record readouts in the third
+                cell; the repeated-experiment strip and its tally in the fourth, beside the controls that set N.
+Teaching moments  (suggestions for the surrounding chapter)
+                  choice: the outcome of one shot on |+⟩ in σ_z (random, not 0);
+                  number: the typical deviation of f₊ after 100 shots (0.05);
+                  number: the shots needed for 10× more precision (100×);
+                  choice: what fraction of honest experiments lands outside the ±1σ band (≈ 1/3), then run 100
+                       experiments to check; the band is a standard error, not a bound;
+                  choice: which basis distinguishes |+⟩ from |−⟩ (σ_x);
+                  number: the Born probability for |0⟩ on an axis tilted by 60° (3/4).
 Adapt by        Replace probs() with the outcome distribution of your measurement (more outcomes → more
-                bars, the band uses √(p(1−p)/N) per bar). Keep the seeded sampler and the funnel.
+                bars, the band uses √(p(1−p)/N) per bar). Keep the seeded sampler, the funnel and the
+                repeated-experiment tally: it is what makes "error bar" concrete.
 Physics         |ψ⟩ = cos(θ/2)|0⟩ + e^{iφ} sin(θ/2)|1⟩, Bloch vector r; measuring σ·n gives ±1 with
-                P(±) = (1 ± n·r)/2 = |⟨±n|ψ⟩|²; ⟨σ·n⟩ = n·r. Frequency after N shots has standard
-                deviation √(p(1−p)/N); running mean of ±1 outcomes has √((1 − ⟨σ·n⟩²)/N).
+                P(±) = (1 ± n·r)/2 = |⟨±n|ψ⟩|²; ⟨σ·n⟩ = n·r. The count of +1 is binomial(N, p), so the
+                frequency has standard deviation σ = √(p(1−p)/N); running mean of ±1 outcomes has
+                √((1 − ⟨σ·n⟩²)/N), the same z. For large N, z is close to Gaussian: P(|z| > 1) ≈ 0.317,
+                P(|z| > 2) ≈ 0.046; for small N the exact binomial tail (computed in tail()) differs.
 -->
 <!-- LX:HEAD-BEGIN -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
 <script>
 window.MathJax = {
   tex: {
-    inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]],
+    inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]], tags: "ams",
     macros: {
       ket: ["\\left|#1\\right\\rangle", 1], bra: ["\\left\\langle#1\\right|", 1],
       braket: ["\\left\\langle#1\\middle|#2\\right\\rangle", 2], expval: ["\\left\\langle#1\\right\\rangle", 1],
@@ -46,7 +61,7 @@ window.MathJax = {
 <!-- LX:HEAD-END -->
 <style>
 /* LX:STYLE-BEGIN */
-/* Layout: a lab-notebook page. Figure stage on the left, lesson steps on the right; one column on phones. */
+/* Theme tokens, page, article typography, widget layouts, inline questions, SVG marks. */
 :root {
   --bg: #f5f6f8; --surface: #ffffff; --fg: #17202c; --muted: #5b6676; --line: #d6dce5; --grid: #eaeef3;
   --accent: #2f5bd3; --c2: #c9700c; --c3: #12857a; --c4: #b0377a; --good: #1f8a4c; --bad: #c2412d;
@@ -77,63 +92,98 @@ body { background: var(--bg); color: var(--fg); font: 15px/1.55 var(--f-ui); mar
 .lx-badge[data-kind="exact"] { color: var(--good); }
 .lx-badge[data-kind="schematic"] { color: var(--c2); }
 .lx-badge[data-kind="computed"] { color: var(--accent); }
-.lx-layout { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr); gap: 20px; align-items: start; }
-@media (max-width: 860px) { .lx-layout { grid-template-columns: minmax(0, 1fr); } }
+/* article: a reading column for text and math; widgets may break out with .lx-wide */
+.lx-article { display: grid; grid-template-columns: minmax(0, 1fr) min(720px, 100%) minmax(0, 1fr); row-gap: 16px; }
+.lx-article > * { grid-column: 2; min-width: 0; margin: 0; }
+.lx-article > .lx-wide { grid-column: 1 / -1; }
+.lx-article > p, .lx-article > ul, .lx-article > ol, .lx-prose { font: 17px/1.65 var(--f-prose); }
+.lx-article > ul, .lx-article > ol { padding-left: 1.3em; }
+.lx-article h2 { font: 600 24px/1.25 var(--f-prose); margin-top: 18px; text-wrap: balance; }
+.lx-article h3 { font: 600 19px/1.3 var(--f-prose); margin-top: 6px; }
+.lx-prose p { margin: 0 0 .6em; } .lx-prose p:last-child { margin-bottom: 0; }
+mjx-container[display="true"] { overflow-x: auto; overflow-y: hidden; max-width: 100%; padding: 2px 0; }
+.lx-callout { border-left: 3px solid var(--c3); padding: 8px 14px; background: var(--surface); border-radius: 0 8px 8px 0; font: 16px/1.6 var(--f-prose); }
+.lx-callout > b:first-child { font-family: var(--f-ui); font-size: 13px; letter-spacing: .04em; text-transform: uppercase; color: var(--c3); display: block; }
+.lx-hook { border: 1px solid var(--line); border-top: 3px solid var(--c2); background: var(--surface); border-radius: 10px; padding: 14px 16px; font: 18px/1.55 var(--f-prose); }
 .lx-stage { display: grid; gap: 14px; min-width: 0; }
-.lx-figs { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
-.lx-fig { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px; min-width: 0; display: grid; gap: 6px; }
+/* widget card: one framed unit of figures + controls; the layout class sets the arrangement */
+.lx-widget { container-type: inline-size; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: grid; gap: 12px; min-width: 0; }
+.lx-w-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px 12px; }
+.lx-w-head h3 { margin: 0; font: 600 16px/1.3 var(--f-ui); }
+.lx-w { display: grid; gap: 12px; min-width: 0; align-items: start; }
+.lx-w > *, .lx-col > * { min-width: 0; }
+.lx-col { display: grid; gap: 12px; align-content: start; min-width: 0; }
+.lx-split { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.lx-grid2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.lx-aside { grid-template-columns: minmax(0, 1fr) minmax(210px, 32%); }
+.lx-aside.lx-left { grid-template-columns: minmax(210px, 32%) minmax(0, 1fr); }
+.lx-hero { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+.lx-hero > :first-child { grid-row: span 3; }
+.lx-span2 { grid-column: 1 / -1; }
+@container (max-width: 620px) {
+  .lx-split, .lx-grid2, .lx-aside, .lx-aside.lx-left, .lx-hero { grid-template-columns: minmax(0, 1fr); }
+  .lx-hero > :first-child { grid-row: auto; }
+}
+.lx-figs { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); }
+.lx-fig { position: relative; min-width: 0; display: grid; gap: 6px; margin: 0; }
 .lx-fig > figcaption { font-size: 12.5px; color: var(--muted); }
 .lx-plot { position: relative; width: 100%; }
 .lx-plot > svg { display: block; width: 100%; height: auto; overflow: visible; touch-action: none; }
 .lx-overlay { position: absolute; inset: 0; pointer-events: none; }
 .lx-tex { position: absolute; white-space: nowrap; font-size: 13px; color: var(--fg); line-height: 1; }
-.lx-controls { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: end; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+.lx-float { position: absolute; top: 4px; right: 4px; z-index: 2; display: flex; flex-wrap: wrap; gap: 6px; justify-content: end; }
+.lx-controls { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: end; background: var(--bg); border-radius: 8px; padding: 10px 12px; }
+:is(.lx-aside, .lx-hero, .lx-grid2) > .lx-controls, .lx-controls.lx-vert { flex-direction: column; flex-wrap: nowrap; align-items: stretch; }
+:is(.lx-aside, .lx-hero, .lx-grid2) > .lx-controls .lx-slider, .lx-controls.lx-vert .lx-slider { flex: none; min-width: 0; }
 .lx-slider { display: grid; gap: 2px; min-width: min(100%, 200px); flex: 1 1 200px; }
 .lx-slider .lx-lab { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--muted); }
-.lx-slider output, .lx-readout b { font-family: var(--f-mono); font-variant-numeric: tabular-nums; color: var(--fg); font-weight: 500; }
+.lx-slider output, .lx-readouts b { font-family: var(--f-mono); font-variant-numeric: tabular-nums; color: var(--fg); font-weight: 500; }
 .lx-slider input[type=range] { width: 100%; accent-color: var(--accent); }
 .lx-group { display: grid; gap: 4px; }
 .lx-group > span { font-size: 12px; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
 .lx-row { display: flex; flex-wrap: wrap; gap: 6px; }
-.lx-btn { font: 500 13px var(--f-ui); color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; cursor: pointer; }
-.lx-btn:hover { border-color: var(--accent); }
+.lx-btn { font: 500 13px var(--f-ui); color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; cursor: pointer; line-height: 1.3; }
+.lx-btn:hover:not(:disabled) { border-color: var(--accent); }
 .lx-btn:focus-visible, .lx-seg input:focus-visible + span, .lx-drag:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .lx-btn[aria-pressed="true"], .lx-btn.lx-primary { background: var(--accent); color: var(--surface); border-color: var(--accent); }
 .lx-btn:disabled { opacity: .45; cursor: not-allowed; }
-.lx-seg { display: inline-flex; flex-wrap: wrap; max-width: 100%; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.lx-btn mjx-container, .lx-seg mjx-container, .lx-opt mjx-container { display: inline-block !important; margin: 0 !important; vertical-align: -0.2em; }
+.lx-seg { display: inline-flex; flex-wrap: wrap; max-width: 100%; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--surface); }
 .lx-seg label { cursor: pointer; }
 .lx-seg input { position: absolute; opacity: 0; pointer-events: none; }
-.lx-seg span { display: block; padding: 5px 10px; font-size: 13px; }
+.lx-seg span { display: block; padding: 5px 10px; font-size: 13px; line-height: 1.3; }
 .lx-seg input:checked + span { background: var(--accent); color: var(--surface); }
 .lx-readouts { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); }
-.lx-locked { opacity: .5; }
-.lx-locked * { cursor: not-allowed !important; }
-/* steps */
-.lx-steps { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: grid; gap: 12px; min-width: 0; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); }
-@media (max-width: 860px) { .lx-steps { position: static; order: -1; } }  /* phones: read the question, then use the widget below */
-.lx-steps-top { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
-.lx-dots { display: flex; gap: 5px; }
-.lx-dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
-.lx-dots i.on { background: var(--accent); }
-.lx-dots i.done { background: var(--muted); }
-.lx-steps h2 { margin: 0; font: 600 19px/1.3 var(--f-prose); text-wrap: balance; }
-.lx-prose { font: 16px/1.6 var(--f-prose); max-width: 68ch; }
-.lx-prose p { margin: 0 0 .6em; }
-.lx-prose p:last-child { margin-bottom: 0; }
-.lx-predict { display: grid; gap: 8px; border-left: 3px solid var(--accent); padding: 8px 0 8px 12px; background: var(--accent-soft); border-radius: 0 8px 8px 0; }
-.lx-predict > p { margin: 0; font-weight: 500; }
-.lx-opts { display: grid; gap: 6px; padding-right: 10px; }
+.lx-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; color: var(--fg); }
+.lx-legend i { display: inline-block; width: 16px; height: 0; border-top: 2.5px solid currentColor; vertical-align: middle; margin-right: 5px; }
+.lx-legend i.dash { border-top-style: dashed; } .lx-legend i.dot { width: 9px; height: 9px; border: none; border-radius: 50%; background: currentColor; }
+/* "What you are looking at" */
+.lx-guide { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 12px; margin: 0; font-size: 13.5px; line-height: 1.45; border-top: 1px solid var(--line); padding-top: 10px; }
+.lx-guide > b { grid-column: 1 / -1; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+.lx-guide dt { font-weight: 600; } .lx-guide dd { margin: 0; color: var(--fg); }
+@container (max-width: 480px) { .lx-guide { grid-template-columns: minmax(0, 1fr); } .lx-guide dd { margin: 0 0 6px; } }
+/* inline questions */
+.lx-ask { display: grid; gap: 8px; border-left: 3px solid var(--accent); padding: 10px 12px; background: var(--accent-soft); border-radius: 0 8px 8px 0; }
+.lx-ask > .lx-kicker { font: 500 12px var(--f-ui); letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
+.lx-ask > .lx-q { font: 500 16px/1.5 var(--f-prose); }
+.lx-opts { display: grid; gap: 6px; }
 .lx-opt { text-align: left; font: 14px/1.4 var(--f-ui); color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; cursor: pointer; }
 .lx-opt:hover:not(:disabled) { border-color: var(--accent); }
 .lx-opt:disabled { cursor: default; }
 .lx-opt.right { border-color: var(--good); box-shadow: inset 3px 0 0 var(--good); }
 .lx-opt.wrong { border-color: var(--bad); box-shadow: inset 3px 0 0 var(--bad); }
-.lx-feedback { font: 15px/1.5 var(--f-prose); padding-right: 10px; }
+.lx-ask input[type=text] { font: 15px var(--f-mono); color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; width: 9em; }
+.lx-ask textarea { font: 15px/1.5 var(--f-prose); color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 8px; min-height: 84px; resize: vertical; }
+.lx-feedback { font: 15px/1.5 var(--f-prose); }
 .lx-feedback b { font-family: var(--f-ui); }
-.lx-explain { display: grid; gap: 8px; }
-.lx-explain textarea { font: 15px/1.5 var(--f-prose); color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 8px; min-height: 84px; resize: vertical; }
-.lx-model { border: 1px dashed var(--line); border-radius: 8px; padding: 10px; }
-.lx-nav { display: flex; justify-content: space-between; gap: 8px; }
+.lx-feedback.good b { color: var(--good); } .lx-feedback.bad b { color: var(--bad); }
+.lx-model { border: 1px dashed var(--line); border-radius: 8px; padding: 10px; background: var(--surface); font: 15px/1.55 var(--f-prose); }
+/* gate: a result stays hidden until its question is answered, then stays visible */
+.lx-gated { position: relative; }
+.lx-gated > * { filter: blur(7px); opacity: .45; pointer-events: none; user-select: none; }
+.lx-gated::after { content: attr(data-gate); position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 4px 8px; font: 500 14px var(--f-ui); color: var(--fg); }
+span.lx-gated { display: inline-block; min-width: 9em; }
+span.lx-gated::after { font-size: 12px; white-space: nowrap; padding: 0; }
 .lx-foot { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 12px; display: grid; gap: 4px; max-width: 90ch; }
 /* svg marks: color via classes so both themes work */
 .lx-plot text { font: calc(11px * var(--lx-k, 1)) var(--f-mono); fill: var(--muted); }
@@ -144,6 +194,8 @@ body { background: var(--bg); color: var(--fg); font: 15px/1.55 var(--f-ui); mar
 .s1 { stroke: var(--accent); } .s2 { stroke: var(--c2); } .s3 { stroke: var(--c3); } .s4 { stroke: var(--c4); } .sm { stroke: var(--muted); stroke-width: 1.2; }
 .dash { stroke-dasharray: 5 4; }
 .thin { stroke-width: 1.2; }
+.faint { opacity: .45; }
+.sk { fill: none; stroke: var(--c4); stroke-width: 2.6; stroke-dasharray: 7 5; stroke-linecap: round; }
 .f1 { fill: var(--accent); } .f2 { fill: var(--c2); } .f3 { fill: var(--c3); } .f4 { fill: var(--c4); } .fm { fill: var(--muted); } .fs { fill: var(--surface); }
 .a1 { fill: var(--accent); fill-opacity: .16; stroke: none; } .a2 { fill: var(--c2); fill-opacity: .18; stroke: none; } .a3 { fill: var(--c3); fill-opacity: .18; stroke: none; }
 .g-ghost { opacity: .32; }
@@ -152,22 +204,23 @@ body { background: var(--bg); color: var(--fg); font: 15px/1.55 var(--f-ui); mar
 .lx-drag:active { cursor: grabbing; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 /* LX:STYLE-END */
+.lx-group > .lx-seg { justify-self: start; }
+.fb { fill: var(--bad); } .sb { fill: none; stroke: var(--bad); stroke-width: 2.2; }
+.ring { fill: none; stroke: var(--fg); stroke-width: 2; }
+/* MathJax SVG already sets its own baseline offset on the svg; an extra shift on the container pushes TeX labels below the text baseline */
+.lx-seg mjx-container, .lx-btn mjx-container { vertical-align: baseline; }
 </style>
 
 <main class="lx-page">
   <header class="lx-head">
     <p class="lx-eyebrow">Quantum measurement · Born rule</p>
     <h1>What does a single quantum measurement tell you?</h1>
-    <p class="lx-lede">Prepare a qubit, choose a measurement axis, and record shots one at a time or in batches. Watch the frequencies settle onto the Born probabilities, and how slowly they do it.</p>
+    <p class="lx-lede">Prepare a qubit, choose a measurement axis, and record shots one at a time or in batches. Watch the frequencies settle onto the Born probabilities, how slowly they do it, and how often they land outside their own error bar.</p>
     <div class="lx-meta">
-      <span class="lx-badge" data-kind="exact">Exact probabilities, sampled outcomes</span>
       <span>\(\ket{\psi} = \cos\tfrac{\theta}{2}\ket{0} + e^{i\varphi}\sin\tfrac{\theta}{2}\ket{1}\); outcomes \(\pm1\) of \(\vec\sigma\cdot\hat n\); tilted axis \(\hat n = (\sin\alpha, 0, \cos\alpha)\); seeded random numbers</span>
     </div>
   </header>
-  <section class="lx-layout">
-    <div class="lx-stage" id="stage"></div>
-    <aside class="lx-steps" id="steps" aria-live="polite"></aside>
-  </section>
+  <div class="lx-stage" id="stage"></div>
   <footer class="lx-foot">
     <span>Source: model knowledge. Standard treatment: Nielsen &amp; Chuang, <i>Quantum Computation and Quantum Information</i>, ch. 2; Sakurai &amp; Napolitano, <i>Modern Quantum Mechanics</i>, ch. 1.</span>
   </footer>
@@ -180,9 +233,12 @@ body { background: var(--bg); color: var(--fg); font: 15px/1.55 var(--f-ui); mar
    Plots    LX.plot(parent, {xlim, ylim, ticks, frame, xlabel, ylabel, width, height}) → path/fn/dot/line/vline/hline/
             area/text/tex/arrow/clear/ghost/setLim/setLabels/X/Y/inv/svg/g · LX.drag(plot, node, {get,set,step})
    3D       LX.camera({yaw, pitch, scale}) → project([x,y,z]) · rotate by dragging an element
+   Widget   LX.widget(mount, {layout: stack|split|grid2|aside|hero, left, title, badge}) → body element
+            LX.guide(widgetOrBody, [[term, description], ...]) — the "What you are looking at" block
+            LX.legend(parent, [[label, colorVar, "line"|"dash"|"dot"], ...])
    Controls LX.controls(parent) · LX.slider · LX.segmented · LX.button · LX.limits · LX.readout · LX.player
-   Lesson   LX.steps(parent, steps) — predict → reveal gating, explain boxes, locking controls, onAnswer hook
-            LX.isLocked(el) — true while a lesson step locks el (use in custom click/drag handlers)
+   Text     LX.ask(parent, {type: choice|number|set|sketch|explain, prompt, ..., reveal}) — inline question
+            LX.gate(el, message) — hide a result until a question that lists it in `reveal` is answered
    Checks   LX.check(name, fn) → window.__lxTests */
 const LX = (() => {
   const NS = "http://www.w3.org/2000/svg";
@@ -279,7 +335,6 @@ const LX = (() => {
   let uid = 0;
   function fig(parent, caption) {
     const f = h("figure", { class: "lx-fig" }, parent);
-    f.style.margin = "0";
     if (caption) { const c = h("figcaption", { html: caption }, f); typeset(c); }
     return f;
   }
@@ -311,6 +366,8 @@ const LX = (() => {
       get xlim() { return [x0, x1]; }, get ylim() { return [y0, y1]; },
       setLim(xl, yl) { if (xl) [x0, x1] = xl; if (yl) [y0, y1] = yl; drawAxes(); return P; },
       setLabels(xl, yl) { if (xl != null) o.xlabel = xl; if (yl != null) o.ylabel = yl; drawAxes(); return P; },
+      /* Clear everything a redraw owns: main, fill, top and the TeX overlay (not grid/axes/ghost). */
+      clearAll() { for (const l of ["main", "fill", "top", "tex"]) P.clear(l); return P; },
       clear(layer = "main") {
         if (layer === "tex") { [...overlay.children].filter(c => !c.dataset.axis).forEach(c => c.remove()); return P; }
         g[layer].replaceChildren(); return P;
@@ -345,6 +402,7 @@ const LX = (() => {
       },
       placeTex(el, x, y, anchor = "c", px) {
         const [ux, uy] = px ? [x, y] : [X(x), Y(y)];
+        el.style.display = isFinite(ux) && isFinite(uy) ? "" : "none";
         el.style.left = (100 * ux / W) + "%"; el.style.top = (100 * uy / H) + "%";
         const tx = anchor.includes("w") ? "0%" : anchor.includes("e") ? "-100%" : "-50%";
         const ty = anchor.includes("n") ? "0%" : anchor.includes("s") ? "-100%" : "-50%";
@@ -455,7 +513,11 @@ const LX = (() => {
     typeset(grp);
     return { el: grp, get: () => value, set(v, fire = true) { value = v; inputs.forEach(i => i.checked = i.value == v); if (fire && o.onChange) o.onChange(v); } };
   }
-  const button = (parent, label, onClick, o = {}) => h("button", { type: "button", class: "lx-btn" + (o.cls ? " " + o.cls : ""), id: o.id, html: label, onclick: onClick, title: o.title }, parent);
+  function button(parent, label, onClick, o = {}) {
+    const b = h("button", { type: "button", class: "lx-btn" + (o.cls ? " " + o.cls : ""), id: o.id, html: label, onclick: onClick, title: o.title }, parent);
+    if (/\\\(/.test(label)) typeset(b);
+    return b;
+  }
   /* Limit buttons: one click jumps to a named regime. items: [{label, title, apply}] */
   function limits(parent, items, title = "Jump to a limit", o = {}) {
     const grp = h("div", { class: "lx-group", id: o.id }, parent);   /* pass {id} to lock the whole group in a step */
@@ -481,81 +543,142 @@ const LX = (() => {
     return { btn, play, pause, get playing() { return playing; } };
   }
 
-  /* ---------- lesson steps ----------
-     step = { title, html,                       // prose (TeX allowed)
-              onEnter(),                         // set the widget into the state this step needs
-              predict: { prompt, options:[...], answer: index, right, wrong },  // commit before reveal
-              lock: ["control-id", ...],         // controls disabled until the prediction is made
-              after: html,                       // revealed after predicting
-              explain: { prompt, model },        // learner writes, then compares with a model answer
-              onAnswer(correct, index) }         // optional: called once the prediction is made (e.g. un-blur a view) */
-  function steps(parent, list, o = {}) {
-    const state = list.map(() => ({ chosen: null, explained: false, text: "" }));
-    let i = 0;
-    const lockEls = ids => (ids || []).map(id => document.getElementById(id)).filter(Boolean);
-    function setLocked(ids, on) {
-      for (const el of lockEls(ids)) {
-        el.classList.toggle("lx-locked", on);
-        el.querySelectorAll("input,button,select,textarea").forEach(c => c.disabled = on);
-        if (el.matches("input,button,select,textarea")) el.disabled = on;
-        if (on) el.title = "Make a prediction first"; else el.removeAttribute("title");
-      }
+  /* ---------- widget card, guide, legend ---------- */
+  const BADGE = { exact: "Exact", computed: "Computed", schematic: "Schematic" };
+  /* A framed widget. Returns the body element to fill; its children are arranged by the layout:
+     stack (one column) · split (two equal columns) · grid2 (2×2; a cell may hold controls)
+     aside (figures + a controls column; {left:true} puts the column first) · hero (big first child + a column)
+     Every layout falls back to one column when the card is narrower than ~620 px. */
+  function widget(parent, o = {}) {
+    const card = h("section", { class: "lx-widget" + (o.cls ? " " + o.cls : ""), id: o.id }, parent);
+    if (o.title || o.badge) {
+      const hd = h("div", { class: "lx-w-head" }, card);
+      if (o.title) h("h3", { html: o.title }, hd);
+      if (o.badge) h("span", { class: "lx-badge", "data-kind": o.badge, text: o.badgeText || BADGE[o.badge] }, hd);
+      typeset(hd);
     }
-    function render() {
-      const st = list[i], ss = state[i];
-      parent.replaceChildren();
-      const top = h("div", { class: "lx-steps-top" }, parent);
-      h("span", { text: `Step ${i + 1} of ${list.length}` }, top);
-      const dots = h("div", { class: "lx-dots", "aria-hidden": "true" }, top);
-      list.forEach((_, k) => h("i", { class: k === i ? "on" : k < i ? "done" : "" }, dots));
-      h("h2", { html: st.title }, parent);
-      if (st.html) h("div", { class: "lx-prose", html: st.html }, parent);
-      const answered = !st.predict || ss.chosen !== null;
-      if (st.predict) {
-        const box = h("div", { class: "lx-predict" }, parent);
-        h("p", { html: "Predict: " + st.predict.prompt }, box);
-        const opts = h("div", { class: "lx-opts" }, box);
-        st.predict.options.forEach((op, k) => {
-          const b = h("button", { type: "button", class: "lx-opt", html: op }, opts);
-          if (ss.chosen !== null) {
-            b.disabled = true;
-            if (k === st.predict.answer) b.classList.add("right");
-            else if (k === ss.chosen) b.classList.add("wrong");
-          }
-          b.addEventListener("click", () => { ss.chosen = k; render(); if (st.onAnswer) st.onAnswer(k === st.predict.answer, k); });
-        });
-        if (ss.chosen !== null) {
-          const ok = ss.chosen === st.predict.answer;
-          h("div", { class: "lx-feedback", html: `<b>${ok ? "Right." : "Not quite."}</b> ` + ((ok ? st.predict.right : st.predict.wrong) || "") }, box);
-        }
-      }
-      setLocked(st.lock, !answered);
-      if (answered && st.after) h("div", { class: "lx-prose", html: st.after }, parent);
-      if (answered && st.explain) {
-        const ex = h("div", { class: "lx-explain" }, parent);
-        h("label", { for: "lx-explain-" + i, html: st.explain.prompt }, ex);
-        const ta = h("textarea", { id: "lx-explain-" + i, placeholder: "In your own words…" }, ex);
-        ta.value = ss.text; ta.addEventListener("input", () => ss.text = ta.value);
-        if (!ss.explained) button(ex, "Compare with the textbook answer", () => { ss.explained = true; render(); });
-        else h("div", { class: "lx-model lx-prose", html: st.explain.model }, ex);
-      }
-      const nav = h("div", { class: "lx-nav" }, parent);
-      const back = button(nav, "Back", () => go(i - 1)); back.disabled = i === 0;
-      const next = button(nav, i === list.length - 1 ? "Done" : "Next", () => go(i + 1), { cls: "lx-primary" });
-      next.disabled = !answered || i === list.length - 1;
-      typeset(parent);
+    const body = h("div", { class: `lx-w lx-${o.layout || "stack"}` + (o.left ? " lx-left" : "") }, card);
+    body.card = card;
+    return body;
+  }
+  /* "What you are looking at": one line per figure and per control. */
+  function guide(parent, items, title = "What you are looking at") {
+    const card = parent.card || parent;
+    const dl = h("dl", { class: "lx-guide" }, card);
+    if (title) h("b", { text: title }, dl);
+    for (const [t, d] of items) { h("dt", { html: t }, dl); h("dd", { html: d }, dl); }
+    typeset(dl); return dl;
+  }
+  function legend(parent, items) {
+    const lg = h("div", { class: "lx-legend" }, parent);
+    for (const [label, color, kind] of items) {
+      const sp = h("span", {}, lg); const i = h("i", { class: kind && kind !== "line" ? kind : "" }, sp);
+      i.style.color = `var(${color})`; h("span", { html: label }, sp);
     }
-    function go(k) {
-      if (k < 0 || k >= list.length) return;
-      setLocked(list[i].lock, false);
-      i = k; if (list[i].onEnter) list[i].onEnter(); render();
-    }
-    if (list[0] && list[0].onEnter) list[0].onEnter();
-    render();
-    return { go, get index() { return i; } };
+    typeset(lg); return lg;
   }
 
-  const isLocked = el => !!(el && el.closest && el.closest(".lx-locked"));
+  /* ---------- gates and inline questions ---------- */
+  /* Hide a result (figure, readout, paragraph) until a question that lists it in `reveal` is answered.
+     A gate only ever opens. Do not gate controls the learner has already used. */
+  function gate(el, message = "Answer the question above to reveal") {
+    el.classList.add("lx-gated"); el.dataset.gate = message; el.setAttribute("aria-hidden", "true");
+    return { el, open: () => openGate(el) };
+  }
+  function openGate(el) { el.classList.remove("lx-gated"); el.removeAttribute("data-gate"); el.removeAttribute("aria-hidden"); }
+
+  /* Inline question in the text. Common options:
+       prompt (html), kicker (small label, defaults by type), reveal: [elements to un-gate],
+       right / wrong (html feedback), onAnswer(correct, value)
+     Types:
+       choice   options: [html], answer: index
+       number   answer: value, tol: relative tolerance (0.1), unit (html after the box)
+       set      the learner sets the widget, then presses Check. check(): {pass, msg}; solve(): optional,
+                puts the widget into the right state (offered after a wrong attempt)
+       sketch   plot: LX.plot, xs: handle positions, y0: start value (or ys), truth: x → y, tol: 0.15
+                (rms error relative to the truth's range); the learner drags handles, then compares
+       explain  model: html model answer, shown after the learner writes */
+  const KICK = { choice: "Predict", number: "Estimate", set: "Try it", sketch: "Sketch", explain: "Explain" };
+  function ask(parent, o) {
+    const type = o.type || "choice";
+    const box = h("div", { class: "lx-ask", "data-type": type }, parent);
+    h("div", { class: "lx-kicker", text: o.kicker || KICK[type] }, box);
+    h("div", { class: "lx-q", html: o.prompt }, box);
+    const body = h("div", { class: "lx-ask-body" }, box);
+    const fb = h("div", { class: "lx-feedback", "aria-live": "polite" }, box);
+    let answered = false;
+    function done(ok, value, extra) {
+      fb.className = "lx-feedback " + (ok == null ? "" : ok ? "good" : "bad");
+      const head = ok == null ? "" : `<b>${ok ? "Right." : "Not quite."}</b> `;
+      fb.innerHTML = head + (extra || "") + ((ok ? o.right : o.wrong) || (ok == null ? o.right || "" : ""));
+      typeset(fb);
+      if (!answered) { answered = true; box.dataset.answered = "1"; (o.reveal || []).forEach(openGate); }
+      if (o.onAnswer) o.onAnswer(ok, value);
+    }
+    if (type === "choice") {
+      const opts = h("div", { class: "lx-opts" }, body);
+      const bs = o.options.map((op, k) => h("button", { type: "button", class: "lx-opt", html: op, onclick: () => {
+        bs.forEach((b, j) => { b.disabled = true; if (j === o.answer) b.classList.add("right"); else if (j === k) b.classList.add("wrong"); });
+        done(k === o.answer, k);
+      } }, opts));
+    } else if (type === "number") {
+      const row = h("div", { class: "lx-row" }, body); row.style.alignItems = "center";
+      const inp = h("input", { type: "text", inputmode: "decimal", "aria-label": "your estimate" }, row);
+      if (o.unit) h("span", { html: o.unit }, row);
+      const go = () => {
+        const v = parseFloat(inp.value.replace(",", ".").replace("−", "-"));
+        if (!isFinite(v)) { fb.className = "lx-feedback"; fb.textContent = "Enter a number."; return; }
+        const tol = o.tol ?? 0.1, err = (v - o.answer) / (Math.abs(o.answer) || 1), ok = Math.abs(err) <= tol;
+        const dir = ok ? "" : `Your estimate is too ${err > 0 ? "high" : "low"}. `;
+        done(ok, v, dir);
+      };
+      button(row, "Check", go, { cls: "lx-primary" });
+      inp.addEventListener("keydown", e => { if (e.key === "Enter") go(); });
+    } else if (type === "set") {
+      const row = h("div", { class: "lx-row" }, body);
+      let solveBtn = null;
+      button(row, o.checkLabel || "Check", () => {
+        const r = o.check(); const ok = typeof r === "object" ? !!r.pass : !!r;
+        done(ok, null, (typeof r === "object" && r.msg ? r.msg + " " : ""));
+        if (!ok && o.solve && !solveBtn) solveBtn = button(row, "Show me", () => { o.solve(); }, {});
+      }, { cls: "lx-primary" });
+    } else if (type === "sketch") {
+      const P = o.plot, n = o.xs.length, ys = o.ys ? o.ys.slice() : o.xs.map(() => o.y0 ?? (P.ylim[0] + P.ylim[1]) / 2);
+      const g = s("g", { class: "lx-sketch" }, P.svg);
+      const tg = s("g", {}, g), line = s("path", { class: "sk" }, g);
+      const dots = o.xs.map((x, i) => {
+        const c = s("circle", { r: 7, class: "f4", "aria-label": `sketch point ${i + 1}; arrow keys move it` }, g);
+        drag(P, c, { get: () => [x, ys[i]], set: (_, y) => { ys[i] = clamp(y, P.ylim[0], P.ylim[1]); draw(); }, step: [0, (P.ylim[1] - P.ylim[0]) / 40] });
+        return c;
+      });
+      function draw() {
+        line.setAttribute("d", o.xs.map((x, i) => (i ? "L" : "M") + P.X(x).toFixed(1) + "," + P.Y(ys[i]).toFixed(1)).join(""));
+        dots.forEach((c, i) => { c.setAttribute("cx", P.X(o.xs[i])); c.setAttribute("cy", P.Y(ys[i])); });
+      }
+      draw();
+      h("p", { html: o.hint || "Drag the pink points to sketch your guess, then compare.", style: "margin:0;font-size:13.5px" }, body);
+      const row = h("div", { class: "lx-row" }, body);
+      button(row, "Compare with the real curve", () => {
+        tg.replaceChildren();
+        const pts = sample(o.truth, P.xlim[0], P.xlim[1], 300);
+        let d = ""; pts.forEach(([x, y], i) => { d += (i ? "L" : "M") + P.X(x).toFixed(1) + "," + P.Y(clamp(y, P.ylim[0] - 10, P.ylim[1] + 10)).toFixed(1); });
+        s("path", { d, class: "s1" }, tg);
+        const tv = o.xs.map(o.truth), span = (Math.max(...tv) - Math.min(...tv)) || 1;
+        const rms = Math.sqrt(o.xs.reduce((a, _, i) => a + (ys[i] - tv[i]) ** 2, 0) / n) / span;
+        done(rms <= (o.tol ?? 0.15), rms, `Your sketch is off by ${(100 * rms).toFixed(0)}% of the curve's range. `);
+      }, { cls: "lx-primary" });
+    } else if (type === "explain") {
+      const ta = h("textarea", { placeholder: "In your own words…", "aria-label": "your explanation" }, body);
+      const row = h("div", { class: "lx-row" }, body);
+      button(row, o.compareLabel || "Compare with a model answer", () => {
+        if (box.querySelector(".lx-model")) return;
+        const m = h("div", { class: "lx-model", html: o.model }, body); typeset(m);
+        done(null, ta.value);
+      });
+    }
+    typeset(box);
+    return { el: box, get answered() { return answered; } };
+  }
 
   /* ---------- self-tests ---------- */
   window.__lxTests = window.__lxTests || [];
@@ -569,15 +692,16 @@ const LX = (() => {
   }
   const near = (a, b, tol = 1e-9) => Math.abs(a - b) <= tol * Math.max(1, Math.abs(a), Math.abs(b));
 
-  return { h, s, typeset, linspace, clamp, sample, C, eigSym, niceTicks, fig, plot, drag, camera,
-           controls, slider, segmented, button, limits, readout, player, steps, isLocked, check, near, rng, reduceMotion };
+  return { h, s, typeset, linspace, clamp, sample, C, eigSym, niceTicks, fig, plot, drag, camera, widget, guide, legend,
+           controls, slider, segmented, button, limits, readout, player, ask, gate, check, near, rng, reduceMotion };
 })();
 /* LX:LIB-END */</script>
 
 <script>
 /* PATTERN */
-const { C } = LX, PI = Math.PI, MAXN = 20000, SEED = 20240611;
-const S = { th: PI / 2, ph: 0, basis: "Z", al: PI / 3, rec: new Int8Array(MAXN), cum: new Int32Array(MAXN + 1), n: 0, rng: null, last: null };
+const { C } = LX, PI = Math.PI, MAXN = 20000, SEED = 20240611, ZMAX = 4.2, MAXDOTS = 1000;
+const S = { th: PI / 2, ph: 0, basis: "Z", al: PI / 3, rec: new Int8Array(MAXN), cum: new Int32Array(MAXN + 1), n: 0, rng: null, last: null,
+  exp: { zs: [], out1: 0, out2: 0, rng: null } };
 
 /* mulberry32: small seeded PRNG, uniform in [0, 1) */
 function mulberry32(a) { return () => { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
@@ -591,71 +715,121 @@ function pPlus(ab = amps(), n = axis()) {
   return C.abs2(C.add(C.mul(C.conj(e[0]), ab[0]), C.mul(C.conj(e[1]), ab[1])));
 }
 const sample = (p, rng) => (rng() < p ? 1 : -1);
+const sigma = (p, N) => N ? Math.sqrt(p * (1 - p) / N) : 0;
+/* deviation in units of the standard error; 0 when σ = 0 (eigenstate: every run gives exactly p) */
+const zOf = (f, p, N) => { const s = sigma(p, N); return s > 1e-12 ? (f - p) / s : 0; };
+const zone = z => Math.abs(z) <= 1 ? "in" : Math.abs(z) <= 2 ? "1" : "2";
+/* Exact binomial probability that |K/N − p| > k σ. Log-space recursion over K, no overflow up to N = 20 000. */
+function tail(N, p, k) {
+  const s = sigma(p, N); if (!N || s < 1e-12) return 0;
+  const lr = Math.log(p / (1 - p)); let lp = N * Math.log(1 - p), sum = 0;
+  for (let K = 0; K <= N; K++) {
+    if (Math.abs(K / N - p) > k * s + 1e-12) sum += Math.exp(lp);
+    lp += Math.log((N - K) / (K + 1)) + lr;
+  }
+  return sum;
+}
 
-/* ---- layout ---- */
-const stage = document.getElementById("stage");
-const figs = LX.h("div", { class: "lx-figs" }, stage);
-const PH = LX.plot(LX.fig(figs, "Outcome frequencies (bars), Born probabilities (dashed), \\(\\pm1\\sigma\\) band \\(\\sqrt{p(1-p)/N}\\)"),
-  { xlim: [0, 3], ylim: [0, 1.08], width: 360, height: 320, margin: { b: 40 }, yticks: 4, ylabel: "\\text{frequency}" });
+/* ---- layout: grid2 ---- */
+const W = LX.widget(document.getElementById("stage"), { layout: "grid2", title: "Born-rule sampling", badge: "exact", badgeText: "Exact probabilities, sampled outcomes" });
+const fH = LX.fig(W, "Outcome frequencies after \\(N\\) shots");
+const PH = LX.plot(fH, { xlim: [0, 3], ylim: [0, 1.08], width: 420, height: 300, margin: { b: 40 }, yticks: 4, ylabel: "\\text{frequency}" });
 [...PH.g.axes.querySelectorAll("text")].filter(t => t.getAttribute("text-anchor") === "middle").forEach(t => t.remove());
 [...PH.g.grid.querySelectorAll("line")].filter(l => l.getAttribute("x1") === l.getAttribute("x2")).forEach(l => l.remove());
-const PR = LX.plot(LX.fig(figs, "Running mean of the outcomes vs number of shots \\(n\\); dashed: \\(\\langle\\vec\\sigma\\cdot\\hat n\\rangle\\); band: \\(\\pm\\sqrt{(1-\\langle\\sigma\\rangle^2)/n}\\)"),
-  { xlim: [0, Math.log10(MAXN)], ylim: [-1.08, 1.08], width: 420, height: 320, xlabel: "\\log_{10} n", ylabel: "\\text{mean}", yticks: 4 });
+LX.legend(fH, [["observed", "--accent", "line"], ["Born \\(p\\)", "--c2", "dash"], ["\\(\\pm1\\sigma\\), \\(\\pm2\\sigma\\) band", "--c3", "line"]]);
+const fR = LX.fig(W, "Running mean of the \\(\\pm1\\) outcomes against the number of shots");
+const PR = LX.plot(fR, { xlim: [0, Math.log10(MAXN)], ylim: [-1.08, 1.08], width: 420, height: 300, xlabel: "\\log_{10} n", ylabel: "\\text{mean}", yticks: 4 });
+LX.legend(fR, [["running mean", "--accent", "line"], ["\\(\\langle\\vec\\sigma\\cdot\\hat n\\rangle\\)", "--c2", "dash"], ["\\(\\pm1\\sigma\\), \\(\\pm2\\sigma\\) funnel", "--c3", "line"]]);
 
-const ctl = LX.controls(stage);
+const ctl = LX.controls(W);
 const thS = LX.slider(ctl, { id: "th", label: "state \\(\\theta\\)", min: 0, max: PI, step: 0.005, value: S.th, fmt: v => (v / PI).toFixed(3) + "π", onInput: v => { S.th = v; reset(); } });
-const phS = LX.slider(ctl, { id: "ph", label: "state \\(\\varphi\\)", min: 0, max: 2 * PI, step: 0.005, value: S.ph, fmt: v => (v / PI).toFixed(3) + "π", onInput: v => { S.ph = v; reset(); } });
-const alS = LX.slider(ctl, { id: "al", label: "tilt \\(\\alpha\\) of the tilted axis", min: 0, max: PI, step: 0.005, value: S.al, fmt: v => (v / PI).toFixed(3) + "π", onInput: v => { S.al = v; if (S.basis === "T") reset(); } });
+const phS = LX.slider(ctl, { id: "ph", label: "state \\(\\varphi\\)", min: 0, max: 1.99 * PI, step: PI / 200, value: S.ph, fmt: v => (v / PI).toFixed(3) + "π", onInput: v => { S.ph = v; reset(); } });
 const bSeg = LX.segmented(ctl, { id: "basis", label: "Measure", value: "Z",
-  options: [{ value: "Z", label: "\\(\\sigma_z\\)" }, { value: "X", label: "\\(\\sigma_x\\)" }, { value: "T", label: "tilted \\(\\hat n\\)" }],
-  onChange: v => { S.basis = v; reset(); } });
+  options: [{ value: "Z", label: "\\(\\sigma_z\\)" }, { value: "X", label: "\\(\\sigma_x\\)" }, { value: "T", label: "tilted axis" }],
+  onChange: v => { S.basis = v; alS.input.disabled = v !== "T"; reset(); } });
+const alS = LX.slider(ctl, { id: "al", label: "tilt \\(\\alpha\\) of the tilted axis", min: 0, max: PI, step: 0.005, value: S.al, fmt: v => (v / PI).toFixed(3) + "π", onInput: v => { S.al = v; if (S.basis === "T") reset(); } });
+alS.input.disabled = true;
 const shots = LX.h("div", { class: "lx-group", id: "shots" }, ctl);
 LX.h("span", { text: "Record shots" }, shots);
 const srow = LX.h("div", { class: "lx-row" }, shots);
 for (const k of [1, 10, 100, 1000]) LX.button(srow, "Measure " + k, () => measure(k), { cls: k === 1 ? "lx-primary" : "" });
 LX.button(srow, "Reset", () => reset(), { id: "reset" });
-LX.limits(ctl, [
-  { label: "Eigenstate of the axis", title: "state along +n: outcome certain", apply: () => { const n = axis(); setState(Math.acos(n[2]), n[0] < 0 ? PI : 0); } },
-  { label: "|+⟩ state", title: "θ = π/2, φ = 0", apply: () => setState(PI / 2, 0) },
-  { label: "|−⟩ state", title: "θ = π/2, φ = π", apply: () => setState(PI / 2, PI) },
-  { label: "Many shots", title: "fill the record to 20 000", apply: () => measure(MAXN) }
+const rB = LX.readout(ctl, "Bloch vector \\(\\vec r\\) =");
+const box = rB.el.parentNode; box.style.flexDirection = "column"; box.style.gap = "3px";
+const rN = LX.readout(box, "shots \\(N\\) =");
+const rF = LX.readout(box, "observed \\(f_+\\) =");
+const rP = LX.readout(box, "Born \\(p_+\\) =");
+const rE = LX.readout(box, "standard error \\(\\sigma = \\sqrt{p_+(1-p_+)/N}\\) =");
+const rZ = LX.readout(box, "deviation \\(z = (f_+ - p_+)/\\sigma\\) =");
+
+const col = LX.h("div", { class: "lx-col" }, W);
+const fX = LX.fig(col, "Repeat this experiment: each dot is one more run with the same \\(N\\) and setup, placed at its deviation \\(z\\)");
+const PX = LX.plot(fX, { xlim: [-ZMAX, ZMAX], ylim: [0, 1], frame: false, width: 420, height: 150, margin: { l: 12, r: 12, t: 26, b: 10 } });
+LX.legend(fX, [["inside \\(\\pm1\\sigma\\)", "--accent", "dot"], ["\\(1\\)–\\(2\\sigma\\)", "--c2", "dot"], ["outside \\(\\pm2\\sigma\\)", "--bad", "dot"], ["your record", "--fg", "line"]]);
+/* static zones and their labels (created once) */
+PX.path([[-2, 0.06], [2, 0.06], [2, 1], [-2, 1]], { cls: "a3 faint", layer: "fill", close: true });
+PX.path([[-1, 0.06], [1, 0.06], [1, 1], [-1, 1]], { cls: "a3", layer: "fill", close: true });
+PX.line(-ZMAX, 0.06, ZMAX, 0.06, { cls: "ax", layer: "fill" });
+for (const [v, s] of [[-2, "-2\\sigma"], [-1, "-\\sigma"], [0, "0"], [1, "\\sigma"], [2, "2\\sigma"]]) PX.tex(v, 1, s, { anchor: "s" });
+const xctl = LX.controls(col);
+const xrow = LX.h("div", { class: "lx-row" }, xctl);
+const run100 = LX.button(xrow, "Run 100 experiments", () => runExperiments(100), { cls: "lx-primary", id: "run100" });
+const run1000 = LX.button(xrow, "Run 1000", () => runExperiments(1000), { id: "run1000" });
+const rX = LX.readout(xctl, "experiments run:");
+const xbox = rX.el.parentNode; xbox.style.flexDirection = "column"; xbox.style.gap = "3px";
+const rX1 = LX.readout(xbox, "outside \\(\\pm1\\sigma\\):");
+const rX2 = LX.readout(xbox, "outside \\(\\pm2\\sigma\\):");
+
+LX.guide(W, [
+  ["Histogram", "Bars: the fraction of \\(+1\\) and \\(-1\\) outcomes so far. Dashed orange: the Born probabilities. The teal bands mark \\(p \\pm \\sigma\\) (darker) and \\(p \\pm 2\\sigma\\) (lighter), with \\(\\sigma = \\sqrt{p(1-p)/N}\\) the <b>standard error</b> of a frequency from \\(N\\) shots. The label above the bar says where the observed frequency falls."],
+  ["The band is not a bound", "An honest experiment lands <i>outside</i> \\(\\pm1\\sigma\\) about one time in three (32%) and outside \\(\\pm2\\sigma\\) about one time in twenty (5%). A frequency outside the dark band is normal; far outside \\(\\pm2\\sigma\\) again and again would not be."],
+  ["Running mean", "The average of the \\(\\pm1\\) outcomes as shots accumulate (log axis). It wanders inside a funnel that narrows as \\(1/\\sqrt n\\): ten times more precision costs a hundred times more shots. It leaves the inner funnel now and then, for the same reason."],
+  ["Repeat this experiment", "Runs 100 (or 1000) more experiments with the same \\(N\\) and state, and drops each at its deviation \\(z\\). The tally compares the fraction outside \\(\\pm1\\sigma\\) and \\(\\pm2\\sigma\\) with the exact binomial expectation (close to 32% and 5% once \\(N\\) is large; small \\(N\\) gives coarser steps). Record some shots first; changing the setup or \\(N\\) clears the tally."],
+  ["State and basis", "\\(\\theta, \\varphi\\) set the qubit (its Bloch vector is shown; \\(\\varphi\\) is invisible to \\(\\sigma_z\\), visible to \\(\\sigma_x\\)); the basis sets the measured observable (the tilt slider works only for the tilted axis). Any change clears the record, since data belong to one setup."]
 ]);
-const ro = LX.controls(stage);
-const rN = LX.readout(ro, "shots \\(N\\) =");
-const box = ro.querySelector(".lx-readouts");
-const rL = LX.readout(box, "last outcome:");
-const rF = LX.readout(box, "frequency of \\(+1\\):");
-const rP = LX.readout(box, "Born \\(p_+ = (1+\\hat n\\cdot\\vec r)/2\\) =");
-const rE = LX.readout(box, "expected spread \\(\\sqrt{p_+(1-p_+)/N}\\) =");
-const rD = LX.readout(box, "actual \\(|f_+ - p_+|\\) =");
 
 const f = (v, d = 3) => (Math.abs(v) < 0.5 * 10 ** -d ? 0 : v).toFixed(d).replace("-", "−");
+const pct = v => (100 * v).toFixed(1) + "%";
 
-function setState(th, ph) { thS.set(th, false); phS.set(ph, false); S.th = th; S.ph = ph; reset(); }
-function reset() { S.n = 0; S.last = null; S.rng = mulberry32(SEED); draw(); }
+function clearExp() { const e = S.exp; e.zs = []; e.out1 = 0; e.out2 = 0; e.rng = mulberry32(SEED + 7); }
+function reset() { S.n = 0; S.last = null; S.rng = mulberry32(SEED); clearExp(); draw(); }
 function measure(k) {
   const p = pPlus();
   for (let i = 0; i < k && S.n < MAXN; i++) { const o = sample(p, S.rng); S.rec[S.n] = o; S.cum[S.n + 1] = S.cum[S.n] + o; S.last = o; S.n++; }
+  clearExp(); draw();
+}
+function runExperiments(R) {
+  const N = S.n; if (!N) return;
+  const p = pPlus(), e = S.exp;
+  for (let r = 0; r < R; r++) {
+    let k = 0; for (let i = 0; i < N; i++) if (e.rng() < p) k++;
+    const z = zOf(k / N, p, N);
+    e.zs.push(z); if (Math.abs(z) > 1 + 1e-9) e.out1++; if (Math.abs(z) > 2 + 1e-9) e.out2++;
+  }
   draw();
 }
 
+const freq = () => S.n ? (S.cum[S.n] + S.n) / 2 / S.n : 0;
 function drawHist(p) {
-  PH.clear(); PH.clear("fill"); PH.clear("top");
-  const N = S.n, nPlus = (S.cum[N] + N) / 2, sd = N ? Math.sqrt(p * (1 - p) / N) : 0;
+  PH.clearAll();
+  const N = S.n, nPlus = (S.cum[N] + N) / 2, sd = sigma(p, N);
   [[1, p, N ? nPlus / N : 0, "+1"], [2, 1 - p, N ? 1 - nPlus / N : 0, "−1"]].forEach(([x, q, fr, lab]) => {
-    if (N) PH.path([[x - 0.42, Math.max(0, q - sd)], [x + 0.42, Math.max(0, q - sd)], [x + 0.42, Math.min(1, q + sd)], [x - 0.42, Math.min(1, q + sd)]], { cls: "a3", layer: "fill", close: true });
+    if (N) for (const [k, cls] of [[2, "a3 faint"], [1, "a3"]])
+      PH.path([[x - 0.42, Math.max(0, q - k * sd)], [x + 0.42, Math.max(0, q - k * sd)], [x + 0.42, Math.min(1, q + k * sd)], [x - 0.42, Math.min(1, q + k * sd)]], { cls, layer: "fill", close: true });
     const bar = [[x - 0.3, 0], [x - 0.3, fr], [x + 0.3, fr], [x + 0.3, 0]];
-    PH.path(bar, { cls: "a1", layer: "fill", close: true }); PH.path(bar, { cls: "s1 thin" });
+    const zn = N ? zone(zOf(fr, q, N)) : "in";
+    PH.path(bar, { cls: "a1", layer: "fill", close: true }); PH.path(bar, { cls: zn === "in" ? "s1 thin" : zn === "1" ? "s2" : "sb" });
     PH.line(x - 0.42, q, x + 0.42, q, { cls: "s2 dash", layer: "top" });
     PH.text(x, 0, lab, { dy: 16 });
-    if (N) PH.text(x, Math.max(fr, q + sd), String(Math.round(x === 1 ? nPlus : N - nPlus)), { dy: -6 });
+    if (N) { const tl = PH.text(x, Math.min(1, Math.max(fr, q + 2 * sd)), String(Math.round(x === 1 ? nPlus : N - nPlus)) + (zn === "in" ? "  within 1σ" : zn === "1" ? "  outside 1σ" : "  outside 2σ"), { dy: -6 }); if (zn !== "in") tl.style.fill = zn === "1" ? "var(--c2)" : "var(--bad)"; }
   });
 }
 function drawRun(p) {
-  PR.clear(); PR.clear("fill"); PR.clear("top");
+  PR.clearAll();
   const m = 2 * p - 1, v = 1 - m * m, L = Math.log10(MAXN);
   const ns = LX.linspace(0, L, 200).map(t => 10 ** t);
-  PR.area(ns.map(n => [Math.log10(n), Math.min(1.08, m + Math.sqrt(v / n))]).concat(ns.slice().reverse().map(n => [Math.log10(n), Math.max(-1.08, m - Math.sqrt(v / n))])), { cls: "a3" });
+  for (const [k, cls] of [[2, "a3 faint"], [1, "a3"]])
+    PR.area(ns.map(n => [Math.log10(n), Math.min(1.08, m + k * Math.sqrt(v / n))]).concat(ns.slice().reverse().map(n => [Math.log10(n), Math.max(-1.08, m - k * Math.sqrt(v / n))])), { cls });
   PR.hline(m, { cls: "s2 dash" });
   if (S.n) {
     /* running mean at log-spaced n (all n for the first 60 shots) */
@@ -665,78 +839,38 @@ function drawRun(p) {
     idx.add(S.n);
     const pts = [...idx].sort((a, b) => a - b).map(n => [Math.log10(n), S.cum[n] / n]);
     PR.path(pts, { cls: "s1" });
-    PR.dot(Math.log10(S.n), S.cum[S.n] / S.n, { r: 5, cls: "f1" });
+    const zn = zone(zOf(freq(), p, S.n));
+    PR.dot(Math.log10(S.n), S.cum[S.n] / S.n, { r: 5, cls: zn === "in" ? "f1" : zn === "1" ? "f2" : "fb" });
   }
+}
+function drawExp(p) {
+  PX.clear(); PX.clear("top");
+  const e = S.exp, R = e.zs.length, start = Math.max(0, R - MAXDOTS), jit = mulberry32(99);
+  for (let i = 0; i < start; i++) jit();
+  for (let i = start; i < R; i++) {
+    const z = e.zs[i], zn = zone(z);
+    PX.dot(LX.clamp(z, -ZMAX + 0.05, ZMAX - 0.05), 0.12 + 0.8 * jit(), { r: 2.6, cls: zn === "in" ? "f1" : zn === "1" ? "f2" : "fb", layer: "main" });
+  }
+  if (S.n) { const z = LX.clamp(zOf(freq(), p, S.n), -ZMAX, ZMAX); PX.line(z, 0.02, z, 0.98, { cls: "s1 thin", layer: "top" }).setAttribute("style", "stroke: var(--fg)"); }
+  const N = S.n;
+  run100.disabled = run1000.disabled = !N || sigma(p, N) < 1e-12;
+  rX.set(R ? String(R) + (R > MAXDOTS ? ` (last ${MAXDOTS} shown)` : "") : N ? (sigma(p, N) < 1e-12 ? "none: eigenstate, every run gives exactly p" : "none yet") : "record shots first");
+  const t1 = tail(N, p, 1), t2 = tail(N, p, 2);
+  rX1.set(R ? `${pct(e.out1 / R)}  (expected ${pct(t1)})` : N ? `expected ${pct(t1)}` : "—");
+  rX2.set(R ? `${pct(e.out2 / R)}  (expected ${pct(t2)})` : N ? `expected ${pct(t2)}` : "—");
 }
 function draw() {
   const p = pPlus(), N = S.n;
-  drawHist(p); drawRun(p);
-  rN.set(String(N));
-  rL.set(S.last === null ? "—" : S.last > 0 ? "+1" : "−1");
-  rF.set(N ? f((S.cum[N] + N) / 2 / N) : "—");
+  drawHist(p); drawRun(p); drawExp(p);
+  rB.set(`(${f(Math.sin(S.th) * Math.cos(S.ph), 2)}, ${f(Math.sin(S.th) * Math.sin(S.ph), 2)}, ${f(Math.cos(S.th), 2)})`);
+  rN.set(String(N) + (S.last === null ? "" : `  (last: ${S.last > 0 ? "+1" : "−1"})`));
+  rF.set(N ? f(freq()) : "—");
   rP.set(f(p));
-  rE.set(N ? f(Math.sqrt(p * (1 - p) / N)) : "—");
-  rD.set(N ? f(Math.abs((S.cum[N] + N) / 2 / N - p)) : "—");
+  rE.set(N ? f(sigma(p, N)) : "—");
+  if (!N) { rZ.set("—"); rZ.el.lastChild.style.color = ""; }
+  else { const z = zOf(freq(), p, N), zn = zone(z); rZ.set(f(z, 2) + (zn === "in" ? "  inside ±1σ" : zn === "1" ? "  outside ±1σ, inside ±2σ" : "  outside ±2σ")); rZ.el.lastChild.style.color = zn === "in" ? "var(--good)" : zn === "1" ? "var(--c2)" : "var(--bad)"; }
 }
 reset();
-
-/* ---- lesson ---- */
-const go = (th, ph, basis = "Z", al = PI / 3) => () => {
-  if (bSeg.get() !== basis) bSeg.set(basis, false); S.basis = basis;
-  alS.set(al, false); S.al = al; setState(th, ph);
-};
-LX.steps(document.getElementById("steps"), [
-  { title: "One shot",
-    onEnter: go(PI / 2, 0),
-    html: "<p>The qubit is prepared in \\(\\ket{+} = (\\ket{0} + \\ket{1})/\\sqrt2\\), a perfectly definite pure state. You measure \\(\\sigma_z\\) once.</p>",
-    predict: { prompt: "What will the single outcome be?",
-      options: ["Always \\(+1\\), since the state is definite", "\\(0\\), the average of \\(\\pm1\\)", "\\(+1\\) or \\(-1\\) at random, each with probability 1/2"], answer: 2,
-      right: "A definite state does not mean a definite outcome. Only an eigenstate of the measured observable gives a certain result; \\(\\ket{+}\\) is not one of \\(\\sigma_z\\).",
-      wrong: "A measurement of \\(\\sigma_z\\) only ever returns an eigenvalue, \\(+1\\) or \\(-1\\). For \\(\\ket{+}\\) the Born rule gives each with probability \\(|1/\\sqrt2|^2 = 1/2\\), and nothing in the state decides which." },
-    lock: ["shots"],
-    after: "<p>Press <i>Measure 1</i> a few times. The outcomes look like coin flips. Now try <i>Eigenstate of the axis</i>: every shot gives \\(+1\\).</p>" },
-  { title: "How close after 100 shots?",
-    onEnter: go(PI / 2, 0),
-    html: "<p>Still \\(\\ket{+}\\) in the \\(\\sigma_z\\) basis, so \\(p_+ = 1/2\\). You will record 100 shots.</p>",
-    predict: { prompt: "Roughly how far from 1/2 will the measured frequency typically be?",
-      options: ["About 0.5: anything can happen", "About 0.05", "About 0.005"], answer: 1,
-      right: "The count of \\(+1\\) is binomial, so the frequency has standard deviation \\(\\sqrt{p(1-p)/N} = \\sqrt{0.25/100} = 0.05\\).",
-      wrong: "The number of \\(+1\\) outcomes is binomial with variance \\(Np(1-p)\\). The frequency therefore scatters by \\(\\sqrt{p(1-p)/N} = 0.05\\) at \\(N = 100\\)." },
-    lock: ["shots"],
-    after: "<p>Press <i>Measure 100</i> and compare the two readouts at the end: the actual deviation is of the size of the expected spread, sometimes larger, sometimes smaller.</p>" },
-  { title: "Ten times better",
-    onEnter: go(PI / 2, 0),
-    html: "<p>Suppose 0.05 is not good enough and you need the frequency to within 0.005.</p>",
-    predict: { prompt: "How many shots do you need instead of 100?",
-      options: ["1 000", "10 000", "100 000"], answer: 1,
-      right: "The error falls as \\(1/\\sqrt N\\): ten times smaller error needs a hundred times more shots.",
-      wrong: "The spread is \\(\\sqrt{p(1-p)/N}\\), so reducing it tenfold needs \\(N\\) a hundred times larger: \\(10^4\\) shots." },
-    lock: ["shots"],
-    after: "<p>Press <i>Many shots</i> and follow the right panel: the running mean wanders inside the shaded funnel, whose width halves every time \\(n\\) grows fourfold.</p>" },
-  { title: "Where is the phase?",
-    onEnter: go(PI / 2, PI),
-    html: "<p>The state is now \\(\\ket{-} = (\\ket{0} - \\ket{1})/\\sqrt2\\). In \\(\\sigma_z\\) its statistics are identical to those of \\(\\ket{+}\\): 50/50.</p>",
-    predict: { prompt: "How can you tell \\(\\ket{-}\\) from \\(\\ket{+}\\)?",
-      options: ["Measure \\(\\sigma_z\\) with many more shots", "Measure \\(\\sigma_x\\): a single shot suffices", "You cannot: they differ only by a phase"], answer: 1,
-      right: "\\(\\ket{\\pm}\\) are the eigenstates of \\(\\sigma_x\\) with eigenvalues \\(\\pm1\\). In that basis the outcome is certain: \\(-1\\) for \\(\\ket{-}\\), every time.",
-      wrong: "The relative phase \\(\\varphi\\) is physical, but invisible in \\(\\sigma_z\\) statistics. In the \\(\\sigma_x\\) basis \\(\\ket{-}\\) gives \\(-1\\) with certainty, and \\(\\ket{+}\\) gives \\(+1\\)." },
-    lock: ["basis"],
-    after: "<p>Switch to \\(\\sigma_x\\) and record shots. Then sweep \\(\\varphi\\): \\(p_+ = (1 + \\sin\\theta\\cos\\varphi)/2\\) in that basis. Tomography needs at least three bases for exactly this reason.</p>" },
-  { title: "A tilted axis",
-    onEnter: go(0, 0, "Z", PI / 3),
-    html: "<p>The state is \\(\\ket{0}\\), pointing to the north pole of the Bloch sphere. You will measure along an axis tilted by \\(\\alpha = 60^\\circ\\) from \\(z\\).</p>",
-    predict: { prompt: "What is the probability of \\(+1\\) along the tilted axis?",
-      options: ["\\(1/2\\)", "\\(\\cos^2 30^\\circ = 3/4\\)", "\\(\\cos 60^\\circ = 1/2\\)", "\\(\\cos^2 60^\\circ = 1/4\\)"], answer: 1,
-      right: "\\(p_+ = (1 + \\hat n\\cdot\\vec r)/2 = (1 + \\cos\\alpha)/2 = \\cos^2(\\alpha/2) = 3/4\\). Half the Bloch angle again.",
-      wrong: "Use \\(p_+ = (1 + \\hat n\\cdot\\vec r)/2\\) with \\(\\hat n\\cdot\\vec r = \\cos 60^\\circ = 1/2\\): \\(p_+ = 3/4 = \\cos^2(\\alpha/2)\\)." },
-    lock: ["basis", "al-wrap"],
-    after: "<p>Select <i>tilted</i>, record a few hundred shots and check the readout. This is Malus's law for spin: the same \\(\\cos^2\\) of half the angle as for photon polarisation with the full angle.</p>" },
-  { title: "Put it in your own words",
-    onEnter: () => { go(PI / 3, PI / 4, "X")(); measure(300); },
-    html: "<p>You have seen random single outcomes, converging frequencies, and a phase that only some bases can see.</p>",
-    explain: { prompt: "Why does the estimate of a probability improve only as \\(1/\\sqrt N\\), and what does that mean for experiments?",
-      model: "<p>Each shot is an independent \\(\\pm1\\) random variable with variance \\(1 - \\langle\\sigma\\rangle^2\\). The mean of \\(N\\) independent samples has variance smaller by \\(1/N\\), so its standard deviation falls as \\(1/\\sqrt N\\) (central limit theorem). Single outcomes carry one bit; precise expectation values cost many repetitions of the same preparation.</p><p><b>Transfer:</b> you want to estimate a probability near \\(1/2\\) to a standard error of \\(10^{-3}\\), say to benchmark a gate. Roughly how many shots do you need, and how does that change if the probability is near \\(0.99\\)?</p>" } }
-]);
 
 /* ---- self-tests ---- */
 LX.check("Born rule: |⟨+n|ψ⟩|² = (1 + n·r)/2 for Z, X and a tilted axis", () => {
@@ -757,5 +891,15 @@ LX.check("spread of N = 100 frequencies over 2000 runs ≈ √(p(1−p)/N) (1/�
   for (let r = 0; r < R; r++) { let k = 0; for (let i = 0; i < N; i++) if (sample(p, rng) > 0) k++; s2 += (k / N - p) ** 2; }
   const sd = Math.sqrt(s2 / R);
   return { pass: Math.abs(sd / 0.05 - 1) < 0.1, detail: sd.toFixed(4) };
+});
+LX.check("exact binomial tails approach the Gaussian 31.7% / 4.6% at large N", () => {
+  const a = tail(20000, 0.3, 1), b = tail(20000, 0.3, 2);
+  return { pass: Math.abs(a - 0.3173) < 0.01 && Math.abs(b - 0.0455) < 0.005, detail: `${a}, ${b}` };
+});
+LX.check("repeated experiments: fraction outside ±1σ matches the exact tail (N = 100, p = 0.5, 4000 runs)", () => {
+  const rng = mulberry32(SEED + 3), N = 100, p = 0.5, R = 4000; let o = 0;
+  for (let r = 0; r < R; r++) { let k = 0; for (let i = 0; i < N; i++) if (rng() < p) k++; if (Math.abs(zOf(k / N, p, N)) > 1 + 1e-9) o++; }
+  const t = tail(N, p, 1), z = Math.abs(o / R - t) / Math.sqrt(t * (1 - t) / R);
+  return { pass: z < 4, detail: `${o / R} vs ${t}` };
 });
 </script>

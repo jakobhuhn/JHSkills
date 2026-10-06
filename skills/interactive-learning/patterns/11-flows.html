@@ -2,37 +2,46 @@
 <!--
 PATTERN 11 · FLOWS
 Concept shape   A vector field moves a state through a parameter space; what matters is where trajectories
-                end up (fixed points), which directions grow or shrink near them, and which curve divides
-                the different fates.
+                end up (fixed points), and which curve divides the different fates.
 Use it for      RG flows (KT, ε-expansion, Kondo poor-man's scaling, BKT in superfluid films), dynamical
                 systems and phase portraits, semiclassical equations of motion, gradient flows, any
                 "dX/dl = β(X)" picture with two couplings.
-Widget anatomy  (1) phase portrait: subsampled arrow field, separatrices and fixed lines highlighted;
-                    click or tap anywhere to launch an RK4 trajectory (keeps up to 12, then recycles);
-                (2) launch presets as limit buttons, incl. a "temperature line" of starting points
-                    (one microscopic model at many temperatures);
-                (3) model toggle: KT flow vs an exactly solvable linear flow near a fixed point with a
-                    slider for the second eigenvalue (relevant vs irrelevant);
-                (4) readouts: start point, fate, conserved quantity, endpoint, RG time to escape.
-Teaching moments  Predict the fate of a stiff vs a soft start; predict the shape of the phase boundary from
-                  the conserved quantity; predict the universal endpoint at the transition; predict how
-                  many parameters must be tuned to reach a fixed point with one relevant direction.
-Adapt by        Replace field(x, y) (and the overlays: separatrix, fixed set) with your β-functions and
-                keep the RK4 launcher. For flows with an exact solution, supply exact(x0, y0, l) like
-                the linear mode does. Keep ticks off unless the couplings have meaningful units.
-Physics         KT: dx/dl = −y², dy/dl = −x y, with x = πK − 2 (K: stiffness, rescaled), y: vortex
-                fugacity, both to leading order (constants absorbed). x² − y² is conserved, so trajectories
-                are hyperbolas; separatrices y = ±x; fixed line y = 0, x > 0 (quasi-long-range order).
-                Approaching the separatrix from the disordered side with y² − x² = c², the escape time is
-                l* ≈ π/c, giving ξ ~ exp(b/√(T − T_KT)).
-                Linear mode: du/dl = A u with A = V diag(λ₁, λ₂) V⁻¹, λ₁ = 1; u(l) = Σ c_i e^{λ_i l} e_i exactly.
+Widget anatomy  (1) one big flow field: arrows of the β-function, the fixed line, the separatrix (toggle), and the
+                    dashed curve of a film's bare couplings as its temperature changes;
+                (2) "drop a ball": clicking anywhere drops a ball that rolls along the flow (RK4 in RG time l,
+                    animated) and leaves its track; the track takes the colour of its fate when the ball stops
+                    (blue: ordered, orange: disordered); up to 12 balls, then the oldest is recycled. A visible
+                    hint on the plot says so, and one ball is dropped on load so the idea is obvious;
+                (3) temperature slider T/T_KT: moves the marker along the bare-coupling curve and drops the
+                    "temperature ball" from there (replacing the previous one), so the slider always does
+                    something visible; "Clear balls"; "Separatrix" toggle (line y = x plus phase labels);
+                (4) readouts for the latest ball: start, x² − y² (conserved), fate, end point.
+Layout          hero: the flow field is the whole point, so it takes two thirds of the width; the slider, the
+                two buttons and the readouts are stacked in the narrow column beside it.
+Teaching moments  (suggestions for the surrounding chapter)
+                  choice: the fate of a stiff film with few vortices (y → 0 on the fixed line);
+                  choice: the fate of a soft film (x driven negative, then y grows: disordered);
+                  choice / sketch: the phase boundary from the invariant x² − y² (the separatrix y = x; hide it
+                       with the toggle first and let the reader predict it);
+                  set: find the temperature at which the temperature ball ends exactly at the KT point
+                       (T = T_KT; the endpoint x∞ → 0 gives the universal jump K_R = 2/π);
+                  explain: why different films share the same stiffness jump (universality).
+Adapt by        Replace field(x, y), the overlays (separatrix, fixed set) and bare(τ) with your β-functions and
+                your model's bare couplings; keep integrate() (RK4, adaptive storage with RG time per point) and
+                the ball animation. Keep ticks off unless the couplings have meaningful units.
+Physics         KT: dx/dl = −y², dy/dl = −x y, with x = πK − 2 (K: stiffness), y: vortex fugacity, both to
+                leading order (constants absorbed). x² − y² is conserved, so trajectories are hyperbolas;
+                separatrices y = ±x; fixed line y = 0, x > 0 (quasi-long-range order). Ordered starts end at
+                x∞ = √(x² − y²). Escape time on the disordered side l* ≈ π/√(y² − x²), giving ξ ~ exp(b/√(T − T_KT)).
+                Schematic bare couplings of one film: K = J/T, y = e^{−μ/T} with μ = 1.94 J, i.e.
+                x₀(τ) = π/τ − 2, y₀(τ) = e^{−1.94/τ}, τ = T/J; they cross the separatrix at τ_KT ≈ 1.40.
 -->
 <!-- LX:HEAD-BEGIN -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
 <script>
 window.MathJax = {
   tex: {
-    inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]],
+    inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]], tags: "ams",
     macros: {
       ket: ["\\left|#1\\right\\rangle", 1], bra: ["\\left\\langle#1\\right|", 1],
       braket: ["\\left\\langle#1\\middle|#2\\right\\rangle", 2], expval: ["\\left\\langle#1\\right\\rangle", 1],
@@ -51,7 +60,7 @@ window.MathJax = {
 <!-- LX:HEAD-END -->
 <style>
 /* LX:STYLE-BEGIN */
-/* Layout: a lab-notebook page. Figure stage on the left, lesson steps on the right; one column on phones. */
+/* Theme tokens, page, article typography, widget layouts, inline questions, SVG marks. */
 :root {
   --bg: #f5f6f8; --surface: #ffffff; --fg: #17202c; --muted: #5b6676; --line: #d6dce5; --grid: #eaeef3;
   --accent: #2f5bd3; --c2: #c9700c; --c3: #12857a; --c4: #b0377a; --good: #1f8a4c; --bad: #c2412d;
@@ -82,63 +91,98 @@ body { background: var(--bg); color: var(--fg); font: 15px/1.55 var(--f-ui); mar
 .lx-badge[data-kind="exact"] { color: var(--good); }
 .lx-badge[data-kind="schematic"] { color: var(--c2); }
 .lx-badge[data-kind="computed"] { color: var(--accent); }
-.lx-layout { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr); gap: 20px; align-items: start; }
-@media (max-width: 860px) { .lx-layout { grid-template-columns: minmax(0, 1fr); } }
+/* article: a reading column for text and math; widgets may break out with .lx-wide */
+.lx-article { display: grid; grid-template-columns: minmax(0, 1fr) min(720px, 100%) minmax(0, 1fr); row-gap: 16px; }
+.lx-article > * { grid-column: 2; min-width: 0; margin: 0; }
+.lx-article > .lx-wide { grid-column: 1 / -1; }
+.lx-article > p, .lx-article > ul, .lx-article > ol, .lx-prose { font: 17px/1.65 var(--f-prose); }
+.lx-article > ul, .lx-article > ol { padding-left: 1.3em; }
+.lx-article h2 { font: 600 24px/1.25 var(--f-prose); margin-top: 18px; text-wrap: balance; }
+.lx-article h3 { font: 600 19px/1.3 var(--f-prose); margin-top: 6px; }
+.lx-prose p { margin: 0 0 .6em; } .lx-prose p:last-child { margin-bottom: 0; }
+mjx-container[display="true"] { overflow-x: auto; overflow-y: hidden; max-width: 100%; padding: 2px 0; }
+.lx-callout { border-left: 3px solid var(--c3); padding: 8px 14px; background: var(--surface); border-radius: 0 8px 8px 0; font: 16px/1.6 var(--f-prose); }
+.lx-callout > b:first-child { font-family: var(--f-ui); font-size: 13px; letter-spacing: .04em; text-transform: uppercase; color: var(--c3); display: block; }
+.lx-hook { border: 1px solid var(--line); border-top: 3px solid var(--c2); background: var(--surface); border-radius: 10px; padding: 14px 16px; font: 18px/1.55 var(--f-prose); }
 .lx-stage { display: grid; gap: 14px; min-width: 0; }
-.lx-figs { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
-.lx-fig { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px; min-width: 0; display: grid; gap: 6px; }
+/* widget card: one framed unit of figures + controls; the layout class sets the arrangement */
+.lx-widget { container-type: inline-size; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: grid; gap: 12px; min-width: 0; }
+.lx-w-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px 12px; }
+.lx-w-head h3 { margin: 0; font: 600 16px/1.3 var(--f-ui); }
+.lx-w { display: grid; gap: 12px; min-width: 0; align-items: start; }
+.lx-w > *, .lx-col > * { min-width: 0; }
+.lx-col { display: grid; gap: 12px; align-content: start; min-width: 0; }
+.lx-split { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.lx-grid2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.lx-aside { grid-template-columns: minmax(0, 1fr) minmax(210px, 32%); }
+.lx-aside.lx-left { grid-template-columns: minmax(210px, 32%) minmax(0, 1fr); }
+.lx-hero { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+.lx-hero > :first-child { grid-row: span 3; }
+.lx-span2 { grid-column: 1 / -1; }
+@container (max-width: 620px) {
+  .lx-split, .lx-grid2, .lx-aside, .lx-aside.lx-left, .lx-hero { grid-template-columns: minmax(0, 1fr); }
+  .lx-hero > :first-child { grid-row: auto; }
+}
+.lx-figs { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); }
+.lx-fig { position: relative; min-width: 0; display: grid; gap: 6px; margin: 0; }
 .lx-fig > figcaption { font-size: 12.5px; color: var(--muted); }
 .lx-plot { position: relative; width: 100%; }
 .lx-plot > svg { display: block; width: 100%; height: auto; overflow: visible; touch-action: none; }
 .lx-overlay { position: absolute; inset: 0; pointer-events: none; }
 .lx-tex { position: absolute; white-space: nowrap; font-size: 13px; color: var(--fg); line-height: 1; }
-.lx-controls { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: end; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+.lx-float { position: absolute; top: 4px; right: 4px; z-index: 2; display: flex; flex-wrap: wrap; gap: 6px; justify-content: end; }
+.lx-controls { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: end; background: var(--bg); border-radius: 8px; padding: 10px 12px; }
+:is(.lx-aside, .lx-hero, .lx-grid2) > .lx-controls, .lx-controls.lx-vert { flex-direction: column; flex-wrap: nowrap; align-items: stretch; }
+:is(.lx-aside, .lx-hero, .lx-grid2) > .lx-controls .lx-slider, .lx-controls.lx-vert .lx-slider { flex: none; min-width: 0; }
 .lx-slider { display: grid; gap: 2px; min-width: min(100%, 200px); flex: 1 1 200px; }
 .lx-slider .lx-lab { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--muted); }
-.lx-slider output, .lx-readout b { font-family: var(--f-mono); font-variant-numeric: tabular-nums; color: var(--fg); font-weight: 500; }
+.lx-slider output, .lx-readouts b { font-family: var(--f-mono); font-variant-numeric: tabular-nums; color: var(--fg); font-weight: 500; }
 .lx-slider input[type=range] { width: 100%; accent-color: var(--accent); }
 .lx-group { display: grid; gap: 4px; }
 .lx-group > span { font-size: 12px; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
 .lx-row { display: flex; flex-wrap: wrap; gap: 6px; }
-.lx-btn { font: 500 13px var(--f-ui); color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; cursor: pointer; }
-.lx-btn:hover { border-color: var(--accent); }
+.lx-btn { font: 500 13px var(--f-ui); color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; cursor: pointer; line-height: 1.3; }
+.lx-btn:hover:not(:disabled) { border-color: var(--accent); }
 .lx-btn:focus-visible, .lx-seg input:focus-visible + span, .lx-drag:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .lx-btn[aria-pressed="true"], .lx-btn.lx-primary { background: var(--accent); color: var(--surface); border-color: var(--accent); }
 .lx-btn:disabled { opacity: .45; cursor: not-allowed; }
-.lx-seg { display: inline-flex; flex-wrap: wrap; max-width: 100%; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.lx-btn mjx-container, .lx-seg mjx-container, .lx-opt mjx-container { display: inline-block !important; margin: 0 !important; vertical-align: -0.2em; }
+.lx-seg { display: inline-flex; flex-wrap: wrap; max-width: 100%; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--surface); }
 .lx-seg label { cursor: pointer; }
 .lx-seg input { position: absolute; opacity: 0; pointer-events: none; }
-.lx-seg span { display: block; padding: 5px 10px; font-size: 13px; }
+.lx-seg span { display: block; padding: 5px 10px; font-size: 13px; line-height: 1.3; }
 .lx-seg input:checked + span { background: var(--accent); color: var(--surface); }
 .lx-readouts { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); }
-.lx-locked { opacity: .5; }
-.lx-locked * { cursor: not-allowed !important; }
-/* steps */
-.lx-steps { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: grid; gap: 12px; min-width: 0; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); }
-@media (max-width: 860px) { .lx-steps { position: static; order: -1; } }  /* phones: read the question, then use the widget below */
-.lx-steps-top { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
-.lx-dots { display: flex; gap: 5px; }
-.lx-dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
-.lx-dots i.on { background: var(--accent); }
-.lx-dots i.done { background: var(--muted); }
-.lx-steps h2 { margin: 0; font: 600 19px/1.3 var(--f-prose); text-wrap: balance; }
-.lx-prose { font: 16px/1.6 var(--f-prose); max-width: 68ch; }
-.lx-prose p { margin: 0 0 .6em; }
-.lx-prose p:last-child { margin-bottom: 0; }
-.lx-predict { display: grid; gap: 8px; border-left: 3px solid var(--accent); padding: 8px 0 8px 12px; background: var(--accent-soft); border-radius: 0 8px 8px 0; }
-.lx-predict > p { margin: 0; font-weight: 500; }
-.lx-opts { display: grid; gap: 6px; padding-right: 10px; }
+.lx-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; color: var(--fg); }
+.lx-legend i { display: inline-block; width: 16px; height: 0; border-top: 2.5px solid currentColor; vertical-align: middle; margin-right: 5px; }
+.lx-legend i.dash { border-top-style: dashed; } .lx-legend i.dot { width: 9px; height: 9px; border: none; border-radius: 50%; background: currentColor; }
+/* "What you are looking at" */
+.lx-guide { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 12px; margin: 0; font-size: 13.5px; line-height: 1.45; border-top: 1px solid var(--line); padding-top: 10px; }
+.lx-guide > b { grid-column: 1 / -1; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+.lx-guide dt { font-weight: 600; } .lx-guide dd { margin: 0; color: var(--fg); }
+@container (max-width: 480px) { .lx-guide { grid-template-columns: minmax(0, 1fr); } .lx-guide dd { margin: 0 0 6px; } }
+/* inline questions */
+.lx-ask { display: grid; gap: 8px; border-left: 3px solid var(--accent); padding: 10px 12px; background: var(--accent-soft); border-radius: 0 8px 8px 0; }
+.lx-ask > .lx-kicker { font: 500 12px var(--f-ui); letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
+.lx-ask > .lx-q { font: 500 16px/1.5 var(--f-prose); }
+.lx-opts { display: grid; gap: 6px; }
 .lx-opt { text-align: left; font: 14px/1.4 var(--f-ui); color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; cursor: pointer; }
 .lx-opt:hover:not(:disabled) { border-color: var(--accent); }
 .lx-opt:disabled { cursor: default; }
 .lx-opt.right { border-color: var(--good); box-shadow: inset 3px 0 0 var(--good); }
 .lx-opt.wrong { border-color: var(--bad); box-shadow: inset 3px 0 0 var(--bad); }
-.lx-feedback { font: 15px/1.5 var(--f-prose); padding-right: 10px; }
+.lx-ask input[type=text] { font: 15px var(--f-mono); color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; width: 9em; }
+.lx-ask textarea { font: 15px/1.5 var(--f-prose); color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 8px; min-height: 84px; resize: vertical; }
+.lx-feedback { font: 15px/1.5 var(--f-prose); }
 .lx-feedback b { font-family: var(--f-ui); }
-.lx-explain { display: grid; gap: 8px; }
-.lx-explain textarea { font: 15px/1.5 var(--f-prose); color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 8px; min-height: 84px; resize: vertical; }
-.lx-model { border: 1px dashed var(--line); border-radius: 8px; padding: 10px; }
-.lx-nav { display: flex; justify-content: space-between; gap: 8px; }
+.lx-feedback.good b { color: var(--good); } .lx-feedback.bad b { color: var(--bad); }
+.lx-model { border: 1px dashed var(--line); border-radius: 8px; padding: 10px; background: var(--surface); font: 15px/1.55 var(--f-prose); }
+/* gate: a result stays hidden until its question is answered, then stays visible */
+.lx-gated { position: relative; }
+.lx-gated > * { filter: blur(7px); opacity: .45; pointer-events: none; user-select: none; }
+.lx-gated::after { content: attr(data-gate); position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 4px 8px; font: 500 14px var(--f-ui); color: var(--fg); }
+span.lx-gated { display: inline-block; min-width: 9em; }
+span.lx-gated::after { font-size: 12px; white-space: nowrap; padding: 0; }
 .lx-foot { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 12px; display: grid; gap: 4px; max-width: 90ch; }
 /* svg marks: color via classes so both themes work */
 .lx-plot text { font: calc(11px * var(--lx-k, 1)) var(--f-mono); fill: var(--muted); }
@@ -149,6 +193,8 @@ body { background: var(--bg); color: var(--fg); font: 15px/1.55 var(--f-ui); mar
 .s1 { stroke: var(--accent); } .s2 { stroke: var(--c2); } .s3 { stroke: var(--c3); } .s4 { stroke: var(--c4); } .sm { stroke: var(--muted); stroke-width: 1.2; }
 .dash { stroke-dasharray: 5 4; }
 .thin { stroke-width: 1.2; }
+.faint { opacity: .45; }
+.sk { fill: none; stroke: var(--c4); stroke-width: 2.6; stroke-dasharray: 7 5; stroke-linecap: round; }
 .f1 { fill: var(--accent); } .f2 { fill: var(--c2); } .f3 { fill: var(--c3); } .f4 { fill: var(--c4); } .fm { fill: var(--muted); } .fs { fill: var(--surface); }
 .a1 { fill: var(--accent); fill-opacity: .16; stroke: none; } .a2 { fill: var(--c2); fill-opacity: .18; stroke: none; } .a3 { fill: var(--c3); fill-opacity: .18; stroke: none; }
 .g-ghost { opacity: .32; }
@@ -158,25 +204,27 @@ body { background: var(--bg); color: var(--fg); font: 15px/1.55 var(--f-ui); mar
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 /* LX:STYLE-END */
 #flowfig .lx-plot > svg { cursor: crosshair; }
-#flowfig.lx-locked .lx-plot > svg { cursor: not-allowed; }
 .lx-tex.lbl { background: var(--surface); padding: 2px 4px; border-radius: 4px; }
 .fixed-line { stroke: var(--c3); stroke-width: 5; stroke-linecap: round; fill: none; opacity: .8; }
+.ball { fill: var(--fg); stroke: var(--surface); stroke-width: 1.5; }
+.ball.tball { fill: var(--c2); }
+.trk { fill: none; stroke: var(--fg); stroke-width: 1.6; stroke-linejoin: round; opacity: .75; }
+.lx-hint { position: absolute; left: 7%; top: 7%; pointer-events: none; background: var(--surface); color: var(--fg);
+  border: 1px solid var(--accent); border-radius: 999px; padding: 2px 10px; font-size: 12.5px; font-weight: 500; }
+.lx-group > .lx-seg { justify-self: start; }
+@container (max-width: 480px) { .lx-hint { font-size: 11px; padding: 1px 7px; left: 9%; top: 4%; } }
 </style>
 
 <main class="lx-page">
   <header class="lx-head">
     <p class="lx-eyebrow">Statistical field theory · Renormalisation group</p>
     <h1>Where does a system flow when you zoom out?</h1>
-    <p class="lx-lede">Each point is a pair of couplings: the stiffness of a 2D superfluid film and the fugacity of its vortices. Click anywhere to start there and follow the RG flow to long length scales.</p>
+    <p class="lx-lede">Each point is a pair of couplings: the stiffness of a 2D superfluid film and the fugacity of its vortices. Zooming out changes both. Drop a ball anywhere and watch where the flow carries it.</p>
     <div class="lx-meta">
-      <span class="lx-badge" data-kind="schematic">Schematic: leading-order flow, constants absorbed</span>
-      <span>\(\dd x/\dd l = -y^2,\ \dd y/\dd l = -xy\); \(x = \pi K - 2\), \(y\) = vortex fugacity, \(l = \ln(\text{scale})\)</span>
+      <span>\(\dd x/\dd l = -y^2,\ \dd y/\dd l = -xy\); \(x = \pi K - 2\), \(y\) = vortex fugacity, \(l = \ln(\text{length scale})\); leading order, constants absorbed</span>
     </div>
   </header>
-  <section class="lx-layout">
-    <div class="lx-stage" id="stage"></div>
-    <aside class="lx-steps" id="steps" aria-live="polite"></aside>
-  </section>
+  <div class="lx-stage" id="stage"></div>
   <footer class="lx-foot">
     <span>Source: model knowledge. Standard treatment: Chaikin &amp; Lubensky, <i>Principles of Condensed Matter Physics</i>, ch. 9; Kardar, <i>Statistical Physics of Fields</i>, ch. 8.</span>
   </footer>
@@ -190,9 +238,12 @@ body { background: var(--bg); color: var(--fg); font: 15px/1.55 var(--f-ui); mar
    Plots    LX.plot(parent, {xlim, ylim, ticks, frame, xlabel, ylabel, width, height}) → path/fn/dot/line/vline/hline/
             area/text/tex/arrow/clear/ghost/setLim/setLabels/X/Y/inv/svg/g · LX.drag(plot, node, {get,set,step})
    3D       LX.camera({yaw, pitch, scale}) → project([x,y,z]) · rotate by dragging an element
+   Widget   LX.widget(mount, {layout: stack|split|grid2|aside|hero, left, title, badge}) → body element
+            LX.guide(widgetOrBody, [[term, description], ...]) — the "What you are looking at" block
+            LX.legend(parent, [[label, colorVar, "line"|"dash"|"dot"], ...])
    Controls LX.controls(parent) · LX.slider · LX.segmented · LX.button · LX.limits · LX.readout · LX.player
-   Lesson   LX.steps(parent, steps) — predict → reveal gating, explain boxes, locking controls, onAnswer hook
-            LX.isLocked(el) — true while a lesson step locks el (use in custom click/drag handlers)
+   Text     LX.ask(parent, {type: choice|number|set|sketch|explain, prompt, ..., reveal}) — inline question
+            LX.gate(el, message) — hide a result until a question that lists it in `reveal` is answered
    Checks   LX.check(name, fn) → window.__lxTests */
 const LX = (() => {
   const NS = "http://www.w3.org/2000/svg";
@@ -289,7 +340,6 @@ const LX = (() => {
   let uid = 0;
   function fig(parent, caption) {
     const f = h("figure", { class: "lx-fig" }, parent);
-    f.style.margin = "0";
     if (caption) { const c = h("figcaption", { html: caption }, f); typeset(c); }
     return f;
   }
@@ -321,6 +371,8 @@ const LX = (() => {
       get xlim() { return [x0, x1]; }, get ylim() { return [y0, y1]; },
       setLim(xl, yl) { if (xl) [x0, x1] = xl; if (yl) [y0, y1] = yl; drawAxes(); return P; },
       setLabels(xl, yl) { if (xl != null) o.xlabel = xl; if (yl != null) o.ylabel = yl; drawAxes(); return P; },
+      /* Clear everything a redraw owns: main, fill, top and the TeX overlay (not grid/axes/ghost). */
+      clearAll() { for (const l of ["main", "fill", "top", "tex"]) P.clear(l); return P; },
       clear(layer = "main") {
         if (layer === "tex") { [...overlay.children].filter(c => !c.dataset.axis).forEach(c => c.remove()); return P; }
         g[layer].replaceChildren(); return P;
@@ -355,6 +407,7 @@ const LX = (() => {
       },
       placeTex(el, x, y, anchor = "c", px) {
         const [ux, uy] = px ? [x, y] : [X(x), Y(y)];
+        el.style.display = isFinite(ux) && isFinite(uy) ? "" : "none";
         el.style.left = (100 * ux / W) + "%"; el.style.top = (100 * uy / H) + "%";
         const tx = anchor.includes("w") ? "0%" : anchor.includes("e") ? "-100%" : "-50%";
         const ty = anchor.includes("n") ? "0%" : anchor.includes("s") ? "-100%" : "-50%";
@@ -465,7 +518,11 @@ const LX = (() => {
     typeset(grp);
     return { el: grp, get: () => value, set(v, fire = true) { value = v; inputs.forEach(i => i.checked = i.value == v); if (fire && o.onChange) o.onChange(v); } };
   }
-  const button = (parent, label, onClick, o = {}) => h("button", { type: "button", class: "lx-btn" + (o.cls ? " " + o.cls : ""), id: o.id, html: label, onclick: onClick, title: o.title }, parent);
+  function button(parent, label, onClick, o = {}) {
+    const b = h("button", { type: "button", class: "lx-btn" + (o.cls ? " " + o.cls : ""), id: o.id, html: label, onclick: onClick, title: o.title }, parent);
+    if (/\\\(/.test(label)) typeset(b);
+    return b;
+  }
   /* Limit buttons: one click jumps to a named regime. items: [{label, title, apply}] */
   function limits(parent, items, title = "Jump to a limit", o = {}) {
     const grp = h("div", { class: "lx-group", id: o.id }, parent);   /* pass {id} to lock the whole group in a step */
@@ -491,81 +548,142 @@ const LX = (() => {
     return { btn, play, pause, get playing() { return playing; } };
   }
 
-  /* ---------- lesson steps ----------
-     step = { title, html,                       // prose (TeX allowed)
-              onEnter(),                         // set the widget into the state this step needs
-              predict: { prompt, options:[...], answer: index, right, wrong },  // commit before reveal
-              lock: ["control-id", ...],         // controls disabled until the prediction is made
-              after: html,                       // revealed after predicting
-              explain: { prompt, model },        // learner writes, then compares with a model answer
-              onAnswer(correct, index) }         // optional: called once the prediction is made (e.g. un-blur a view) */
-  function steps(parent, list, o = {}) {
-    const state = list.map(() => ({ chosen: null, explained: false, text: "" }));
-    let i = 0;
-    const lockEls = ids => (ids || []).map(id => document.getElementById(id)).filter(Boolean);
-    function setLocked(ids, on) {
-      for (const el of lockEls(ids)) {
-        el.classList.toggle("lx-locked", on);
-        el.querySelectorAll("input,button,select,textarea").forEach(c => c.disabled = on);
-        if (el.matches("input,button,select,textarea")) el.disabled = on;
-        if (on) el.title = "Make a prediction first"; else el.removeAttribute("title");
-      }
+  /* ---------- widget card, guide, legend ---------- */
+  const BADGE = { exact: "Exact", computed: "Computed", schematic: "Schematic" };
+  /* A framed widget. Returns the body element to fill; its children are arranged by the layout:
+     stack (one column) · split (two equal columns) · grid2 (2×2; a cell may hold controls)
+     aside (figures + a controls column; {left:true} puts the column first) · hero (big first child + a column)
+     Every layout falls back to one column when the card is narrower than ~620 px. */
+  function widget(parent, o = {}) {
+    const card = h("section", { class: "lx-widget" + (o.cls ? " " + o.cls : ""), id: o.id }, parent);
+    if (o.title || o.badge) {
+      const hd = h("div", { class: "lx-w-head" }, card);
+      if (o.title) h("h3", { html: o.title }, hd);
+      if (o.badge) h("span", { class: "lx-badge", "data-kind": o.badge, text: o.badgeText || BADGE[o.badge] }, hd);
+      typeset(hd);
     }
-    function render() {
-      const st = list[i], ss = state[i];
-      parent.replaceChildren();
-      const top = h("div", { class: "lx-steps-top" }, parent);
-      h("span", { text: `Step ${i + 1} of ${list.length}` }, top);
-      const dots = h("div", { class: "lx-dots", "aria-hidden": "true" }, top);
-      list.forEach((_, k) => h("i", { class: k === i ? "on" : k < i ? "done" : "" }, dots));
-      h("h2", { html: st.title }, parent);
-      if (st.html) h("div", { class: "lx-prose", html: st.html }, parent);
-      const answered = !st.predict || ss.chosen !== null;
-      if (st.predict) {
-        const box = h("div", { class: "lx-predict" }, parent);
-        h("p", { html: "Predict: " + st.predict.prompt }, box);
-        const opts = h("div", { class: "lx-opts" }, box);
-        st.predict.options.forEach((op, k) => {
-          const b = h("button", { type: "button", class: "lx-opt", html: op }, opts);
-          if (ss.chosen !== null) {
-            b.disabled = true;
-            if (k === st.predict.answer) b.classList.add("right");
-            else if (k === ss.chosen) b.classList.add("wrong");
-          }
-          b.addEventListener("click", () => { ss.chosen = k; render(); if (st.onAnswer) st.onAnswer(k === st.predict.answer, k); });
-        });
-        if (ss.chosen !== null) {
-          const ok = ss.chosen === st.predict.answer;
-          h("div", { class: "lx-feedback", html: `<b>${ok ? "Right." : "Not quite."}</b> ` + ((ok ? st.predict.right : st.predict.wrong) || "") }, box);
-        }
-      }
-      setLocked(st.lock, !answered);
-      if (answered && st.after) h("div", { class: "lx-prose", html: st.after }, parent);
-      if (answered && st.explain) {
-        const ex = h("div", { class: "lx-explain" }, parent);
-        h("label", { for: "lx-explain-" + i, html: st.explain.prompt }, ex);
-        const ta = h("textarea", { id: "lx-explain-" + i, placeholder: "In your own words…" }, ex);
-        ta.value = ss.text; ta.addEventListener("input", () => ss.text = ta.value);
-        if (!ss.explained) button(ex, "Compare with the textbook answer", () => { ss.explained = true; render(); });
-        else h("div", { class: "lx-model lx-prose", html: st.explain.model }, ex);
-      }
-      const nav = h("div", { class: "lx-nav" }, parent);
-      const back = button(nav, "Back", () => go(i - 1)); back.disabled = i === 0;
-      const next = button(nav, i === list.length - 1 ? "Done" : "Next", () => go(i + 1), { cls: "lx-primary" });
-      next.disabled = !answered || i === list.length - 1;
-      typeset(parent);
+    const body = h("div", { class: `lx-w lx-${o.layout || "stack"}` + (o.left ? " lx-left" : "") }, card);
+    body.card = card;
+    return body;
+  }
+  /* "What you are looking at": one line per figure and per control. */
+  function guide(parent, items, title = "What you are looking at") {
+    const card = parent.card || parent;
+    const dl = h("dl", { class: "lx-guide" }, card);
+    if (title) h("b", { text: title }, dl);
+    for (const [t, d] of items) { h("dt", { html: t }, dl); h("dd", { html: d }, dl); }
+    typeset(dl); return dl;
+  }
+  function legend(parent, items) {
+    const lg = h("div", { class: "lx-legend" }, parent);
+    for (const [label, color, kind] of items) {
+      const sp = h("span", {}, lg); const i = h("i", { class: kind && kind !== "line" ? kind : "" }, sp);
+      i.style.color = `var(${color})`; h("span", { html: label }, sp);
     }
-    function go(k) {
-      if (k < 0 || k >= list.length) return;
-      setLocked(list[i].lock, false);
-      i = k; if (list[i].onEnter) list[i].onEnter(); render();
-    }
-    if (list[0] && list[0].onEnter) list[0].onEnter();
-    render();
-    return { go, get index() { return i; } };
+    typeset(lg); return lg;
   }
 
-  const isLocked = el => !!(el && el.closest && el.closest(".lx-locked"));
+  /* ---------- gates and inline questions ---------- */
+  /* Hide a result (figure, readout, paragraph) until a question that lists it in `reveal` is answered.
+     A gate only ever opens. Do not gate controls the learner has already used. */
+  function gate(el, message = "Answer the question above to reveal") {
+    el.classList.add("lx-gated"); el.dataset.gate = message; el.setAttribute("aria-hidden", "true");
+    return { el, open: () => openGate(el) };
+  }
+  function openGate(el) { el.classList.remove("lx-gated"); el.removeAttribute("data-gate"); el.removeAttribute("aria-hidden"); }
+
+  /* Inline question in the text. Common options:
+       prompt (html), kicker (small label, defaults by type), reveal: [elements to un-gate],
+       right / wrong (html feedback), onAnswer(correct, value)
+     Types:
+       choice   options: [html], answer: index
+       number   answer: value, tol: relative tolerance (0.1), unit (html after the box)
+       set      the learner sets the widget, then presses Check. check(): {pass, msg}; solve(): optional,
+                puts the widget into the right state (offered after a wrong attempt)
+       sketch   plot: LX.plot, xs: handle positions, y0: start value (or ys), truth: x → y, tol: 0.15
+                (rms error relative to the truth's range); the learner drags handles, then compares
+       explain  model: html model answer, shown after the learner writes */
+  const KICK = { choice: "Predict", number: "Estimate", set: "Try it", sketch: "Sketch", explain: "Explain" };
+  function ask(parent, o) {
+    const type = o.type || "choice";
+    const box = h("div", { class: "lx-ask", "data-type": type }, parent);
+    h("div", { class: "lx-kicker", text: o.kicker || KICK[type] }, box);
+    h("div", { class: "lx-q", html: o.prompt }, box);
+    const body = h("div", { class: "lx-ask-body" }, box);
+    const fb = h("div", { class: "lx-feedback", "aria-live": "polite" }, box);
+    let answered = false;
+    function done(ok, value, extra) {
+      fb.className = "lx-feedback " + (ok == null ? "" : ok ? "good" : "bad");
+      const head = ok == null ? "" : `<b>${ok ? "Right." : "Not quite."}</b> `;
+      fb.innerHTML = head + (extra || "") + ((ok ? o.right : o.wrong) || (ok == null ? o.right || "" : ""));
+      typeset(fb);
+      if (!answered) { answered = true; box.dataset.answered = "1"; (o.reveal || []).forEach(openGate); }
+      if (o.onAnswer) o.onAnswer(ok, value);
+    }
+    if (type === "choice") {
+      const opts = h("div", { class: "lx-opts" }, body);
+      const bs = o.options.map((op, k) => h("button", { type: "button", class: "lx-opt", html: op, onclick: () => {
+        bs.forEach((b, j) => { b.disabled = true; if (j === o.answer) b.classList.add("right"); else if (j === k) b.classList.add("wrong"); });
+        done(k === o.answer, k);
+      } }, opts));
+    } else if (type === "number") {
+      const row = h("div", { class: "lx-row" }, body); row.style.alignItems = "center";
+      const inp = h("input", { type: "text", inputmode: "decimal", "aria-label": "your estimate" }, row);
+      if (o.unit) h("span", { html: o.unit }, row);
+      const go = () => {
+        const v = parseFloat(inp.value.replace(",", ".").replace("−", "-"));
+        if (!isFinite(v)) { fb.className = "lx-feedback"; fb.textContent = "Enter a number."; return; }
+        const tol = o.tol ?? 0.1, err = (v - o.answer) / (Math.abs(o.answer) || 1), ok = Math.abs(err) <= tol;
+        const dir = ok ? "" : `Your estimate is too ${err > 0 ? "high" : "low"}. `;
+        done(ok, v, dir);
+      };
+      button(row, "Check", go, { cls: "lx-primary" });
+      inp.addEventListener("keydown", e => { if (e.key === "Enter") go(); });
+    } else if (type === "set") {
+      const row = h("div", { class: "lx-row" }, body);
+      let solveBtn = null;
+      button(row, o.checkLabel || "Check", () => {
+        const r = o.check(); const ok = typeof r === "object" ? !!r.pass : !!r;
+        done(ok, null, (typeof r === "object" && r.msg ? r.msg + " " : ""));
+        if (!ok && o.solve && !solveBtn) solveBtn = button(row, "Show me", () => { o.solve(); }, {});
+      }, { cls: "lx-primary" });
+    } else if (type === "sketch") {
+      const P = o.plot, n = o.xs.length, ys = o.ys ? o.ys.slice() : o.xs.map(() => o.y0 ?? (P.ylim[0] + P.ylim[1]) / 2);
+      const g = s("g", { class: "lx-sketch" }, P.svg);
+      const tg = s("g", {}, g), line = s("path", { class: "sk" }, g);
+      const dots = o.xs.map((x, i) => {
+        const c = s("circle", { r: 7, class: "f4", "aria-label": `sketch point ${i + 1}; arrow keys move it` }, g);
+        drag(P, c, { get: () => [x, ys[i]], set: (_, y) => { ys[i] = clamp(y, P.ylim[0], P.ylim[1]); draw(); }, step: [0, (P.ylim[1] - P.ylim[0]) / 40] });
+        return c;
+      });
+      function draw() {
+        line.setAttribute("d", o.xs.map((x, i) => (i ? "L" : "M") + P.X(x).toFixed(1) + "," + P.Y(ys[i]).toFixed(1)).join(""));
+        dots.forEach((c, i) => { c.setAttribute("cx", P.X(o.xs[i])); c.setAttribute("cy", P.Y(ys[i])); });
+      }
+      draw();
+      h("p", { html: o.hint || "Drag the pink points to sketch your guess, then compare.", style: "margin:0;font-size:13.5px" }, body);
+      const row = h("div", { class: "lx-row" }, body);
+      button(row, "Compare with the real curve", () => {
+        tg.replaceChildren();
+        const pts = sample(o.truth, P.xlim[0], P.xlim[1], 300);
+        let d = ""; pts.forEach(([x, y], i) => { d += (i ? "L" : "M") + P.X(x).toFixed(1) + "," + P.Y(clamp(y, P.ylim[0] - 10, P.ylim[1] + 10)).toFixed(1); });
+        s("path", { d, class: "s1" }, tg);
+        const tv = o.xs.map(o.truth), span = (Math.max(...tv) - Math.min(...tv)) || 1;
+        const rms = Math.sqrt(o.xs.reduce((a, _, i) => a + (ys[i] - tv[i]) ** 2, 0) / n) / span;
+        done(rms <= (o.tol ?? 0.15), rms, `Your sketch is off by ${(100 * rms).toFixed(0)}% of the curve's range. `);
+      }, { cls: "lx-primary" });
+    } else if (type === "explain") {
+      const ta = h("textarea", { placeholder: "In your own words…", "aria-label": "your explanation" }, body);
+      const row = h("div", { class: "lx-row" }, body);
+      button(row, o.compareLabel || "Compare with a model answer", () => {
+        if (box.querySelector(".lx-model")) return;
+        const m = h("div", { class: "lx-model", html: o.model }, body); typeset(m);
+        done(null, ta.value);
+      });
+    }
+    typeset(box);
+    return { el: box, get answered() { return answered; } };
+  }
 
   /* ---------- self-tests ---------- */
   window.__lxTests = window.__lxTests || [];
@@ -579,107 +697,80 @@ const LX = (() => {
   }
   const near = (a, b, tol = 1e-9) => Math.abs(a - b) <= tol * Math.max(1, Math.abs(a), Math.abs(b));
 
-  return { h, s, typeset, linspace, clamp, sample, C, eigSym, niceTicks, fig, plot, drag, camera,
-           controls, slider, segmented, button, limits, readout, player, steps, isLocked, check, near, rng, reduceMotion };
+  return { h, s, typeset, linspace, clamp, sample, C, eigSym, niceTicks, fig, plot, drag, camera, widget, guide, legend,
+           controls, slider, segmented, button, limits, readout, player, ask, gate, check, near, rng, reduceMotion };
 })();
 /* LX:LIB-END */
 </script>
 
 <script>
 /* PATTERN */
-const S = { mode: "kt", lam2: -1, trajs: [], last: null };
-const BOX = { kt: { x: [-0.8, 0.8], y: [0, 0.8] }, lin: { x: [-1, 1], y: [-1, 1] } };
-const B = () => BOX[S.mode];
-/* linear mode: eigen-directions e1 (relevant, λ₁ = 1) and e2 (λ₂ = slider) */
-const A1 = 0.25, A2 = 1.95, LAM1 = 1;
-const E1 = [Math.cos(A1), Math.sin(A1)], E2 = [Math.cos(A2), Math.sin(A2)];
-const DET = E1[0] * E2[1] - E2[0] * E1[1];
-const coords = (x, y) => [(x * E2[1] - y * E2[0]) / DET, (E1[0] * y - E1[1] * x) / DET];   // u = c1 e1 + c2 e2
-function field(x, y) {
-  if (S.mode === "kt") return [-y * y, -x * y];
-  const [c1, c2] = coords(x, y);
-  return [LAM1 * c1 * E1[0] + S.lam2 * c2 * E2[0], LAM1 * c1 * E1[1] + S.lam2 * c2 * E2[1]];
-}
-const exactLin = (x0, y0, l) => { const [c1, c2] = coords(x0, y0), a = c1 * Math.exp(LAM1 * l), b = c2 * Math.exp(S.lam2 * l); return [a * E1[0] + b * E2[0], a * E1[1] + b * E2[1]]; };
+const XB = [-0.8, 0.8], YB = [0, 0.8], MAXBALLS = 12, MU = 1.94;
+const field = (x, y) => [-y * y, -x * y];
 
-/* RK4 in RG time l. Stops on leaving the box (escape), settling (|v| tiny), or l > LMAX. */
+/* RK4 in RG time l. Stops on leaving the box (escape), settling (|v| tiny), or l > LMAX.
+   Points are stored as [x, y, l] whenever the ball has moved a visible distance. */
 function integrate(x0, y0, dl = 0.02, LMAX = 400) {
-  const pts = [[x0, y0]]; let x = x0, y = y0, l = 0, fate = "settles";
-  const out = () => x < B().x[0] - 0.05 || x > B().x[1] + 0.05 || y > B().y[1] + 0.05 || y < B().y[0] - 0.05;
+  const pts = [[x0, y0, 0]]; let x = x0, y = y0, l = 0, fate = "settles";
+  const out = () => x < XB[0] - 0.02 || x > XB[1] + 0.02 || y > YB[1] + 0.02 || y < YB[0] - 0.02;
   while (l < LMAX) {
-    if (S.mode === "lin") { l += 0.02; [x, y] = exactLin(x0, y0, l); }
-    else {
-      const k1 = field(x, y), k2 = field(x + dl / 2 * k1[0], y + dl / 2 * k1[1]);
-      const k3 = field(x + dl / 2 * k2[0], y + dl / 2 * k2[1]), k4 = field(x + dl * k3[0], y + dl * k3[1]);
-      x += dl / 6 * (k1[0] + 2 * k2[0] + 2 * k3[0] + k4[0]); y += dl / 6 * (k1[1] + 2 * k2[1] + 2 * k3[1] + k4[1]); l += dl;
-    }
-    if (pts.length < 6000) pts.push([x, y]);
+    const k1 = field(x, y), k2 = field(x + dl / 2 * k1[0], y + dl / 2 * k1[1]);
+    const k3 = field(x + dl / 2 * k2[0], y + dl / 2 * k2[1]), k4 = field(x + dl * k3[0], y + dl * k3[1]);
+    x += dl / 6 * (k1[0] + 2 * k2[0] + 2 * k3[0] + k4[0]); y += dl / 6 * (k1[1] + 2 * k2[1] + 2 * k3[1] + k4[1]); l += dl;
+    const last = pts[pts.length - 1];
+    if (Math.hypot(x - last[0], y - last[1]) > 0.003) pts.push([x, y, l]);
     if (out()) { fate = "escapes"; break; }
     if (Math.hypot(...field(x, y)) < 1e-7) break;
   }
+  pts.push([x, y, l]);
   return { pts, x, y, l, fate, x0, y0 };
 }
 function describe(t) {
-  if (S.mode === "kt") {
-    const inv = t.x0 * t.x0 - t.y0 * t.y0;
-    if (t.fate === "escapes") return { fate: "y grows: vortices proliferate (disordered)", end: `escapes at l* ≈ ${t.l.toFixed(1)}` };
-    if (t.y < 1e-3 && t.x > 0.02) return { fate: "y → 0: quasi-long-range order", end: `x∞ = ${t.x.toFixed(3)} (√(x²−y²) = ${Math.sqrt(Math.max(0, inv)).toFixed(3)})` };
-    return { fate: "creeps toward the KT point (critical)", end: `x ≈ y ≈ ${t.x.toFixed(3)} after l = ${t.l.toFixed(0)}` };
-  }
-  const [c1, c2] = coords(t.x0, t.y0);
-  if (t.fate === "escapes") return { fate: S.lam2 > 0 ? "runs away (both directions relevant)" : `runs away along ${c1 > 0 ? "+" : "−"}e₁ (relevant)`, end: `c₁ = ${c1.toFixed(3)}, c₂ = ${c2.toFixed(3)}` };
-  return { fate: "flows into the fixed point", end: `c₁ = ${c1.toFixed(3)}, c₂ = ${c2.toFixed(3)}` };
+  const inv = t.x0 * t.x0 - t.y0 * t.y0;
+  if (t.fate === "escapes") return { kind: "dis", fate: "\\(y\\) grows: vortices proliferate (disordered)", end: `leaves the plot at \\(l^* \\approx ${t.l.toFixed(1)}\\)` };
+  if (t.y < 1e-3 && t.x > 0.02) return { kind: "ord", fate: "\\(y \\to 0\\): quasi-long-range order", end: `\\(x_\\infty = ${t.x.toFixed(3)} = \\sqrt{x_0^2 - y_0^2}\\)` };
+  return { kind: "crit", fate: "creeps into the KT point (critical)", end: `\\(x \\approx y \\approx ${t.x.toFixed(3)}\\) after \\(l = ${t.l.toFixed(0)}\\)` };
 }
+/* Schematic bare couplings of one film at temperature τ = T/J: K = J/T, y = e^{−μ/T}. */
+const bare = tau => [Math.PI / tau - 2, Math.exp(-MU / tau)];
+const TAU_KT = (() => { let a = 1.2, b = 2; for (let k = 0; k < 60; k++) { const c = (a + b) / 2, [x, y] = bare(c); if (x > y) a = c; else b = c; } return (a + b) / 2; })();
 
-/* ---- layout ---- */
-const stage = document.getElementById("stage");
-const fg = LX.fig(stage, "Phase portrait. Click or tap to launch a trajectory. Teal: fixed line; pink: separatrix (phase boundary).");
+/* ---- layout: hero (big flow field, narrow column of controls) ---- */
+const W = LX.widget(document.getElementById("stage"), { layout: "hero", title: "Kosterlitz–Thouless flow: drop a ball", badge: "schematic" });
+const fg = LX.fig(W, "Click anywhere in the plane to drop a ball. It rolls along the RG flow toward long length scales and leaves its track.");
 fg.id = "flowfig";
-const P = LX.plot(fg, { xlim: B().x, ylim: B().y, ticks: false, xlabel: "x", ylabel: "y", width: 640, height: 360, aria: "RG flow phase portrait" });
+const P = LX.plot(fg, { xlim: XB, ylim: YB, ticks: false, xlabel: "x = \\pi K - 2", ylabel: "y", width: 640, height: 380, aria: "RG flow field; click to drop a ball" });
+const hint = LX.h("div", { class: "lx-hint", text: "Click anywhere to drop a ball" }, P.svg.parentNode);
+LX.legend(fg, [["ordered: ends on the fixed line", "--accent", "line"], ["disordered: \\(y\\) runs away", "--c2", "line"],
+  ["bare couplings of one film as \\(T\\) rises", "--muted", "dash"], ["separatrix \\(y = x\\)", "--c4", "line"], ["fixed line", "--c3", "line"]]);
 
-const ctl = LX.controls(stage);
-const mode = LX.segmented(ctl, { id: "mode", label: "Flow", value: "kt",
-  options: [{ value: "kt", label: "Kosterlitz–Thouless" }, { value: "lin", label: "Linearised fixed point" }], onChange: v => setMode(v) });
-const L2 = LX.slider(ctl, { id: "lam2", label: "second eigenvalue \\(\\lambda_2\\) (linear mode)", min: -1.5, max: 1, step: 0.05, value: S.lam2,
-  onInput: v => { S.lam2 = v; relaunch(); } });
-const lim = LX.limits(ctl, [
-  { label: "Stiff, few vortices", title: "below T_KT", apply: () => launch(S.mode === "kt" ? 0.45 : 0.05, S.mode === "kt" ? 0.15 : 0.9) },
-  { label: "On the separatrix", title: "exactly at the transition", apply: () => S.mode === "kt" ? launch(0.5, 0.5) : launch(0.9 * E2[0], 0.9 * E2[1]) },
-  { label: "Soft, many vortices", title: "above T_KT", apply: () => launch(S.mode === "kt" ? 0.1 : -0.05, S.mode === "kt" ? 0.35 : 0.9) },
-  { label: "Temperature line", title: "one material at nine temperatures", apply: () => tempLine() },
-  { label: "Clear", title: "remove trajectories", apply: () => { S.trajs = []; S.last = null; draw(); } }
-], "Launch");
-lim.id = "launch";
-const ro = LX.controls(stage);
+const ctl = LX.controls(W);
+const TS = LX.slider(ctl, { id: "T", label: "temperature \\(T/T_{KT}\\)", min: 0.82, max: 1.8, step: 0.005, value: 0.9, onInput: v => dropT(v) });
+const grp = LX.h("div", { class: "lx-group" }, ctl);
+LX.h("span", { text: "Balls" }, grp);
+const row = LX.h("div", { class: "lx-row" }, grp);
+const clearBtn = LX.button(row, "Clear balls", () => clearBalls(), { id: "clear" });
+const sepBtn = LX.button(row, "Separatrix", () => setSep(!S.sep), { id: "sep" });
+const ro = LX.controls(W);
+LX.h("div", { class: "lx-group", html: "<span>Latest ball</span>" }, ro);
 const rS = LX.readout(ro, "start \\((x_0, y_0)\\) =");
-const box = ro.querySelector(".lx-readouts");
+const box = rS.el.parentNode; box.style.flexDirection = "column"; box.style.gap = "4px";
+const rI = LX.readout(box, "\\(x^2 - y^2\\) (conserved) =");
 const rF = LX.readout(box, "fate:");
 const rE = LX.readout(box, "end:");
-const rI = LX.readout(box, "\\(x^2 - y^2\\) =");
 
-/* a straight path of starting points standing in for one material at increasing T */
-const TL = s => [0.6 - 0.9 * s, 0.1 + 0.35 * s];
-function tempLine() {
-  if (S.mode !== "kt") mode.set("kt");
-  S.trajs = []; S.tline = true; for (const s of LX.linspace(0.05, 0.85, 9)) S.trajs.push(integrate(...TL(s)));
-  S.last = S.trajs[3]; draw();
-}
-function launch(x, y) { S.tline = false; const t = integrate(x, y); S.trajs.push(t); if (S.trajs.length > 12) S.trajs.shift(); S.last = t; draw(); }
-function relaunch() { S.trajs = S.trajs.map(t => integrate(t.x0, t.y0)); S.last = S.trajs[S.trajs.length - 1] || null; draw(); }
-function setMode(v) { S.mode = v; S.trajs = []; S.last = null; P.setLim(B().x, B().y); draw(); }
+LX.guide(W, [
+  ["Plane", "Each point is a pair of couplings at some length scale: \\(x = \\pi K - 2\\) (stiffness above the critical value) and the vortex fugacity \\(y\\). Grey arrows show which way the couplings move when you zoom out."],
+  ["Balls", "Click to drop one. It follows the arrows (RG time \\(l\\) runs as it rolls) and its track turns blue if it ends on the teal fixed line \\(y = 0\\) (vortices bound, power-law correlations) or orange if \\(y\\) runs away (free vortices, disordered). Balls near the separatrix slow down: the flow is weak close to the KT point."],
+  ["Dashed curve", "Where one real film starts its flow: its bare couplings \\(K = J/T\\), \\(y = \\ee^{-\\mu/T}\\) move along this curve as \\(T\\) rises. The orange marker is the current temperature."],
+  ["Temperature", "Moves the marker and drops the orange ball from there. Below \\(T_{KT}\\) it ends on the fixed line; above, it escapes. At \\(T_{KT}\\) the curve crosses the separatrix and the ball creeps into the KT point."],
+  ["Separatrix", "Shows or hides the line \\(y = x\\) and the phase labels. Since \\(x^2 - y^2\\) is conserved, tracks are hyperbolas, and \\(y = x\\) divides the two fates: it is the phase boundary."],
+  ["Clear balls", "Removes all balls and tracks."]
+]);
 
-P.svg.addEventListener("pointerdown", e => {
-  if (fg.classList.contains("lx-locked")) return;
-  const [x, y] = P.toData(e);
-  if (x < B().x[0] || x > B().x[1] || y < B().y[0] || y > B().y[1]) return;
-  launch(x, Math.max(y, S.mode === "kt" ? 0.002 : y));
-});
-
-function draw() {
-  P.clear(); P.clear("fill"); P.clear("top"); P.clear("tex");
-  const [xa, xb] = B().x, [ya, yb] = B().y;
-  /* arrow field, normalised length */
-  const nx = 15, ny = S.mode === "kt" ? 8 : 15, hx = (xb - xa) / nx, hy = (yb - ya) / ny;
+/* ---- static drawing (once) ---- */
+(function drawStatic() {
+  const [xa, xb] = XB, [ya, yb] = YB, nx = 15, ny = 8, hx = (xb - xa) / nx, hy = (yb - ya) / ny;
   for (let i = 0; i < nx; i++) for (let j = 0; j < ny; j++) {
     const x = xa + (i + 0.5) * hx, y = ya + (j + 0.5) * hy, [u, v] = field(x, y);
     const sx = u / (xb - xa), sy = v / (yb - ya), n = Math.hypot(sx, sy);
@@ -687,102 +778,107 @@ function draw() {
     const k = 0.8 * Math.min(hx / (xb - xa), hy / (yb - ya)) / n * Math.min(1, 0.5 + 4 * n);
     P.arrow(x - sx * k * (xb - xa) / 2, y - sy * k * (yb - ya) / 2, x + sx * k * (xb - xa) / 2, y + sy * k * (yb - ya) / 2, { cls: "sm thin", layer: "fill" });
   }
-  if (S.mode === "kt") {
-    P.line(0, 0, 0.8, 0, { cls: "fixed-line" });
-    P.line(0, 0, 0.8, 0.8, { cls: "s4" }); P.line(0, 0, -0.8, 0.8, { cls: "s4 dash" });
-    P.vline(0, { cls: "gr" });
-    P.tex(0.6, 0.035, "\\text{fixed line}", { anchor: "s", cls: "lbl" });
-    P.dot(0, 0, { r: 5, cls: "f4" });
-    P.tex(0.74, 0.7, "y = x", { anchor: "nw", cls: "lbl" });
-    P.tex(0, 0, "\\text{KT}", { anchor: "n" });
-    P.tex(-0.55, 0.12, "\\text{disordered}", { anchor: "c", cls: "lbl" });
-    P.tex(0.62, 0.3, "\\text{QLRO}", { anchor: "c", cls: "lbl" });
-  } else {
-    P.hline(0, { cls: "gr" }); P.vline(0, { cls: "gr" });
-    const L = 1.6;
-    P.line(-L * E1[0], -L * E1[1], L * E1[0], L * E1[1], { cls: "s3 thin dash" });
-    P.line(-L * E2[0], -L * E2[1], L * E2[0], L * E2[1], { cls: S.lam2 < 0 ? "s4" : "s3 thin dash" });
-    P.tex(0.85 * E1[0], 0.85 * E1[1], "e_1", { anchor: "s", cls: "lbl" });
-    P.tex(0.9 * E2[0], 0.9 * E2[1], "e_2", { anchor: "e", cls: "lbl" });
-    P.dot(0, 0, { r: 5, cls: "f4" });
-  }
-  S.trajs.forEach((t, k) => {
-    const cls = S.mode === "kt" ? (t.fate === "escapes" ? "s2" : "s1") : "s2";
-    P.path(t.pts, { cls: cls + (t === S.last ? "" : " thin") });
-    P.dot(t.x0, t.y0, { r: t === S.last ? 5 : 3.5, cls: "f2" });
-  });
-  if (S.mode === "kt" && S.tline) P.path([TL(0), TL(1)], { cls: "sm dash", layer: "fill" });
-  const t = S.last;
-  if (!t) { rS.set("click the plot"); rF.set("–"); rE.set("–"); rI.set("–"); return; }
-  const d = describe(t);
-  rS.set(`(${t.x0.toFixed(2)}, ${t.y0.toFixed(2)})`.replace(/-/g, "−")); rF.set(d.fate); rE.set(d.end);
-  rI.set(S.mode === "kt" ? (t.x0 * t.x0 - t.y0 * t.y0).toFixed(3).replace("-", "−") : "n/a (linear mode)");
-}
-draw();
+  P.line(0, 0, 0.8, 0, { cls: "fixed-line", layer: "fill" });
+  P.vline(0, { cls: "gr", layer: "fill" });
+  const taus = LX.linspace(Math.PI / 2.8, Math.PI / 1.2, 120);
+  P.path(taus.map(bare), { cls: "sm dash", layer: "fill" });
+  P.dot(0, 0, { r: 5, cls: "f4", layer: "fill" });
+  P.tex(0.58, 0.03, "\\text{fixed line}", { anchor: "s", cls: "lbl" });
+  P.tex(0, 0, "\\text{KT}", { anchor: "n" });
+})();
+const sepG = LX.s("g", {}, P.g.fill);
+LX.s("line", { x1: P.X(0), y1: P.Y(0), x2: P.X(0.8), y2: P.Y(0.8), class: "s4" }, sepG);
+LX.s("line", { x1: P.X(0), y1: P.Y(0), x2: P.X(-0.8), y2: P.Y(0.8), class: "s4 dash thin" }, sepG);
+const sepTex = [P.tex(0.74, 0.7, "y = x", { anchor: "nw", cls: "lbl" }), P.tex(-0.5, 0.62, "\\text{disordered}", { cls: "lbl" }), P.tex(0.6, 0.3, "\\text{ordered (QLRO)}", { cls: "lbl" })];
+const ballG = LX.s("g", {}, P.g.main);
+const tMark = LX.s("circle", { r: 6, class: "f2", stroke: "var(--surface)", "stroke-width": 1.5 }, P.g.top);
 
-/* ---- lesson ---- */
-const enter = (m, starts = []) => () => { if (mode.get() !== m) mode.set(m); S.trajs = []; S.last = null; L2.set(-1, false); S.lam2 = -1; starts.forEach(p => launch(...p)); draw(); };
-LX.steps(document.getElementById("steps"), [
-  { title: "Stiff film, rare vortices",
-    onEnter: enter("kt"),
-    html: "<p>Zooming out by \\(\\ee^{\\dd l}\\) renormalises the couplings. Vortices screen the stiffness, so \\(x\\) always decreases; vortex pairs are suppressed when the film is stiff, so \\(y\\) shrinks when \\(x > 0\\). Start at \\(x = 0.45,\\ y = 0.15\\).</p>",
-    predict: { prompt: "Where does the flow take this point?",
-      options: ["To \\(y = 0\\) at some \\(x_\\infty > 0\\)", "To ever larger \\(y\\)", "Exactly into the origin"], answer: 0,
-      right: "\\(y\\) is irrelevant here: \\(\\dd y/\\dd l = -xy\\) with \\(x > 0\\). The flow stops on the fixed line \\(y = 0\\), with a renormalised stiffness \\(x_\\infty > 0\\).",
-      wrong: "With \\(x > 0\\), \\(\\dd y/\\dd l = -xy\\) shrinks \\(y\\) exponentially, while \\(x\\) only drops by a finite amount. The flow ends on the fixed line \\(y = 0\\)." },
-    lock: ["launch", "flowfig"],
-    after: "<p>Launch it with the first button, then click a few more points below the pink line. Every one ends on the teal fixed line: a whole line of fixed points, each a critical phase with power-law correlations (quasi-long-range order).</p>" },
-  { title: "Soft film, many vortices",
-    onEnter: enter("kt", [[0.45, 0.15]]),
-    html: "<p>Now start at \\(x = 0.1,\\ y = 0.35\\): the fugacity exceeds the stiffness excess.</p>",
-    predict: { prompt: "What happens?",
-      options: ["\\(x\\) is driven negative and then \\(y\\) grows without bound", "It still ends on the fixed line, just further left", "It oscillates around the origin"], answer: 0,
-      right: "\\(x\\) falls by more than its initial value, turns negative, and from then on \\(\\dd y/\\dd l = -xy > 0\\). Free vortices proliferate: the disordered phase with a finite correlation length.",
-      wrong: "Launch it: the large \\(y\\) screens \\(x\\) below zero, and for \\(x < 0\\) the fugacity is relevant and grows. That is the disordered phase." },
-    lock: ["launch", "flowfig"],
-    after: "<p>The readout shows the RG time \\(l^*\\) at which \\(y\\) becomes large. The correlation length is \\(\\xi \\sim a\\,\\ee^{l^*}\\).</p>" },
-  { title: "The phase boundary",
-    onEnter: enter("kt", [[0.45, 0.15], [0.1, 0.35]]),
-    html: "<p>Watch the readout \\(x^2 - y^2\\): it does not change along a trajectory. Indeed \\(\\tfrac{\\dd}{\\dd l}(x^2 - y^2) = -2xy^2 + 2xy^2 = 0\\).</p>",
-    predict: { prompt: "So which curve separates the two fates for \\(x > 0\\)?",
-      options: ["The line \\(y = x\\)", "The line \\(x = 0\\)", "The parabola \\(y = x^2\\)"], answer: 0,
-      right: "Trajectories are hyperbolas \\(x^2 - y^2 = \\text{const}\\). Those with \\(x^2 > y^2\\) and \\(x > 0\\) reach \\(y = 0\\); the degenerate hyperbola \\(y = x\\) runs into the KT point and is the separatrix.",
-      wrong: "Use the invariant: ordered endpoints need \\(x_\\infty^2 = x^2 - y^2 > 0\\). The boundary is \\(x^2 = y^2\\), the line \\(y = x\\) for \\(x > 0\\)." },
-    lock: ["launch", "flowfig"],
-    after: "<p>Click just above and just below the pink line. Neighbouring starting points end in different phases: the separatrix in coupling space <i>is</i> the phase boundary.</p>" },
-  { title: "One material, many temperatures",
-    onEnter: enter("kt"),
-    html: "<p>A real film has microscopic couplings that move along some line as \\(T\\) rises: stiffness down, fugacity up. The dotted line is one such path; press \"Temperature line\" to launch nine temperatures.</p>",
-    predict: { prompt: "As \\(T \\to T_{KT}^-\\), what does the endpoint \\(x_\\infty\\) do?",
-      options: ["It goes to 0: the renormalised stiffness approaches the universal value \\(K_R = 2/\\pi\\)", "It stays finite and depends on where the line is drawn"], answer: 0,
-      right: "Just below the separatrix \\(x_\\infty = \\sqrt{x^2 - y^2} \\to 0\\), whatever the material: \\(\\pi K_R \\to 2\\). This is the universal jump of the superfluid stiffness, seen in helium films.",
-      wrong: "Use \\(x_\\infty = \\sqrt{x^2 - y^2}\\): as the start approaches \\(y = x\\), \\(x_\\infty \\to 0\\) for any path. That gives the universal \\(K_R = 2/\\pi\\) at \\(T_{KT}\\)." },
-    lock: ["launch"],
-    after: "<p>On the disordered side the escape time grows like \\(l^* \\approx \\pi/\\sqrt{y^2 - x^2}\\), so \\(\\xi \\sim \\exp(b/\\sqrt{T - T_{KT}})\\): an essential singularity, not a power law. Universality: different microscopic paths, same fixed point, same behaviour.</p>" },
-  { title: "Linearise near a fixed point",
-    onEnter: enter("lin"),
-    html: "<p>Near an ordinary fixed point the flow is linear: \\(u(l) = c_1 \\ee^{\\lambda_1 l} e_1 + c_2 \\ee^{\\lambda_2 l} e_2\\). Here \\(\\lambda_1 = 1\\) (relevant) and \\(\\lambda_2 = -1\\) (irrelevant).</p>",
-    predict: { prompt: "To land exactly on the fixed point, how many conditions must the starting couplings satisfy?",
-      options: ["One: \\(c_1 = 0\\)", "Two: \\(c_1 = c_2 = 0\\)", "None, every start flows in"], answer: 0,
-      right: "Only the relevant component must vanish; the irrelevant one dies away by itself. The critical surface (pink line along \\(e_2\\)) has codimension one: tune one parameter, such as temperature.",
-      wrong: "The \\(c_2\\) part decays as \\(\\ee^{-l}\\) on its own. Only \\(c_1\\) grows, so one condition, \\(c_1 = 0\\), puts you on the critical surface." },
-    lock: ["launch", "flowfig", "lam2-wrap"],
-    after: "<p>Now drag \\(\\lambda_2\\) above zero. Both directions are relevant, the critical surface shrinks to the point itself, and you would need to tune two parameters: a multicritical point. A marginal \\(\\lambda = 0\\) is what the KT point has in both directions, which is why its flow is set by the quadratic terms.</p>" },
-  { title: "Put it in your own words",
-    onEnter: enter("kt", [[0.45, 0.15], [0.5, 0.5], [0.1, 0.35]]),
-    html: "<p>Fixed points, eigen-directions and separatrices organise every flow you have launched.</p>",
-    explain: { prompt: "Why do microscopically different films share the same jump in stiffness at their transitions?",
-      model: "<p>Every film starts somewhere in the \\((x, y)\\) plane, but the long-distance physics is set by where the flow ends. At \\(T_{KT}\\) the starting point lies on the separatrix, which flows into the same KT fixed point for every material. The fixed point fixes \\(x_\\infty = 0\\), i.e. \\(K_R = 2/\\pi\\), independent of the details that only set where the flow began.</p><p><b>Transfer:</b> in the antiferromagnetic Kondo problem, \\(\\dd J/\\dd l = J^2\\) (in units of the bandwidth density of states). Is \\(J = 0\\) stable, and what scale plays the role of \\(\\xi\\)?</p>" } }
-]);
+/* ---- balls ---- */
+const S = { balls: [], tball: null, sep: true, last: null, raf: 0, t0: 0 };
+function makeBall(x, y, isT) {
+  const t = integrate(x, y);
+  const b = { t, isT, i: 1, l: 0, done: false, rate: Math.max(2.5, t.l / 3.5),
+    path: LX.s("path", { class: "trk", d: `M${P.X(x).toFixed(1)},${P.Y(y).toFixed(1)}` }, ballG),
+    dot: LX.s("circle", { r: 6, class: "ball" + (isT ? " tball" : ""), cx: P.X(x), cy: P.Y(y) }, ballG) };
+  b.d = b.path.getAttribute("d");
+  if (LX.reduceMotion) advance(b, Infinity);
+  return b;
+}
+function removeBall(b) { b.path.remove(); b.dot.remove(); }
+function advance(b, dt) {
+  b.l = Math.min(b.t.l, b.l + b.rate * dt);
+  const p = b.t.pts;
+  while (b.i < p.length && p[b.i][2] <= b.l) { b.d += `L${P.X(p[b.i][0]).toFixed(1)},${P.Y(p[b.i][1]).toFixed(1)}`; b.i++; }
+  let cx, cy;
+  if (b.i >= p.length) { b.done = true; [cx, cy] = p[p.length - 1]; }
+  else { const a = p[b.i - 1], c = p[b.i], s = (b.l - a[2]) / ((c[2] - a[2]) || 1); cx = a[0] + s * (c[0] - a[0]); cy = a[1] + s * (c[1] - a[1]); }
+  const X = LX.clamp(cx, XB[0], XB[1]), Y = LX.clamp(cy, YB[0], YB[1]);
+  b.path.setAttribute("d", b.d + `L${P.X(X).toFixed(1)},${P.Y(Y).toFixed(1)}`);
+  b.dot.setAttribute("cx", P.X(X)); b.dot.setAttribute("cy", P.Y(Y));
+  if (b.done) {
+    const k = describe(b.t).kind;
+    b.path.setAttribute("class", k === "dis" ? "s2" : k === "ord" ? "s1" : "s4");
+    if (b.t.fate === "escapes") b.dot.style.display = "none";   /* it left the plot; the track ends at the edge */
+    if (b === S.last) showReadouts();
+  }
+}
+function tick(now) {
+  const dt = S.t0 ? Math.min(0.05, (now - S.t0) / 1000) : 0; S.t0 = now;
+  const all = S.tball ? [...S.balls, S.tball] : S.balls;
+  all.filter(b => !b.done).forEach(b => advance(b, dt));
+  S.raf = all.some(b => !b.done) ? requestAnimationFrame(tick) : 0;
+  if (!S.raf) S.t0 = 0;
+}
+const animate = () => { if (!S.raf) S.raf = requestAnimationFrame(tick); };
+function drop(x, y) {
+  const b = makeBall(x, y, false); S.balls.push(b);
+  if (S.balls.length > MAXBALLS) removeBall(S.balls.shift());
+  S.last = b; showReadouts(); animate();
+}
+function dropT(r) {
+  const [x, y] = bare(r * TAU_KT);
+  tMark.setAttribute("cx", P.X(x)); tMark.setAttribute("cy", P.Y(y));
+  if (S.tball) removeBall(S.tball);
+  S.tball = makeBall(x, y, true); S.last = S.tball; showReadouts(); animate();
+}
+function clearBalls() {
+  S.balls.forEach(removeBall); S.balls = [];
+  if (S.tball) { removeBall(S.tball); S.tball = null; }
+  S.last = null; showReadouts();
+}
+function setSep(on) {
+  S.sep = on; sepG.style.display = on ? "" : "none"; sepTex.forEach(e => e.style.visibility = on ? "" : "hidden");
+  sepBtn.setAttribute("aria-pressed", String(on));
+}
+const fx = v => v.toFixed(2).replace("-", "−");
+function showReadouts() {
+  const b = S.last;
+  if (!b) { rS.set("—"); rI.set("—"); rF.el.lastChild.textContent = "click the plane"; rE.el.lastChild.textContent = "—"; return; }
+  const t = b.t;
+  rS.set(`(${fx(t.x0)}, ${fx(t.y0)})`);
+  rI.set((t.x0 * t.x0 - t.y0 * t.y0).toFixed(3).replace("-", "−"));
+  const d = describe(t);
+  setTexB(rF, b.done ? d.fate : "rolling…"); setTexB(rE, b.done ? d.end : "…");
+}
+function setTexB(r, html) { const el = r.el.lastChild; if (el.dataset.src === html) return; el.dataset.src = html; el.innerHTML = html; LX.typeset(el); }
+
+P.svg.addEventListener("pointerdown", e => {
+  const [x, y] = P.toData(e);
+  if (x < XB[0] || x > XB[1] || y < YB[0] - 0.01 || y > YB[1]) return;
+  hint.textContent = "Click again to drop another ball";
+  drop(x, Math.max(y, 0.002));
+});
+setSep(true);
+dropT(TS.get());
 
 /* ---- self-tests ---- */
-const withMode = (m, fn) => { const old = S.mode; S.mode = m; try { return fn(); } finally { S.mode = old; } };
-LX.check("KT: x² − y² conserved along an RK4 trajectory", () => withMode("kt", () => { const t = integrate(0.45, 0.15, 0.02, 60); return { pass: Math.abs(t.x * t.x - t.y * t.y - (0.45 ** 2 - 0.15 ** 2)) < 1e-6, detail: t.x * t.x - t.y * t.y }; }));
-LX.check("KT: ordered start ends on fixed line at x∞ = √(x² − y²)", () => withMode("kt", () => { const t = integrate(0.45, 0.15); return { pass: t.y < 1e-4 && Math.abs(t.x - Math.sqrt(0.18)) < 1e-4, detail: `${t.x}, ${t.y}` }; }));
-LX.check("KT: start above separatrix escapes (y grows)", () => withMode("kt", () => integrate(0.1, 0.35).fate === "escapes"));
-LX.check("KT: separatrix y = x flows into the origin along itself", () => withMode("kt", () => { const t = integrate(0.4, 0.4, 0.02, 60); return t.x < 0.04 && Math.abs(t.x - t.y) < 1e-9; }));
-LX.check("linear: A e_i = λ_i e_i and exact solution solves du/dl = A u", () => withMode("lin", () => {
-  const a = field(...E1), b = field(...E2), ok1 = LX.near(a[0], LAM1 * E1[0], 1e-12) && LX.near(b[1], S.lam2 * E2[1], 1e-12);
-  const h = 1e-5, u = exactLin(0.3, -0.2, 0.7), up = exactLin(0.3, -0.2, 0.7 + h), um = exactLin(0.3, -0.2, 0.7 - h), F = field(...u);
-  return ok1 && Math.abs((up[0] - um[0]) / (2 * h) - F[0]) < 1e-7 && Math.abs((up[1] - um[1]) / (2 * h) - F[1]) < 1e-7; }));
+LX.check("KT: x² − y² conserved along an RK4 trajectory", () => { const t = integrate(0.45, 0.15, 0.02, 60); return { pass: Math.abs(t.x * t.x - t.y * t.y - (0.45 ** 2 - 0.15 ** 2)) < 1e-6, detail: t.x * t.x - t.y * t.y }; });
+LX.check("KT: ordered start ends on fixed line at x∞ = √(x² − y²)", () => { const t = integrate(0.45, 0.15); return { pass: t.y < 1e-4 && Math.abs(t.x - Math.sqrt(0.18)) < 1e-4, detail: `${t.x}, ${t.y}` }; });
+LX.check("KT: start above separatrix escapes (y grows)", () => integrate(0.1, 0.35).fate === "escapes");
+LX.check("KT: separatrix y = x flows into the origin along itself", () => { const t = integrate(0.4, 0.4, 0.02, 60); return t.x < 0.04 && Math.abs(t.x - t.y) < 1e-9; });
+LX.check("bare couplings cross y = x at τ_KT ≈ 1.40; just below T_KT ordered, just above disordered", () => {
+  const [x, y] = bare(TAU_KT), lo = integrate(...bare(0.98 * TAU_KT)), hi = integrate(...bare(1.02 * TAU_KT));
+  return { pass: Math.abs(x - y) < 1e-9 && Math.abs(TAU_KT - 1.40) < 0.01 && lo.fate !== "escapes" && lo.y < 1e-3 && hi.fate === "escapes", detail: `τ=${TAU_KT}, ${lo.fate}/${hi.fate}` };
+});
+LX.check("x₀ = πK − 2 with K = J/T: x₀ = 0 at T = πJ/2", () => LX.near(bare(Math.PI / 2)[0], 0, 1e-12));
 </script>
