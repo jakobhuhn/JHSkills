@@ -7,7 +7,9 @@
 //   - serves MathJax 3.2.2 from tests/node_modules (CDNs are often blocked in CI/sandboxes)
 //   - fails on console errors / page errors / failing LX.check self-tests
 //   - requires MathJax SVG output, no horizontal overflow at 400 px
-//   - moves every slider to min and max and clicks every limit button, then re-checks errors
+//   - answers every inline question (LX.ask) and requires every gate to open, no locked controls
+//   - requires every enabled slider and button inside a widget to change what the widget shows
+//     (mark a container data-lx-idle to exempt a control that legitimately does nothing at times)
 //   - with --shots, writes light/dark × desktop/phone screenshots to tests/screenshots/
 import { createRequire } from "node:module";
 import { execSync } from "node:child_process";
@@ -74,23 +76,53 @@ for (const file of files) {
         if (!mj) problems.push("no MathJax SVG output");
         const raw = await page.evaluate(() => [...document.querySelectorAll("main *")].filter(e => !e.closest("mjx-container") && e.children.length === 0 && /\\\(|\\\[/.test(e.textContent)).map(e => e.textContent.slice(0, 60)));
         if (raw.length) problems.push("untypeset TeX: " + raw.slice(0, 3).join(" | "));
-        // exercise controls
-        await page.evaluate(async () => {
-          const fire = el => el.dispatchEvent(new Event("input", { bubbles: true }));
-          for (const r of document.querySelectorAll("input[type=range]:not(:disabled)")) {
-            const v = r.value; r.value = r.min; fire(r); r.value = r.max; fire(r); r.value = v; fire(r);
+        // 1. answer every inline question once; every gate must open
+        const askIssues = await page.evaluate(async () => {
+          const out = [];
+          const tick = () => new Promise(r => setTimeout(r, 40));
+          for (const a of document.querySelectorAll(".lx-ask")) {
+            const t = a.dataset.type;
+            if (t === "choice") a.querySelector(".lx-opt")?.click();
+            else if (t === "number") { const i = a.querySelector("input"); i.value = "1"; a.querySelector(".lx-btn")?.click(); }
+            else a.querySelector(".lx-btn")?.click();
+            await tick();
+            if (!a.dataset.answered) out.push(`question (${t}) could not be answered: ${a.querySelector(".lx-q")?.textContent.slice(0, 50)}`);
           }
-          for (const b of document.querySelectorAll(".lx-limit:not(:disabled)")) b.click();
-          for (const r of document.querySelectorAll(".lx-seg input:not(:disabled)")) { r.checked = true; r.dispatchEvent(new Event("change", { bubbles: true })); }
-          // walk the lesson: answer each prediction with the first option, then go next
-          for (let k = 0; k < 20; k++) {
-            const opt = document.querySelector(".lx-opt:not(:disabled)"); if (opt) opt.click();
-            const ex = [...document.querySelectorAll(".lx-explain .lx-btn")][0]; if (ex) ex.click();
-            const next = [...document.querySelectorAll(".lx-nav .lx-btn")].find(b => /Next/.test(b.textContent));
-            if (!next || next.disabled) break; next.click();
-            await new Promise(r => setTimeout(r, 30));
-          }
+          const left = document.querySelectorAll(".lx-gated").length;
+          if (left) out.push(`${left} gate(s) still closed after answering every question`);
+          if (document.querySelector(".lx-locked")) out.push("found .lx-locked: controls must not be locked");
+          return out;
         });
+        problems.push(...askIssues);
+        // 2. every enabled slider and button inside a widget must change what the widget shows
+        const ctlIssues = await page.evaluate(async () => {
+          const out = [];
+          const wait = () => new Promise(r => setTimeout(r, 60));
+          const sig = w => { const c = w.cloneNode(true); c.querySelectorAll(".lx-slider, .lx-guide, .lx-ask").forEach(e => e.remove()); return c.innerHTML; };
+          const fire = (el, ev = "input") => el.dispatchEvent(new Event(ev, { bubbles: true }));
+          const label = el => (el.closest(".lx-slider")?.querySelector(".lx-lab")?.textContent || el.textContent || el.id || "").trim().slice(0, 40);
+          for (const w of document.querySelectorAll(".lx-widget")) {
+            for (const r of w.querySelectorAll("input[type=range]")) {
+              if (r.disabled || r.closest(".lx-ask")) continue;
+              const v = r.value; r.value = r.min; fire(r); await wait(); const a = sig(w);
+              r.value = r.max; fire(r); await wait(); const b = sig(w);
+              if (a === b && !r.closest("[data-lx-idle]")) out.push(`slider changes nothing: ${label(r)}`);
+              r.value = v; fire(r);
+            }
+            for (const s of w.querySelectorAll(".lx-seg input")) { if (!s.disabled) { s.checked = true; fire(s, "change"); await wait(); } }
+            for (const btn of w.querySelectorAll("button")) {
+              if (btn.disabled || btn.closest(".lx-ask") || btn.closest("[data-lx-idle]")) continue;
+              let a = sig(w); btn.click(); await wait();
+              if (sig(w) === a) {
+                for (const r of w.querySelectorAll("input[type=range]:not(:disabled)")) { r.value = r.min; fire(r); }
+                await wait(); a = sig(w); if (!btn.disabled) btn.click(); await wait();
+                if (sig(w) === a) out.push(`button changes nothing: ${label(btn)}`);
+              }
+            }
+          }
+          return out;
+        });
+        problems.push(...ctlIssues);
         await page.waitForTimeout(300);
         const tests = await page.evaluate(() => window.__lxTests || []);
         if (!tests.length) problems.push("no LX.check self-tests");
@@ -112,5 +144,5 @@ for (const file of files) {
   else console.log(`ok   ${name}`);
 }
 await browser.close();
-console.log(failed ? `\n${failed} of ${files.length} widgets failed` : `\nall ${files.length} widgets passed`);
+console.log(failed ? `\n${failed} of ${files.length} pages failed` : `\nall ${files.length} pages passed`);
 process.exit(failed ? 1 : 0);

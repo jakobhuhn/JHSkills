@@ -6,29 +6,39 @@ Claude skills by Jakob Huhn.
 
 Brilliant-style interactive lessons for established graduate- and PhD-level physics: quantum mechanics, quantum information and computing, condensed matter, many-body and statistical physics.
 
-The skill makes Claude teach through self-contained HTML widgets in which the learner **predicts** what will happen, **manipulates** one parameter, **observes** linked figures, **explains** the result in their own words, and then meets the formalism and a transfer question.
+The skill makes Claude write self-contained interactive pages: a text with math, structured like a good textbook section, with embedded widgets (linked figures with controls) and questions in several formats.
+- The text opens with a puzzle that challenges a prior belief.
+- It lets the reader explore the model before explaining it.
+- It builds the idea in short segments, then formalises it.
+- It resolves the opening puzzle, and ends with denser practice and a transfer question.
+
+The structure and its sources (Muller's misconception research behind Veritasium, Mayer's multimedia principles, the testing effect and others) are in `references/writing.md`.
 
 ```
 skills/interactive-learning/
-  SKILL.md                    entry point: scope, workflow, modes
+  SKILL.md                    entry point: scope, workflow, modes (Explainer, Chapter)
   references/
-    pedagogy.md               learning loop, writing predictions, sequencing, misconceptions
+    writing.md                structure of the text, with sources; question formats
+    pedagogy.md               teaching toolbox, the three hard rules, sequencing, misconceptions
     widget-selection.md       concept shape → widget pattern, composition, topic examples
-    widget-craft.md           exact / computed / schematic badges, interaction, visual and code rules
+    widget-craft.md           badges, interaction, layouts, visual and code rules
     math-rendering.md         MathJax 3.2.2 (SVG output) conventions
     knowledge-sources.md      using a user knowledge base, or model knowledge without one
-  assets/base.html            page skeleton + the LX helper library
-  patterns/                   16 working mini-lessons, one per concept shape
-  examples/ssh-model.html     a full lesson combining several shapes
+  assets/base.html            page skeleton (article + widgets) + the LX helper library
+  assets/layouts.html         five widget layout recipes
+  patterns/                   16 widgets, one per concept shape, + 00 question formats
+  examples/ssh-chapter.html   a full Chapter: text, math, three widgets, questions
+  examples/bcs-gap-explainer.html  a short Explainer: one confusion, one widget
 tests/                        render-and-check harness (Playwright + local MathJax)
 ```
 
 ### Patterns
 
-Widgets are organised by the *shape* of the insight, not by topic:
+Widgets are organised by the *shape* of the insight, not by topic. Each pattern is one widget with a "What you are looking at" block and no questions; questions belong in the text.
 
 | # | Shape | Example used |
 |---|---|---|
+| 00 | Question formats | choice, number, set, sketch, explain, and gated results |
 | 01 | Phase transition | Landau free energy, continuous and first order |
 | 02 | Dynamics | Rabi oscillations |
 | 03 | 3D geometry | Bloch sphere |
@@ -56,7 +66,7 @@ Copy or symlink `skills/interactive-learning` into your skills directory, e.g. `
 
 ### Development
 
-Every widget is an Artifact page fragment that shares three marked blocks (`LX:HEAD`, `LX:STYLE`, `LX:LIB`) with `assets/base.html`.
+Every page is an Artifact page fragment that shares three marked blocks (`LX:HEAD`, `LX:STYLE`, `LX:LIB`) with `assets/base.html`.
 
 ```sh
 cd tests && npm install            # local MathJax 3.2.2 for offline rendering
@@ -65,4 +75,10 @@ node tests/sync-base.mjs --check   # fail if any widget is out of sync
 node tests/run.mjs [filter] [--shots]
 ```
 
-`run.mjs` renders every widget in headless Chromium, moves every slider, clicks the limit buttons, walks the lesson, and fails on console errors, failing physics self-tests (`LX.check`), missing MathJax output or horizontal overflow at 400 px. `--shots` writes light/dark, desktop/phone screenshots to `tests/screenshots/`.
+`run.mjs` renders every page in headless Chromium. It fails on any of these:
+- console errors;
+- failing physics self-tests (`LX.check`);
+- missing MathJax output or raw TeX;
+- a question that cannot be answered, or a gate that stays closed;
+- a slider or button that changes nothing;
+- horizontal overflow at 400 px. `--shots` writes light/dark, desktop/phone screenshots to `tests/screenshots/`.

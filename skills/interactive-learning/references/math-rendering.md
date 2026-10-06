@@ -20,6 +20,10 @@ window.MathJax = {
 
 If cdnjs is unavailable, the equivalent URL is `https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js`.
 
+## Numbered equations
+
+Tags are on (`tags: "ams"`): `\begin{equation} … \label{eq:name} \end{equation}` gets a number, and `\eqref{eq:name}` refers to it. Plain `\[ … \]` stays unnumbered. Number only the equations the text refers back to. Keep labelled equations in the static text, not in content inserted later, so references resolve.
+
 ## Delimiters
 
 - Inline: `\( … \)`. Display: `\[ … \]`. Dollar signs are **not** delimiters, so prices and shell snippets are safe.
@@ -43,7 +47,7 @@ Add a topic-specific macro by extending `tex.macros` in a copy of the widget onl
 MathJax typesets the page once at load. Anything inserted later must be typeset explicitly:
 
 - `LX.typeset(el)` queues typesetting of one element. It is safe to call before MathJax has loaded (the element is typeset when it is ready) and it skips elements that were removed in the meantime.
-- The `LX` helpers already call it: slider labels, segmented labels, figure captions, `P.tex(...)` labels and every lesson step.
+- The `LX` helpers already call it: slider labels, segmented labels, figure captions, button labels, `P.tex(...)` labels, guides and every question block. Text written directly into the page is typeset at load.
 - Do **not** typeset in a per-frame loop, and do not create `P.tex(...)` labels inside an animation or on every slider move: create a label once and move it with `P.placeTex(el, x, y, anchor)`, or re-create it only when its text changes.
 - Avoid TeX commands that MathJax loads as extensions at runtime (e.g. `\boldsymbol`); use `\mathbf` or plain symbols. The extension loads from the CDN online but fails offline.
 - Readouts that change on every slider move (`LX.readout(...).set(...)`) take plain text; put the TeX in the readout's fixed label.

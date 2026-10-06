@@ -10,7 +10,7 @@ How to use it:
 
 1. **Find it.** Use the path the user gives. If they mention one without a path, ask. Do not search their disk for it uninvited.
 2. **Read only what the lesson needs.** Look for an index or links first; follow links to prerequisites only when the lesson depends on them.
-3. **Follow it.** Use its notation, sign conventions, units and terminology in the widget and the lesson text, even where you would choose differently. If it contradicts the standard textbook treatment, say so in chat once and ask which to follow.
+3. **Follow it.** Use its notation, sign conventions, units and terminology in the widgets and the text, even where you would choose differently. If it contradicts the standard textbook treatment, say so in chat once and ask which to follow.
 4. **Cite it.** The footer source line names the notes used (file names or titles).
 5. **Do not write to it** unless the user asks. If the lesson produced something worth keeping (a clean explanation, a summary of the misconceptions), offer to add a note in their format.
 

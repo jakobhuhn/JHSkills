@@ -1,6 +1,6 @@
 # Widget selection
 
-How to go from "the learner is stuck on X" to the right widget. Choose by **the shape of the insight**, not by the topic. A topic usually needs one to three shapes.
+How to go from "the learner is stuck on X" to the right widgets for the text. Choose by **the shape of the insight**, not by the topic. A topic usually needs one to three shapes.
 
 ## Step 1: write the insight map
 
@@ -33,7 +33,7 @@ Then ask for each relationship: *what kind of change is it?* That is its concept
 | 15 | Composition / circuits | operations are built step by step and order matters | gate stepper with state readout per step | `patterns/15-circuits.html` |
 | 16 | Symmetry | an operation leaves something invariant or forces degeneracy | apply-the-operation buttons; what changes, what stays | `patterns/16-symmetry.html` |
 
-Each pattern file starts with a header comment: when to use it, the widget anatomy, the teaching moments, how to adapt it and the physics it implements. Read that header first. The widget code is in the `PATTERN` script at the end of the file; the marked `LX:` blocks are the shared library, identical in every file, so skip them. Some patterns also have page-specific CSS after `/* LX:STYLE-END */`; copy it along with the code you reuse.
+Each pattern file is a single widget with a "What you are looking at" block, and no questions. Its header comment says when to use it, the widget anatomy, the layout and why, the teaching moments (questions a text could ask around it), how to adapt it and the physics it implements. Read that header first. The widget code is in the `PATTERN` script at the end of the file; the marked `LX:` blocks are the shared library, identical in every file, so skip them. Some patterns also have page-specific CSS after `/* LX:STYLE-END */`; copy it along with the code you reuse.
 
 Adapt the view to what the learner must *see*, not just the equation's form. Example: a self-consistency equation with a trivial root, \(\Delta = \Delta\, I(\Delta, T)\), drawn as a cobweb hugs the diagonal at weak coupling and the crossing is invisible. Divide out the trivial root and plot \(I(\Delta, T)\) against 1 instead; keep the cobweb for the iteration story only.
 
@@ -42,11 +42,13 @@ Adapt the view to what the learner must *see*, not just the equation's form. Exa
 When a topic needs several shapes, put them on one page as **linked views of one state**, not as separate widgets:
 
 - One state object; every figure is a view of it; every control changes it.
-- Arrange figures in the order the lesson visits them.
+- Arrange widgets in the order the text visits them; the text between them says what to look at next.
 - Share colors: a quantity has the same color in every view.
-- The lesson steps walk from one shape to the next; each step's `onEnter` sets the state for its view.
+- When the text moves to a new aspect, it may offer a button or limit that sets the shared state for the next view, but it never takes control away.
 
-`examples/ssh-model.html` shows a full composition: spectral flow (bands and the finite-chain spectrum), topology (winding of \(d(k)\)), spatial structure (edge-state densities) and a phase transition (gap closing at \(v = w\)).
+`examples/ssh-chapter.html` shows a full Chapter built from several shapes: spectral flow (bands and the finite-chain spectrum), topology (winding of \(d(k)\)), spatial structure (edge-state densities) and a phase transition (gap closing at \(v = w\)), embedded in text with questions. `examples/bcs-gap-explainer.html` shows the short form: one confusion, one widget.
+
+For arranging a single widget (controls beside a figure, 2×2 with controls in a cell, …) see `assets/layouts.html`. For the question formats see `patterns/00-question-formats.html`.
 
 ## Topic → shape examples
 
@@ -82,4 +84,4 @@ These are starting points, not rules. Always do Step 1 first.
 
 ## When nothing fits
 
-Build a new widget from `assets/base.html`, following `widget-craft.md`. Reuse the closest pattern's structure: a state object, one `update()`, linked figures, limit buttons, a predict-first lesson, self-tests.
+Build a new widget from `assets/base.html`, following `widget-craft.md`. Reuse the closest pattern's structure: a state object, one `update()`, linked figures, limit buttons, a guide block, self-tests.

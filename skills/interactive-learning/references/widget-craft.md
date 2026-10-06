@@ -1,10 +1,10 @@
 # Widget craft
 
-Rules for building the widget itself. They apply on top of `assets/base.html`, which already provides the theme, the layout and the `LX` library. Read the API summary at the top of its `LX:LIB` block before writing code.
+Rules for building the widgets inside a page. They apply on top of `assets/base.html`, which already provides the theme, the article layout and the `LX` library. Read the API summary at the top of its `LX:LIB` block before writing code.
 
 ## Honesty: exact, computed, schematic
 
-Every widget carries one badge in its header, and the badge must be true:
+Every widget card carries one badge (`LX.widget(mount, { badge })`), and the badge must be true:
 
 | Badge | `data-kind` | Meaning | Rules |
 |---|---|---|---|
@@ -20,14 +20,35 @@ Never draw a feature you cannot justify. Each visible feature of the widget shou
 
 ## Interaction design
 
-- **One knob per insight.** Each control should map to one relationship the lesson is about. Hide or fix everything else; add controls in later steps if needed.
+- **One knob per insight.** Each control should map to one relationship the text is about. Fix everything else, or use a second widget later in the text.
+- **Every control visibly does something.** A control that does nothing in the current mode is disabled or hidden in that mode. The test harness fails a page whose enabled slider or button changes nothing.
+- **No duplicate controls.** One way to do one thing: either a step slider or Back/Forward buttons, not both.
+- **Explain the widget on the widget.** Every widget has a "What you are looking at" block (`LX.guide`) with one line per figure and per control: what it shows and what to look for. Legends (`LX.legend`) name every curve that is not obvious.
 - **Linked views.** Show the same state in two or three representations that update together (landscape + order parameter; band structure + winding curve + real-space density). Most insight is in the link.
 - **Limit buttons.** `LX.limits(...)` with one button per regime the topic's literature names. Label them with the physics ("Atomic limit", "Critical point"), not the parameter values.
-- **Ghost traces.** When the lesson asks "how did that change?", let the learner keep a copy (`P.ghost()`) and compare.
-- **Readouts.** Show the two or three numbers the lesson talks about (gap, winding number, \(\Delta x\,\Delta k\)), with `LX.readout`. Not more.
+- **Ghost traces.** When the text asks "how did that change?", let the learner keep a copy (`P.ghost()`) with a clearly visible button, and give the copy a legend entry and a way to clear it.
+- **Readouts.** Show the two or three numbers the text talks about (gap, winding number, \(\Delta x\,\Delta k\)), with `LX.readout`. Not more.
 - **Sensible ranges.** Slider ranges cover the interesting regimes and nothing else. Start the widget in a state that already shows something.
-- **Direct manipulation where it is natural.** Drag a trial point on a landscape, drag a phasor, click a lattice site. Every draggable also works with arrow keys (`LX.drag` does this).
-- **Time.** Animate only what evolves in time (`LX.player`). Always pair it with a scrub slider and start paused under reduced motion.
+- **Direct manipulation where it is natural.** Drag a trial point on a landscape, drag a phasor, drag the width of a wavepacket, click to drop a ball into a flow. This often replaces several sliders and makes the relationship obvious. Every draggable also works with arrow keys (`LX.drag` does this). Say in the guide that something is draggable or clickable.
+- **Durations mean something.** When the physics is "a pulse of length \(	au\) does X", let the learner choose \(	au\) and run the evolution for exactly \(	au\), then stop. Do not show an endless oscillation and ask them to read off the right moment.
+- **Time.** Animate only what evolves in time (`LX.player`). Pair a continuous evolution with a scrub slider and start paused under reduced motion.
+- **Gate results, not controls.** `LX.gate(el)` hides a result until an `LX.ask` with `reveal: [el]` is answered; it only ever opens. Never disable a control that the learner has used.
+
+## Layout
+
+Arrange each widget freely; there is no fixed figure-and-sidebar grid. `LX.widget(mount, { layout })` gives five arrangements, all collapsing to one column on narrow screens:
+
+| Layout | Use it for |
+|---|---|
+| `stack` | one wide figure with a controls strip below |
+| `split` | two equal linked views, controls below or in one column |
+| `grid2` | three figures plus controls in the fourth cell (never leave a quadrant empty) |
+| `aside` | one main figure (or a column of figures) with controls beside it; `left: true` puts the controls first |
+| `hero` | one large figure plus a column of small figures and controls |
+
+`.lx-col` stacks several items in one cell; `.lx-span2` spans both columns; `.lx-float` puts a small button row over the corner of a figure. `assets/layouts.html` shows each recipe with code.
+
+Rules: no empty grid cells; the most important view is the largest; controls sit next to what they change; at most three figures per widget (use a second widget otherwise).
 
 ## Visual rules
 
@@ -35,23 +56,26 @@ Never draw a feature you cannot justify. Each visible feature of the widget shou
 - Use the series colors consistently across linked views: the same quantity has the same color everywhere.
 - Name axes with TeX (`xlabel`, `ylabel` in `LX.plot`). Use units or "dimensionless" in the caption.
 - Captions say what the figure shows in one line. Put conventions in the header meta line.
+- Unstable, metastable or reference branches are dashed (`dash`) or faint (`faint`); break a path at jumps instead of drawing a vertical connector line.
+- Draggable handles are created once and moved on redraw, never recreated (recreating them breaks pointer capture and leaves copies). Clamp them to the plot range.
 - The page must work at 400 px width: figures stack, controls wrap. The test harness checks this.
 - The page must be complete at rest: the first frame, before any interaction, already shows a meaningful state.
 
 ## Code rules
 
 - Start from `assets/base.html`. Keep the three marked blocks (`LX:HEAD`, `LX:STYLE`, `LX:LIB`) unchanged; add page CSS after `/* LX:STYLE-END */` and code in the `PATTERN` script.
-- One state object, one `update()` that redraws everything from it. Controls only change the state and call `update()`.
+- One state object per widget, one `update()` that redraws everything from it (`P.clearAll()` first). Controls only change the state and call `update()`. Widgets on the same page may share state when they are linked views of one system.
 - Keep numerics small enough to run on every slider move (aim under ~16 ms). Precompute what does not depend on the control being moved; keep load-time precomputation under ~200 ms.
 - Choose units that make the key scale 1 (energies in units of \(T_c\), hopping \(t = 1\), lengths in lattice constants) and fix dimensionless couplings at a value where the effect is clearly visible; say so in the conventions line.
-- Display math in the steps panel must fit about 340 px (the panel width on phones and in the side column). Break long equations into several lines or move them into a figure caption.
-- Give every control a stable `id` (lesson steps lock controls by id; slider wrappers are `<id>-wrap`).
+- Display math must fit about 360 px (the text column on a phone). Break long equations with `aligned` or `split`; wide ones scroll horizontally as a fallback.
+- Give every control a stable `id` (slider wrappers are `<id>-wrap`); questions of type `set` read the widget state through them.
 - Add `LX.check(...)` self-tests for every physics fact the widget relies on: normalization, a closed form at a special point, a limit, a symmetry. They run at load and are reported by the test harness. Make anything random use a seeded generator.
-- Library helpers worth knowing beyond plots and sliders: `LX.rng(seed)` (seeded random numbers), `LX.C.exp`/`LX.C.sqrt` (complex), `LX.plot(..., { frame: false })` (bare drawing area for 3D views and diagrams), `LX.limits(parent, items, title, { id })` (a lockable group of limit buttons), a step's `onAnswer(correct, index)` hook, and `LX.isLocked(el)` for custom click or drag handlers that must respect locking.
+- Library helpers worth knowing beyond plots and sliders: `LX.rng(seed)` (seeded random numbers), `LX.C.exp`/`LX.C.sqrt` (complex), `LX.plot(..., { frame: false })` (bare drawing area for 3D views and diagrams), `P.clearAll()`, `LX.legend`, `LX.guide`, and an ask's `onAnswer(correct, value)` hook.
 - Do not load extra libraries unless the widget really needs one. Only the CDNs listed in the artifact rules are allowed.
 
 ## Delivery
 
 - Publish the page as an Artifact when the session can (the file is already an Artifact fragment). Otherwise save it as an `.html` file wrapped in a doctype skeleton, as described at the top of `base.html`.
+- Run `tests/run.mjs` on the page when the repo is available. It answers every question, checks that every gate opens, and checks that every control changes something.
 - Title: a short name of the thing (e.g. "SSH Edge States"), not a sentence.
 - After delivering, continue in chat: ask for the learner's explanation, answer questions, suggest the next concept.

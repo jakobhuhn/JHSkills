@@ -20,10 +20,10 @@ const grab = (src, [a, b]) => {
 };
 const check = process.argv.includes("--check");
 let stale = 0;
-for (const dir of ["patterns", "examples"]) {
+for (const dir of ["assets", "patterns", "examples"]) {
   const d = path.join(skill, dir);
   if (!fs.existsSync(d)) continue;
-  for (const f of fs.readdirSync(d).filter(f => f.endsWith(".html"))) {
+  for (const f of fs.readdirSync(d).filter(f => f.endsWith(".html") && !(dir === "assets" && f === "base.html"))) {
     const file = path.join(d, f);
     let src = fs.readFileSync(file, "utf8");
     const before = src;
