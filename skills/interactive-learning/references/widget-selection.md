@@ -32,6 +32,7 @@ Then ask for each relationship: *what kind of change is it?* That is its concept
 | 14 | Approximation order | a series or expansion converges, or does not | order slider, truncated vs exact, size of each term, complex-plane singularities | `patterns/14-approximation-order.html` |
 | 15 | Composition / circuits | operations are built step by step and order matters | Back/Forward through gates with an amplitude–phase table per step | `patterns/15-circuits.html` |
 | 16 | Symmetry | an operation leaves something invariant or forces degeneracy | one apply-the-operation button that visibly acts, one parameter slider | `patterns/16-symmetry.html` |
+| 17 | Fields on a plane | the object is a function of two variables (a Wigner function, a 2D density) and its shape changes: blobs move, fringes fade, negative regions open; often two subsystems at once | linked sign-coded heatmaps on a fine grid, line markers for named features, time scrub + Play | `patterns/17-phase-space-fields.html` |
 
 Each pattern file is a single widget with a "What you are looking at" block, and no questions. Its header comment says when to use it, the widget anatomy, the layout and why, the teaching moments (questions a text could ask around it), how to adapt it and the physics it implements. Read that header first. The widget code is in the `PATTERN` script at the end of the file; the marked `LX:` blocks are the shared library, identical in every file, so skip them. Some patterns also have page-specific CSS after `/* LX:STYLE-END */`; copy it along with the code you reuse.
 
@@ -61,6 +62,8 @@ These are starting points, not rules. Always do Step 1 first.
 - Born rule, tomography, basis choice → 09 (+ 03)
 - Bell states, entangling gates, teleportation → 15 (+ 09 for the measurement statistics)
 - Decoherence, \(T_1/T_2\) → 02 (+ 03 for the shrinking Bloch vector)
+- Wigner functions, cat and squeezed states, bosonic codes, gates between oscillators → 17 (+ 02)
+- Decoherence of a superposition seen as fringes washing out → 17
 - Variational quantum eigensolver, variational principle → 04
 - Adiabatic theorem, Landau–Zener → 05 + 02
 

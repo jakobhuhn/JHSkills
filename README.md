@@ -26,7 +26,7 @@ skills/interactive-learning/
     knowledge-sources.md      using a user knowledge base, or model knowledge without one
   assets/base.html            page skeleton (article + widgets) + the LX helper library
   assets/layouts.html         five widget layout recipes
-  patterns/                   16 widgets, one per concept shape, + 00 question formats
+  patterns/                   17 widgets, one per concept shape, + 00 question formats
   examples/ssh-chapter.html   a full Chapter: text, math, three widgets, questions
   examples/bcs-gap-explainer.html  a short Explainer: one confusion, one widget
 tests/                        render-and-check harness (Playwright + local MathJax)
@@ -55,6 +55,7 @@ Widgets are organised by the *shape* of the insight, not by topic. Each pattern 
 | 14 | Approximation order | Perturbation series and its radius of convergence |
 | 15 | Composition / circuits | Bell-state circuit |
 | 16 | Symmetry | Parity in a double well |
+| 17 | Fields on a plane | Cat-qubit CNOT: two Wigner functions in time |
 
 ### Knowledge
 

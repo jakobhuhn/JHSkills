@@ -60,6 +60,7 @@ Rules: no empty grid cells; the most important view is the largest; controls sit
 - Draggable handles are created once, in the plot's `handles` layer (which `clearAll` never clears), and moved on redraw. Recreating them breaks pointer capture and leaves copies. Clamp them to the plot range.
 - TeX labels that stay on the plot are created once with `P.tex(..., { keep: true })` and moved with `P.placeTex`; `clearAll` removes only the other labels.
 - The page must work at 400 px width: figures stack, controls wrap. The test harness checks this.
+- **Fields on a grid (heatmaps).** Choose the grid from the physics, not by eye. Find the smallest feature over the whole slider range (a fringe period, a blob width, a healing length) and put at least 10 cells across it; stop at about 2 screen pixels per cell; check that n² × (cost per point) fits the frame budget. Draw the samples into a canvas shown as a scaled SVG `<image>`, not one `<rect>` per cell: rects are slow and show hard edges. Add an `LX.check` for the cells-per-feature rule at the extreme of the slider range. `patterns/17-phase-space-fields.html` shows the rule worked through (a 46-cell grid gave 4.6 cells per fringe and looked blocky; 120 cells give 12).
 - The page must be complete at rest: the first frame, before any interaction, already shows a meaningful state.
 
 ## Code rules

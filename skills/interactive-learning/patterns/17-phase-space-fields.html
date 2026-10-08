@@ -1,0 +1,931 @@
+<title>Cat-Qubit CNOT in Phase Space</title>
+<!--
+PATTERN 17 · FIELDS ON A PLANE
+Concept shape   The object is a function of two continuous variables, a field on a plane, and the insight
+                is in how its shape changes: blobs move, fringes appear and fade, a negative region opens.
+                Often two such fields (two subsystems, or two representations) change together.
+Use it for      Wigner and Husimi functions (coherent, squeezed and cat states, bosonic codes, entangling
+                gates between oscillators), decoherence of a superposition (fringes washing out), 2D
+                wavepackets and densities in a trap, vortices, |ψ(x, y)|² in a box or on a lattice,
+                order-parameter textures, any scalar field whose shape changes with time or a parameter.
+Widget anatomy  (1)+(2) two linked heatmaps, one per subsystem: the field, sign-coded (ink for > 0, pink
+                    for < 0, opacity ∝ |value|), with line markers on top for the features the text names
+                    (rings at the coherent components, coloured by branch; the path travelled; pump axes);
+                (3) controls under both figures: the logical state of each subsystem (segmented), time t/T
+                    as a scrub slider plus Play, which runs the evolution once to t = T; one physical
+                    parameter (cat size α); readouts (rotation angle, control purity, bit-flip distance).
+                The state selectors show the CURRENT logical state: the input while t < T, the output at
+                t = T, nothing lit (with a note) if the output is entangled. A run that ends in a new state
+                is seen in the controls as well as in the figures. Play at t = T applies the gate again.
+Layout          split: the two fields side by side at equal size, so one change can be compared across
+                both; controls span the full width below (lx-span2).
+Choosing the grid  The field is sampled on an n × n grid and drawn as a canvas image scaled into the plot
+                (an SVG <image>, smoothed by the browser). Choose n from the physics, not by eye:
+                  1. Find the smallest feature over the WHOLE slider range: here the interference fringes
+                     of a cat, period π/(2α) along Im β, smallest at α_max = 2.2 (0.71), versus the blob
+                     width 1/√2 · 2 = 1.4.
+                  2. Put at least 10 cells across that feature. The first version of this widget used
+                     46 cells over 7.2 units: 4.6 cells per fringe at α_max, visibly blocky. 120 cells
+                     give 11.8 per fringe at α_max and 16 at the default α, and look continuous.
+                  3. Do not go finer than about 2 screen pixels per cell (the plot area is ≈ 310 px wide,
+                     so n ≈ 150 is the useful maximum).
+                  4. Check the cost: n² × (terms per point) evaluations per frame for each field must fit
+                     the ~16 ms frame budget. Here 2 × 120² × ≤ 16 complex exponentials take ≈ 7 ms.
+                     If it does not fit, precompute what does not change, reduce terms, or drop to the
+                     smallest n that still satisfies step 2 — never below it.
+                Draw with a canvas, not one SVG <rect> per cell: 14 400 rects per figure are slow to
+                update and show hard cell edges; the scaled image is smooth and cheap. Colours are read
+                from the theme tokens (--fg, --c4) and redrawn when the theme changes. A self-test
+                (LX.check) asserts the cells-per-feature rule at the extreme of the slider range.
+Teaching moments  Suggestions for the chapter around the widget:
+                  - "Control |1⟩, target |0⟩: where does the target end?" (choice: −α, an X gate done by
+                    rotating phase space; the Target selector jumps to |1⟩);
+                  - "Control |+⟩, target |0⟩: what happens to the control's fringes?" (choice: they fade,
+                    purity → 1/2: the modes are entangled);
+                  - "Find inputs where the target ends where it started but the control changed" (set:
+                    control |±⟩, target |−⟩, run to t = T: phase kickback, the Control selector flips);
+                  - "Why does the target's bit-flip barrier never lower during the gate?" (explain: the
+                    two target components stay 2α apart; a rotation keeps distances);
+                  - transfer: a phase flip a_t during the gate commutes with the rotation up to a phase,
+                    so it stays a phase flip (a second widget, not an extra control here).
+Adapt by        Replace the field function. fieldPlot(P, {lim, n}) returns draw(f), where f(x, y) gives a
+                signed value scaled to [−1, 1]; everything else (canvas, colours, theme) is generic. For
+                one field use the aside layout; for a single field with a 1D cut, use hero with the cut
+                in the side column. Redo the grid choice above for the new smallest feature.
+Physics         Cat qubit: |0⟩ ≈ |α⟩, |1⟩ ≈ |−α⟩, |±⟩ ∝ |α⟩ ± |−α⟩, α real. Ideal adiabatic CNOT
+                (Guillaud & Mirrahimi 2019): U(t) = |0⟩⟨0|_c ⊗ 1 + |1⟩⟨1|_c ⊗ exp(iθ a_t†a_t), θ = πt/T, so
+                the target's coherent components rotate as |β⟩ → |β e^{iθ}⟩; at θ = π this is parity, an X.
+                The joint state is Σ_k c_k |b_k⟩_c|g_k⟩_t; each reduced state is ρ = Σ M_kl |x_k⟩⟨x_l| with
+                M_kl = c_k c_l* ⟨other_l|other_k⟩, and its Wigner function is the closed form
+                W[|x⟩⟨y|](β) = (2/π) ⟨y|x⟩ exp(−2(β* − y*)(β − x)). Exact, no truncation.
+-->
+<!-- LX:HEAD-BEGIN -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]], tags: "ams",
+    macros: {
+      ket: ["\\left|#1\\right\\rangle", 1], bra: ["\\left\\langle#1\\right|", 1],
+      braket: ["\\left\\langle#1\\middle|#2\\right\\rangle", 2], expval: ["\\left\\langle#1\\right\\rangle", 1],
+      Tr: "\\operatorname{Tr}", dd: "\\mathrm{d}", ii: "\\mathrm{i}", ee: "\\mathrm{e}"
+    }
+  },
+  svg: { fontCache: "global" },
+  startup: {
+    pageReady() {
+      return MathJax.startup.defaultPageReady().then(() => document.dispatchEvent(new Event("lx:mathjax")));
+    }
+  }
+};
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg.js" async></script>
+<!-- LX:HEAD-END -->
+<style>
+/* LX:STYLE-BEGIN */
+/* Theme tokens, page, article typography, widget layouts, inline questions, SVG marks. */
+:root {
+  --bg: #f5f6f8; --surface: #ffffff; --fg: #17202c; --muted: #5b6676; --line: #d6dce5; --grid: #eaeef3;
+  --accent: #2f5bd3; --c2: #c9700c; --c3: #12857a; --c4: #b0377a; --good: #1f8a4c; --bad: #c2412d;
+  --accent-soft: rgba(47, 91, 211, .10);
+  --f-prose: "Source Serif 4", "Iowan Old Style", Georgia, serif;
+  --f-ui: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0f141b; --surface: #161d27; --fg: #e5eaf1; --muted: #94a0b2; --line: #2b3544; --grid: #1d2531;
+  --accent: #7ea2ff; --c2: #f0a54a; --c3: #45c2b0; --c4: #e47ab4; --good: #4cc184; --bad: #f07a62;
+  --accent-soft: rgba(126, 162, 255, .14); color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --bg: #0f141b; --surface: #161d27; --fg: #e5eaf1; --muted: #94a0b2; --line: #2b3544; --grid: #1d2531;
+  --accent: #7ea2ff; --c2: #f0a54a; --c3: #45c2b0; --c4: #e47ab4; --good: #4cc184; --bad: #f07a62;
+  --accent-soft: rgba(126, 162, 255, .14); color-scheme: dark;
+}
+body { background: var(--bg); color: var(--fg); font: 15px/1.55 var(--f-ui); margin: 0; }
+.lx-page { max-width: 1180px; margin: 0 auto; padding-inline: 16px; padding-block: 20px 40px; display: grid; gap: 20px; }
+.lx-head { display: grid; gap: 6px; }
+.lx-eyebrow { margin: 0; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.lx-head h1 { margin: 0; font: 600 clamp(24px, 3.2vw, 32px)/1.15 var(--f-prose); text-wrap: balance; }
+.lx-lede { margin: 0; max-width: 68ch; font: 17px/1.5 var(--f-prose); color: var(--muted); }
+.lx-meta { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; font-size: 13px; color: var(--muted); }
+.lx-badge { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: 999px; border: 1px solid currentColor; font-weight: 500; font-size: 12px; letter-spacing: .02em; }
+.lx-badge::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.lx-badge[data-kind="exact"] { color: var(--good); }
+.lx-badge[data-kind="schematic"] { color: var(--c2); }
+.lx-badge[data-kind="computed"] { color: var(--accent); }
+/* article: a reading column for text and math; widgets may break out with .lx-wide */
+.lx-article { display: grid; grid-template-columns: minmax(0, 1fr) min(720px, 100%) minmax(0, 1fr); row-gap: 16px; }
+.lx-article > * { grid-column: 2; min-width: 0; margin: 0; }
+.lx-article > .lx-wide { grid-column: 1 / -1; }
+.lx-article > p, .lx-article > ul, .lx-article > ol, .lx-prose { font: 17px/1.65 var(--f-prose); }
+.lx-article > ul, .lx-article > ol { padding-left: 1.3em; }
+.lx-article h2 { font: 600 24px/1.25 var(--f-prose); margin-top: 18px; text-wrap: balance; }
+.lx-article h3 { font: 600 19px/1.3 var(--f-prose); margin-top: 6px; }
+.lx-prose p { margin: 0 0 .6em; } .lx-prose p:last-child { margin-bottom: 0; }
+mjx-container[display="true"] { overflow-x: auto; overflow-y: hidden; max-width: 100%; padding: 2px 0; }
+.lx-callout { border-left: 3px solid var(--c3); padding: 8px 14px; background: var(--surface); border-radius: 0 8px 8px 0; font: 16px/1.6 var(--f-prose); }
+.lx-callout > b:first-child { font-family: var(--f-ui); font-size: 13px; letter-spacing: .04em; text-transform: uppercase; color: var(--c3); display: block; }
+.lx-hook { border: 1px solid var(--line); border-top: 3px solid var(--c2); background: var(--surface); border-radius: 10px; padding: 14px 16px; font: 18px/1.55 var(--f-prose); }
+.lx-stage { display: grid; gap: 14px; min-width: 0; }
+/* widget card: one framed unit of figures + controls; the layout class sets the arrangement */
+.lx-widget { container-type: inline-size; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: grid; gap: 12px; min-width: 0; }
+.lx-w-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px 12px; }
+.lx-w-head h3 { margin: 0; font: 600 16px/1.3 var(--f-ui); }
+.lx-w { display: grid; gap: 12px; min-width: 0; align-items: start; }
+.lx-w > *, .lx-col > * { min-width: 0; }
+.lx-col { display: grid; gap: 12px; align-content: start; min-width: 0; }
+.lx-split { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.lx-grid2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.lx-aside { grid-template-columns: minmax(0, 1fr) minmax(210px, 32%); }
+.lx-aside.lx-left { grid-template-columns: minmax(210px, 32%) minmax(0, 1fr); }
+.lx-hero { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+.lx-hero > :first-child { grid-row: span 3; }
+.lx-span2 { grid-column: 1 / -1; }
+@container (max-width: 620px) {
+  .lx-split, .lx-grid2, .lx-aside, .lx-aside.lx-left, .lx-hero { grid-template-columns: minmax(0, 1fr); }
+  .lx-hero > :first-child { grid-row: auto; }
+}
+.lx-figs { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); }
+.lx-fig { position: relative; min-width: 0; display: grid; gap: 6px; margin: 0; }
+.lx-fig > figcaption { font-size: 12.5px; color: var(--muted); }
+.lx-plot { position: relative; width: 100%; }
+.lx-plot > svg { display: block; width: 100%; height: auto; overflow: visible; touch-action: none; }
+.lx-overlay { position: absolute; inset: 0; pointer-events: none; }
+.lx-tex { position: absolute; white-space: nowrap; font-size: 13px; color: var(--fg); line-height: 1; }
+.lx-float { position: absolute; top: 4px; right: 4px; z-index: 2; display: flex; flex-wrap: wrap; gap: 6px; justify-content: end; }
+.lx-controls { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: end; background: var(--bg); border-radius: 8px; padding: 10px 12px; }
+:is(.lx-aside, .lx-hero, .lx-grid2) > .lx-controls, .lx-controls.lx-vert { flex-direction: column; flex-wrap: nowrap; align-items: stretch; }
+:is(.lx-aside, .lx-hero, .lx-grid2) > .lx-controls .lx-slider, .lx-controls.lx-vert .lx-slider { flex: none; min-width: 0; }
+.lx-slider { display: grid; gap: 2px; min-width: min(100%, 200px); flex: 1 1 200px; }
+.lx-slider .lx-lab { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--muted); }
+.lx-slider output, .lx-readouts b { font-family: var(--f-mono); font-variant-numeric: tabular-nums; color: var(--fg); font-weight: 500; }
+.lx-slider input[type=range] { width: 100%; accent-color: var(--accent); }
+.lx-group { display: grid; gap: 4px; }
+.lx-group > span { font-size: 12px; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
+.lx-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.lx-btn { font: 500 13px var(--f-ui); color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; cursor: pointer; line-height: 1.3; }
+.lx-btn:hover:not(:disabled) { border-color: var(--accent); }
+.lx-btn:focus-visible, .lx-seg input:focus-visible + span, .lx-drag:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.lx-btn[aria-pressed="true"], .lx-btn.lx-primary { background: var(--accent); color: var(--surface); border-color: var(--accent); }
+.lx-btn:disabled { opacity: .45; cursor: not-allowed; }
+.lx-btn mjx-container, .lx-seg mjx-container, .lx-opt mjx-container { display: inline-block !important; margin: 0 !important; }
+.lx-group > .lx-seg { justify-self: start; }
+.lx-seg { display: inline-flex; flex-wrap: wrap; max-width: 100%; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--surface); }
+.lx-seg label { cursor: pointer; }
+.lx-seg input { position: absolute; opacity: 0; pointer-events: none; }
+.lx-seg span { display: block; padding: 5px 10px; font-size: 13px; line-height: 1.3; }
+.lx-seg input:checked + span { background: var(--accent); color: var(--surface); }
+.lx-readouts { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); }
+.lx-readouts.lx-vert { flex-direction: column; gap: 4px; }
+.lx-page a { color: var(--accent); }
+mjx-container[jax="SVG"] > svg a { fill: var(--accent); stroke: var(--accent); }
+.lx-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; color: var(--fg); }
+.lx-legend i { display: inline-block; width: 16px; height: 0; border-top: 2.5px solid currentColor; vertical-align: middle; margin-right: 5px; }
+.lx-legend i.dash { border-top-style: dashed; } .lx-legend i.dot { width: 9px; height: 9px; border: none; border-radius: 50%; background: currentColor; }
+/* "What you are looking at" */
+.lx-guide { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 12px; margin: 0; font-size: 13.5px; line-height: 1.45; border-top: 1px solid var(--line); padding-top: 10px; }
+.lx-guide > b { grid-column: 1 / -1; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+.lx-guide dt { font-weight: 600; } .lx-guide dd { margin: 0; color: var(--fg); }
+@container (max-width: 480px) { .lx-guide { grid-template-columns: minmax(0, 1fr); } .lx-guide dd { margin: 0 0 6px; } }
+/* inline questions */
+.lx-ask { display: grid; gap: 8px; border-left: 3px solid var(--accent); padding: 10px 12px; background: var(--accent-soft); border-radius: 0 8px 8px 0; }
+.lx-ask > .lx-kicker { font: 500 12px var(--f-ui); letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
+.lx-ask > .lx-q { font: 500 16px/1.5 var(--f-prose); }
+.lx-opts { display: grid; gap: 6px; }
+.lx-opt { text-align: left; font: 14px/1.4 var(--f-ui); color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; cursor: pointer; }
+.lx-opt:hover:not(:disabled) { border-color: var(--accent); }
+.lx-opt:disabled { cursor: default; }
+.lx-opt.right { border-color: var(--good); box-shadow: inset 3px 0 0 var(--good); }
+.lx-opt.wrong { border-color: var(--bad); box-shadow: inset 3px 0 0 var(--bad); }
+.lx-opt.picked { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+.lx-ask input[type=text] { font: 15px var(--f-mono); color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; width: 9em; }
+.lx-ask textarea { width: 100%; box-sizing: border-box; font: 15px/1.5 var(--f-prose); color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 8px; min-height: 84px; resize: vertical; }
+.lx-feedback { font: 15px/1.5 var(--f-prose); }
+.lx-feedback b { font-family: var(--f-ui); }
+.lx-feedback.good b { color: var(--good); } .lx-feedback.bad b { color: var(--bad); }
+.lx-model { border: 1px dashed var(--line); border-radius: 8px; padding: 10px; background: var(--surface); font: 15px/1.55 var(--f-prose); }
+/* gate: a result stays hidden until its question is answered, then stays visible */
+.lx-gated { position: relative; }
+.lx-gated > * { filter: blur(7px); opacity: .45; pointer-events: none; user-select: none; }
+.lx-gated::after { content: attr(data-gate); position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 4px 8px; font: 500 14px var(--f-ui); color: var(--fg); }
+span.lx-gated { display: inline-block; min-width: 9em; }
+span.lx-gated::after { font-size: 12px; white-space: nowrap; padding: 0; }
+.lx-foot { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 12px; display: grid; gap: 4px; max-width: 90ch; }
+/* svg marks: color via classes so both themes work */
+.lx-plot text { font: calc(11px * var(--lx-k, 1)) var(--f-mono); fill: var(--muted); }
+.lx-plot path, .lx-plot line, .lx-plot rect, .lx-plot circle, .lx-plot ellipse, .lx-plot polygon { vector-effect: non-scaling-stroke; }
+.ax { stroke: var(--muted); stroke-width: 1; fill: none; }
+.gr { stroke: var(--grid); stroke-width: 1; fill: none; }
+.s1, .s2, .s3, .s4, .sm { fill: none; stroke-width: 2.2; stroke-linejoin: round; stroke-linecap: round; }
+.s1 { stroke: var(--accent); } .s2 { stroke: var(--c2); } .s3 { stroke: var(--c3); } .s4 { stroke: var(--c4); } .sm { stroke: var(--muted); stroke-width: 1.2; }
+.dash { stroke-dasharray: 5 4; }
+.thin { stroke-width: 1.2; }
+.faint { opacity: .45; }
+.sk { fill: none; stroke: var(--c4); stroke-width: 2.6; stroke-dasharray: 7 5; stroke-linecap: round; }
+.f1 { fill: var(--accent); } .f2 { fill: var(--c2); } .f3 { fill: var(--c3); } .f4 { fill: var(--c4); } .fm { fill: var(--muted); } .fs { fill: var(--surface); }
+.sg { stroke: var(--good); } .sb { stroke: var(--bad); } .fg { fill: var(--good); } .fb { fill: var(--bad); }
+.lx-plot text.f1 { fill: var(--accent); } .lx-plot text.f2 { fill: var(--c2); } .lx-plot text.f3 { fill: var(--c3); } .lx-plot text.f4 { fill: var(--c4); } .lx-plot text.fg { fill: var(--good); } .lx-plot text.fb { fill: var(--bad); }
+.a1 { fill: var(--accent); fill-opacity: .16; stroke: none; } .a2 { fill: var(--c2); fill-opacity: .18; stroke: none; } .a3 { fill: var(--c3); fill-opacity: .18; stroke: none; }
+.g-ghost { opacity: .32; }
+.g-ghost path { stroke-dasharray: 4 3; }
+.lx-drag { cursor: grab; }
+.lx-drag:active { cursor: grabbing; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+/* LX:STYLE-END */
+/* page-specific styles go below */
+.ent-note { margin: 0; font-size: 12.5px; color: var(--c2); flex-basis: 100%; }
+</style>
+
+<main class="lx-page">
+  <header class="lx-head">
+    <p class="lx-eyebrow">Quantum information · Bosonic codes · Fields on a plane</p>
+    <h1>What does a CNOT between two cat qubits do in phase space?</h1>
+    <p class="lx-lede">Two oscillators, each storing a qubit in a pair of coherent states. The gate rotates the target's phase space by half a turn, but only in the branch where the control is \(\ket{1}\). Watch both Wigner functions while it runs.</p>
+    <div class="lx-meta">
+      <span>\(\ket{0} \approx \ket{\alpha}\), \(\ket{1} \approx \ket{-\alpha}\), \(\ket{\pm} \propto \ket{\alpha} \pm \ket{-\alpha}\), \(\alpha\) real; \(U(t) = \ket{0}\!\bra{0}_c \otimes 1 + \ket{1}\!\bra{1}_c \otimes \ee^{\ii\pi (t/T) a_t^\dagger a_t}\); ideal adiabatic gate</span>
+    </div>
+  </header>
+  <div class="lx-stage" id="stage"></div>
+  <footer class="lx-foot">
+    <span>Source: model knowledge. J. Guillaud and M. Mirrahimi, Phys. Rev. X <b>9</b>, 041053 (2019); S. Puri et al., Sci. Adv. <b>6</b>, eaay5901 (2020).</span>
+    <span>Widget: exact. Wigner functions of the reduced states in closed form, sampled on a 120 × 120 grid.</span>
+  </footer>
+</main>
+
+<script>/* LX:LIB-BEGIN */
+/* LX — small helper library for interactive-learning widgets. API summary:
+   DOM      LX.h(tag, attrs, parent) · LX.fig(parent, caption) · LX.typeset(el)
+   Numbers  LX.linspace · LX.clamp · LX.sample(f,a,b,n) · LX.C (complex) · LX.eigSym(A) · LX.niceTicks · LX.rng(seed)
+   Plots    LX.plot(parent, {xlim, ylim, ticks, frame, xlabel, ylabel, width, height}) → path/fn/dot/line/vline/hline/
+            area/text/tex/arrow/clear/clearAll/ghost/setLim/setLabels/X/Y/inv/svg/g
+            layers: grid, axes, ghost, fill, main, top, handles (handles is never cleared by clearAll: put draggables there)
+            LX.drag(plot, node, {get, set, step, start, end}) · LX.fig(parent, caption, {below}) · LX.setHTML(el, html)
+   3D       LX.camera({yaw, pitch, scale}) → project([x,y,z]) · rotate by dragging an element
+   Widget   LX.widget(mount, {layout: stack|split|grid2|aside|hero, left, title, badge}) → body element
+            LX.guide(widgetOrBody, [[term, description], ...]) — the "What you are looking at" block
+            LX.legend(parent, [[label, colorVar, "line"|"dash"|"dot"], ...])
+   Controls LX.controls(parent) · LX.slider · LX.segmented · LX.button · LX.limits · LX.readout · LX.player
+   Text     LX.ask(parent, {type: choice|number|set|sketch|explain, prompt, ..., reveal}) — inline question
+            LX.gate(el, message) — hide a result until a question that lists it in `reveal` is answered
+   Checks   LX.check(name, fn) → window.__lxTests */
+const LX = (() => {
+  const NS = "http://www.w3.org/2000/svg";
+  const reduceMotion = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function h(tag, attrs, parent, svg) {
+    const e = svg ? document.createElementNS(NS, tag) : document.createElement(tag);
+    for (const k in attrs || {}) {
+      const v = attrs[k];
+      if (v == null || v === false) continue;
+      if (k === "text") e.textContent = v;
+      else if (k === "html") e.innerHTML = v;
+      else if (k.startsWith("on") && typeof v === "function") e.addEventListener(k.slice(2), v);
+      else e.setAttribute(k, v === true ? "" : v);
+    }
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+  const s = (tag, attrs, parent) => h(tag, attrs, parent, true);
+
+  /* ---------- MathJax ---------- */
+  let mjReady = false; const mjPending = new Set();
+  document.addEventListener("lx:mathjax", () => { mjReady = true; mjPending.forEach(el => typeset(el)); mjPending.clear(); });
+  /* Typesetting is queued: MathJax must not run concurrently, and labels that were
+     removed while waiting (plots redraw often) are skipped. */
+  let mjChain = Promise.resolve();
+  function typeset(el) {
+    const MJ = window.MathJax;
+    if (!mjReady || !MJ || !MJ.typesetPromise) { if (el) mjPending.add(el); return Promise.resolve(); }
+    mjChain = mjChain.then(() => {
+      if (el && !el.isConnected) return;
+      const els = el ? [el] : undefined;
+      try { MJ.typesetClear(els); } catch (e) {}
+      return MJ.typesetPromise(els);
+    }).catch(err => console.warn("MathJax:", err && err.message));
+    return mjChain;
+  }
+
+  /* ---------- numerics ---------- */
+  const linspace = (a, b, n) => Array.from({ length: n }, (_, i) => a + (b - a) * i / (n - 1));
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+  const sample = (f, a, b, n = 400) => linspace(a, b, n).map(x => [x, f(x)]);
+  const C = {
+    of: (re, im = 0) => ({ re, im }),
+    add: (a, b) => ({ re: a.re + b.re, im: a.im + b.im }),
+    sub: (a, b) => ({ re: a.re - b.re, im: a.im - b.im }),
+    mul: (a, b) => ({ re: a.re * b.re - a.im * b.im, im: a.re * b.im + a.im * b.re }),
+    scale: (a, k) => ({ re: a.re * k, im: a.im * k }),
+    conj: a => ({ re: a.re, im: -a.im }),
+    abs2: a => a.re * a.re + a.im * a.im,
+    abs: a => Math.hypot(a.re, a.im),
+    arg: a => Math.atan2(a.im, a.re),
+    expi: t => ({ re: Math.cos(t), im: Math.sin(t) }),
+    exp: a => { const r = Math.exp(a.re); return { re: r * Math.cos(a.im), im: r * Math.sin(a.im) }; },
+    sqrt: a => { const r = Math.sqrt(Math.hypot(a.re, a.im)), t = Math.atan2(a.im, a.re) / 2; return { re: r * Math.cos(t), im: r * Math.sin(t) }; },
+    div: (a, b) => { const d = b.re * b.re + b.im * b.im; return { re: (a.re * b.re + a.im * b.im) / d, im: (a.im * b.re - a.re * b.im) / d }; }
+  };
+  /* Seeded PRNG (mulberry32): deterministic sampling for reproducible lessons and self-tests. */
+  function rng(seed = 1) {
+    let a = seed >>> 0;
+    return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  }
+  /* Real symmetric eigenproblem (cyclic Jacobi). Returns ascending values and matching unit vectors. */
+  function eigSym(M) {
+    const n = M.length, A = M.map(r => r.slice());
+    const V = Array.from({ length: n }, (_, i) => Array.from({ length: n }, (_, j) => +(i === j)));
+    for (let sweep = 0; sweep < 100; sweep++) {
+      let off = 0;
+      for (let p = 0; p < n; p++) for (let q = p + 1; q < n; q++) off += A[p][q] * A[p][q];
+      if (off < 1e-24) break;
+      for (let p = 0; p < n; p++) for (let q = p + 1; q < n; q++) {
+        if (Math.abs(A[p][q]) < 1e-300) continue;
+        const th = (A[q][q] - A[p][p]) / (2 * A[p][q]);
+        const t = (th >= 0 ? 1 : -1) / (Math.abs(th) + Math.sqrt(th * th + 1));
+        const c = 1 / Math.sqrt(t * t + 1), sn = t * c;
+        for (let k = 0; k < n; k++) { const a = A[k][p], b = A[k][q]; A[k][p] = c * a - sn * b; A[k][q] = sn * a + c * b; }
+        for (let k = 0; k < n; k++) { const a = A[p][k], b = A[q][k]; A[p][k] = c * a - sn * b; A[q][k] = sn * a + c * b; }
+        for (let k = 0; k < n; k++) { const a = V[k][p], b = V[k][q]; V[k][p] = c * a - sn * b; V[k][q] = sn * a + c * b; }
+      }
+    }
+    const idx = [...Array(n).keys()].sort((i, j) => A[i][i] - A[j][j]);
+    return { values: idx.map(i => A[i][i]), vectors: idx.map(i => V.map(r => r[i])) };
+  }
+  function niceTicks(a, b, n = 5) {
+    const span = Math.abs(b - a) || 1, raw = span / n, mag = Math.pow(10, Math.floor(Math.log10(raw)));
+    const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(st => span / st <= n) || 10 * mag;
+    const lo = Math.ceil(Math.min(a, b) / step - 1e-9) * step, out = [];
+    for (let v = lo; v <= Math.max(a, b) + 1e-9 * step; v += step) out.push(Math.abs(v) < step * 1e-9 ? 0 : v);
+    const dec = Math.max(0, -Math.floor(Math.log10(step) + 1e-9) + (step / mag === 2.5 ? 1 : 0));
+    return out.map(v => ({ v, label: v.toFixed(dec).replace("-", "−") }));
+  }
+
+  /* ---------- plots ---------- */
+  let uid = 0;
+  function fig(parent, caption, o = {}) {
+    const f = h("figure", { class: "lx-fig" }, parent);
+    if (caption) { const c = h("figcaption", { html: caption }, f); typeset(c); if (o.below) c.style.order = "1"; }
+    return f;
+  }
+  /* Replace an element's content with HTML/TeX and typeset it (e.g. a button label or a readout). */
+  function setHTML(el, html) { el.innerHTML = html; typeset(el); return el; }
+  function plot(parent, o = {}) {
+    const W = o.width || 560, H = o.height || 340, ticks = o.ticks !== false;
+    const m = Object.assign(ticks ? { l: 56, r: 16, t: o.ylabel ? 30 : 14, b: 50 } : { l: 26, r: 22, t: o.ylabel ? 30 : 16, b: o.xlabel ? 34 : 16 }, o.margin || {});
+    let [x0, x1] = o.xlim || [0, 1], [y0, y1] = o.ylim || [0, 1];
+    const wrap = h("div", { class: "lx-plot" }, parent);
+    const svg = s("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": o.aria || "plot" }, wrap);
+    const overlay = h("div", { class: "lx-overlay" }, wrap);
+    /* keep tick text at a constant on-screen size when the SVG is scaled down */
+    if (window.ResizeObserver) new ResizeObserver(() => { const w = wrap.clientWidth; if (w) wrap.style.setProperty("--lx-k", (W / w).toFixed(3)); }).observe(wrap);
+    const id = "lxclip" + (++uid);
+    const defs = s("defs", {}, svg);
+    const clipRect = s("rect", {}, s("clipPath", { id }, defs));
+    const mk = s("marker", { id: id + "a", viewBox: "0 0 10 10", refX: 9, refY: 5, markerWidth: 7, markerHeight: 7, orient: "auto-start-reverse" }, defs);
+    s("path", { d: "M0,0 L10,5 L0,10 z", fill: "context-stroke" }, mk);
+    const g = {};
+    for (const name of ["grid", "axes", "ghost", "fill", "main", "top", "handles"]) {
+      g[name] = s("g", name === "ghost" ? { class: "g-ghost", "clip-path": `url(#${id})` } : ["fill", "main"].includes(name) ? { "clip-path": `url(#${id})` } : {}, svg);
+    }
+    const pw = () => W - m.l - m.r, ph = () => H - m.t - m.b;
+    const X = v => m.l + (v - x0) / (x1 - x0) * pw();
+    const Y = v => H - m.b - (v - y0) / (y1 - y0) * ph();
+    const inv = (px, py) => [x0 + (px - m.l) / pw() * (x1 - x0), y0 + (H - m.b - py) / ph() * (y1 - y0)];
+    const cy = v => clamp(v, -1e4, 1e4);
+    const P = {
+      svg, g, overlay, W, H, X, Y, inv, margin: m,
+      get xlim() { return [x0, x1]; }, get ylim() { return [y0, y1]; },
+      setLim(xl, yl) { if (xl) [x0, x1] = xl; if (yl) [y0, y1] = yl; drawAxes(); return P; },
+      setLabels(xl, yl) { if (xl != null) o.xlabel = xl; if (yl != null) o.ylabel = yl; drawAxes(); return P; },
+      /* Clear everything a redraw owns: main, fill, top and the TeX overlay (not grid/axes/ghost). */
+      clearAll() { for (const l of ["main", "fill", "top", "tex"]) P.clear(l); return P; },
+      clear(layer = "main") {
+        if (layer === "tex") { [...overlay.children].filter(c => !c.dataset.axis && !c.dataset.keep).forEach(c => c.remove()); return P; }
+        g[layer].replaceChildren(); return P;
+      },
+      path(pts, opt = {}) {
+        let d = "", pen = false;
+        for (const [x, y] of pts) {
+          if (!isFinite(x) || !isFinite(y)) { pen = false; continue; }
+          d += (pen ? "L" : "M") + X(x).toFixed(2) + "," + cy(Y(y)).toFixed(2); pen = true;
+        }
+        if (opt.close) d += "Z";
+        return s("path", { d, class: opt.cls || "s1" }, g[opt.layer || "main"]);
+      },
+      fn(f, opt = {}) { return P.path(sample(f, opt.a ?? x0, opt.b ?? x1, opt.n || 400), opt); },
+      area(pts, opt = {}) {
+        const base = opt.base ?? 0, first = pts[0], last = pts[pts.length - 1];
+        return P.path([[first[0], base], ...pts, [last[0], base]], { cls: opt.cls || "a1", layer: opt.layer || "fill", close: true });
+      },
+      dot(x, y, opt = {}) { return s("circle", { cx: X(x), cy: cy(Y(y)), r: opt.r || 4.5, class: opt.cls || "f1" }, g[opt.layer || "top"]); },
+      line(xa, ya, xb, yb, opt = {}) { return s("line", { x1: X(xa), y1: cy(Y(ya)), x2: X(xb), y2: cy(Y(yb)), class: opt.cls || "sm" }, g[opt.layer || "main"]); },
+      vline(x, opt = {}) { return P.line(x, y0, x, y1, Object.assign({ cls: "sm dash" }, opt)); },
+      hline(y, opt = {}) { return P.line(x0, y, x1, y, Object.assign({ cls: "sm dash" }, opt)); },
+      arrow(xa, ya, xb, yb, opt = {}) { const l = P.line(xa, ya, xb, yb, Object.assign({ cls: "s1", layer: "top" }, opt)); l.setAttribute("marker-end", `url(#${id}a)`); return l; },
+      text(x, y, str, opt = {}) { return s("text", { x: X(x) + (opt.dx || 0), y: Y(y) + (opt.dy || 0), "text-anchor": opt.anchor || "middle", class: opt.cls || "", text: str }, g[opt.layer || "top"]); },
+      /* TeX label in an HTML overlay. anchor: c, n, s, e, w, ne, nw, se, sw (which side of the label sits on the point). */
+      tex(x, y, src, opt = {}) {
+        const el = h("div", { class: "lx-tex" + (opt.cls ? " " + opt.cls : ""), html: `\\(${src}\\)` }, overlay);
+        P.placeTex(el, x, y, opt.anchor || "c", opt.px);
+        if (opt.axis) el.dataset.axis = "1";
+        if (opt.keep) el.dataset.keep = "1";   /* survives clear("tex")/clearAll: create once, move with placeTex */
+        if (opt.color) el.style.color = opt.color;
+        typeset(el); return el;
+      },
+      placeTex(el, x, y, anchor = "c", px) {
+        const [ux, uy] = px ? [x, y] : [X(x), Y(y)];
+        el.style.display = isFinite(ux) && isFinite(uy) ? "" : "none";
+        el.style.left = (100 * ux / W) + "%"; el.style.top = (100 * uy / H) + "%";
+        const tx = anchor.includes("w") ? "0%" : anchor.includes("e") ? "-100%" : "-50%";
+        const ty = anchor.includes("n") ? "0%" : anchor.includes("s") ? "-100%" : "-50%";
+        el.style.transform = `translate(${tx},${ty})`;
+      },
+      /* Copy the current main layer into the faded ghost layer (compare before/after). */
+      ghost() { g.ghost.replaceChildren(...[...g.main.children].map(n => n.cloneNode(true))); return P; },
+      clearGhost() { g.ghost.replaceChildren(); return P; },
+      /* Client pointer event → data coordinates. */
+      toData(ev) { const pt = svg.createSVGPoint(); pt.x = ev.clientX; pt.y = ev.clientY; const q = pt.matrixTransform(svg.getScreenCTM().inverse()); return inv(q.x, q.y); }
+    };
+    function drawAxes() {
+      clipRect.setAttribute("x", m.l); clipRect.setAttribute("y", m.t); clipRect.setAttribute("width", pw()); clipRect.setAttribute("height", ph());
+      g.grid.replaceChildren(); g.axes.replaceChildren();
+      [...overlay.children].filter(c => c.dataset.axis).forEach(c => c.remove());
+      if (o.frame === false) { /* bare drawing area: no axes, no grid (3D views, diagrams) */ }
+      else if (ticks) {
+        for (const t of niceTicks(x0, x1, o.xticks || 6)) {
+          s("line", { x1: X(t.v), x2: X(t.v), y1: m.t, y2: H - m.b, class: "gr" }, g.grid);
+          s("text", { x: X(t.v), y: H - m.b, dy: "1.25em", "text-anchor": "middle", text: t.label }, g.axes);
+        }
+        for (const t of niceTicks(y0, y1, o.yticks || 5)) {
+          s("line", { x1: m.l, x2: W - m.r, y1: Y(t.v), y2: Y(t.v), class: "gr" }, g.grid);
+          s("text", { x: m.l, dx: "-0.45em", y: Y(t.v), dy: "0.35em", "text-anchor": "end", text: t.label }, g.axes);
+        }
+        s("rect", { x: m.l, y: m.t, width: pw(), height: ph(), class: "ax" }, g.axes);
+      } else {
+        /* Schematic: axes with arrowheads, no numbers. Only named marks (P.tex) may label positions. */
+        s("path", { d: `M${m.l},${H - m.b} V${m.t}`, class: "ax", "marker-end": `url(#${id}a)` }, g.axes);
+        s("path", { d: `M${m.l},${H - m.b} H${W - m.r}`, class: "ax", "marker-end": `url(#${id}a)` }, g.axes);
+        if (o.zeroLine && y0 < 0 && y1 > 0) s("line", { x1: m.l, x2: W - m.r, y1: Y(0), y2: Y(0), class: "gr" }, g.grid);
+      }
+      /* axis names sit outside the plotting area: x below the right end, y above the top-left corner */
+      if (o.xlabel) P.tex(W - m.r, H - 2, o.xlabel, { anchor: "se", px: true, axis: true });
+      if (o.ylabel) P.tex(m.l - (ticks ? 4 : 0), m.t - 6, o.ylabel, { anchor: "sw", px: true, axis: true });
+    }
+    drawAxes();
+    return P;
+  }
+  /* Make an SVG node draggable in data coordinates; arrow keys nudge by opt.step. */
+  function drag(P, node, opt) {
+    node.classList.add("lx-drag"); node.setAttribute("tabindex", "0");
+    if (!node.getAttribute("aria-label")) node.setAttribute("aria-label", "draggable point; use arrow keys");
+    let active = false;
+    node.addEventListener("pointerdown", e => { active = true; node.setPointerCapture(e.pointerId); e.preventDefault(); if (opt.start) opt.start(); });
+    node.addEventListener("pointermove", e => { if (active) opt.set(...P.toData(e)); });
+    node.addEventListener("pointerup", () => { active = false; if (opt.end) opt.end(); });
+    node.addEventListener("keydown", e => {
+      const [dx, dy] = opt.step || [(P.xlim[1] - P.xlim[0]) / 100, (P.ylim[1] - P.ylim[0]) / 100];
+      const d = { ArrowLeft: [-dx, 0], ArrowRight: [dx, 0], ArrowUp: [0, dy], ArrowDown: [0, -dy] }[e.key];
+      if (!d) return; e.preventDefault(); const [x, y] = opt.get(); opt.set(x + d[0], y + d[1]);
+    });
+    return node;
+  }
+
+  /* ---------- 3D ---------- */
+  /* Orthographic camera. project([x,y,z]) → [u, v, depth] with u right, v up, depth toward viewer. z is "up". */
+  function camera(o = {}) {
+    const cam = { yaw: o.yaw ?? 0.6, pitch: o.pitch ?? 0.35, onChange: o.onChange || (() => {}) };
+    cam.project = ([x, y, z]) => {
+      const cy = Math.cos(cam.yaw), sy = Math.sin(cam.yaw), cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
+      const u = cy * x - sy * y, w = sy * x + cy * y;   // w: horizontal axis pointing away from the viewer
+      return [u, cp * z + sp * w, -cp * w + sp * z];     // pitch > 0 looks down from above; depth: larger = closer
+    };
+    cam.attach = (el) => {
+      let last = null; el.style.touchAction = "none"; el.classList.add("lx-drag");
+      el.addEventListener("pointerdown", e => { last = [e.clientX, e.clientY]; el.setPointerCapture(e.pointerId); });
+      el.addEventListener("pointermove", e => {
+        if (!last) return;
+        cam.yaw += (e.clientX - last[0]) * 0.01; cam.pitch = clamp(cam.pitch + (e.clientY - last[1]) * 0.01, -1.45, 1.45);
+        last = [e.clientX, e.clientY]; cam.onChange();
+      });
+      el.addEventListener("pointerup", () => { last = null; });
+      return cam;
+    };
+    return cam;
+  }
+
+  /* ---------- controls ---------- */
+  const controls = (parent, cls = "") => h("div", { class: "lx-controls " + cls }, parent);
+  function slider(parent, o) {
+    const id = o.id || "lxs" + (++uid);
+    const wrap = h("div", { class: "lx-slider", id: id + "-wrap" }, parent);
+    const lab = h("label", { class: "lx-lab", for: id }, wrap);
+    h("span", { html: o.label }, lab);
+    const out = h("output", { for: id }, lab);
+    const input = h("input", { type: "range", id, min: o.min, max: o.max, step: o.step ?? (o.max - o.min) / 200, value: o.value }, wrap);
+    const fmt = o.fmt || (v => (+v).toFixed(2).replace("-", "−"));
+    const show = () => { out.textContent = fmt(+input.value); };
+    input.addEventListener("input", () => { show(); o.onInput && o.onInput(+input.value); });
+    show(); typeset(lab);
+    return { el: wrap, input, get: () => +input.value, set(v, fire = true) { input.value = v; show(); if (fire && o.onInput) o.onInput(+input.value); } };
+  }
+  function segmented(parent, o) {
+    const id = o.id || "lxg" + (++uid);
+    const grp = h("div", { class: "lx-group", id }, parent);
+    if (o.label) h("span", { html: o.label }, grp);
+    const seg = h("div", { class: "lx-seg", role: "radiogroup" }, grp);
+    let value = o.value ?? o.options[0].value;
+    const inputs = o.options.map((op, i) => {
+      const l = h("label", {}, seg);
+      const inp = h("input", { type: "radio", name: id, id: `${id}-${i}`, value: op.value }, l);
+      inp.checked = op.value === value;
+      h("span", { html: op.label }, l);
+      inp.addEventListener("change", () => { value = op.value; o.onChange && o.onChange(value); });
+      return inp;
+    });
+    typeset(grp);
+    return { el: grp, get: () => value, set(v, fire = true) { value = v; inputs.forEach(i => i.checked = i.value == v); if (fire && o.onChange) o.onChange(v); } };
+  }
+  function button(parent, label, onClick, o = {}) {
+    const b = h("button", { type: "button", class: "lx-btn" + (o.cls ? " " + o.cls : ""), id: o.id, html: label, onclick: onClick, title: o.title }, parent);
+    if (/\\\(/.test(label)) typeset(b);
+    return b;
+  }
+  /* Limit buttons: one click jumps to a named regime. items: [{label, title, apply}] */
+  function limits(parent, items, title = "Jump to a limit", o = {}) {
+    const grp = h("div", { class: "lx-group", id: o.id }, parent);
+    h("span", { text: title }, grp);
+    const row = h("div", { class: "lx-row" }, grp);
+    items.forEach(it => button(row, it.label, it.apply, { title: it.title, cls: "lx-limit", id: it.id }));
+    typeset(grp); return grp;
+  }
+  function readout(parent, label) {
+    const r = parent.classList && parent.classList.contains("lx-readouts") ? parent : h("div", { class: "lx-readouts" }, parent);
+    const span = h("span", { html: label + " " }, r); const b = h("b", {}, span); typeset(span);
+    return { el: span, b, set(v) { b.textContent = v; }, html(v) { setHTML(b, v); } };
+  }
+  /* Animation loop with a play/pause button. onFrame(dt in seconds). Starts paused under reduced motion. */
+  function player(parent, o) {
+    let playing = false, last = 0, raf = 0;
+    const btn = button(parent, "Play", () => (playing ? pause() : play()), { id: o.id });
+    btn.setAttribute("aria-pressed", "false");
+    function frame(t) { const dt = last ? Math.min(0.05, (t - last) / 1000) : 0; last = t; o.onFrame(dt); if (playing) raf = requestAnimationFrame(frame); }
+    function play() { if (playing) return; playing = true; last = 0; btn.textContent = "Pause"; btn.setAttribute("aria-pressed", "true"); raf = requestAnimationFrame(frame); }
+    function pause() { playing = false; cancelAnimationFrame(raf); btn.textContent = "Play"; btn.setAttribute("aria-pressed", "false"); }
+    if (o.autoplay && !reduceMotion) play();
+    return { btn, play, pause, get playing() { return playing; } };
+  }
+
+  /* ---------- widget card, guide, legend ---------- */
+  const BADGE = { exact: "Exact", computed: "Computed", schematic: "Schematic" };
+  /* A framed widget. Returns the body element to fill; its children are arranged by the layout:
+     stack (one column) · split (two equal columns) · grid2 (2×2; a cell may hold controls)
+     aside (figures + a controls column; {left:true} puts the column first) · hero (big first child + a column)
+     Every layout falls back to one column when the card is narrower than ~620 px. */
+  function widget(parent, o = {}) {
+    const card = h("section", { class: "lx-widget" + (o.cls ? " " + o.cls : ""), id: o.id }, parent);
+    if (o.title || o.badge) {
+      const hd = h("div", { class: "lx-w-head" }, card);
+      if (o.title) h("h3", { html: o.title }, hd);
+      if (o.badge) h("span", { class: "lx-badge", "data-kind": o.badge, text: o.badgeText || BADGE[o.badge] }, hd);
+      typeset(hd);
+    }
+    const body = h("div", { class: `lx-w lx-${o.layout || "stack"}` + (o.left ? " lx-left" : "") }, card);
+    body.card = card;
+    return body;
+  }
+  /* "What you are looking at": one line per figure and per control. */
+  function guide(parent, items, title = "What you are looking at") {
+    const card = parent.card || parent;
+    const dl = h("dl", { class: "lx-guide" }, card);
+    if (title) h("b", { text: title }, dl);
+    for (const [t, d] of items) { h("dt", { html: t }, dl); h("dd", { html: d }, dl); }
+    typeset(dl); return dl;
+  }
+  function legend(parent, items) {
+    const lg = h("div", { class: "lx-legend" }, parent);
+    for (const [label, color, kind] of items) {
+      const sp = h("span", {}, lg); const i = h("i", { class: kind && kind !== "line" ? kind : "" }, sp);
+      i.style.color = `var(${color})`; h("span", { html: label }, sp);
+    }
+    typeset(lg); return lg;
+  }
+
+  /* ---------- gates and inline questions ---------- */
+  /* Hide a result (figure, readout, paragraph) until a question that lists it in `reveal` is answered.
+     The message is plain text (CSS content), no TeX.
+     A gate only ever opens. Do not gate controls the learner has already used. */
+  function gate(el, message = "Answer the question above to reveal") {
+    el.classList.add("lx-gated"); el.dataset.gate = message; el.setAttribute("aria-hidden", "true");
+    return { el, open: () => openGate(el) };
+  }
+  function openGate(el) { el.classList.remove("lx-gated"); el.removeAttribute("data-gate"); el.removeAttribute("aria-hidden"); }
+
+  /* Inline question in the text. Common options:
+       prompt (html), kicker (small label, defaults by type), reveal: [elements to un-gate],
+       right / wrong (html feedback), onAnswer(correct, value)
+     Types:
+       choice   options: [html], answer: index; grade: false only acknowledges the choice (for a hook whose
+                answer the text resolves later); then `right` is shown whatever was picked
+       number   answer: value, tol: relative tolerance (0.1), unit (html after the box)
+       set      the learner sets the widget, then presses Check. check(): {pass, msg}; solve(): optional,
+                puts the widget into the right state (offered after a wrong attempt)
+       sketch   plot: LX.plot, xs: handle positions, y0: start value (or ys), truth: x → y, tol: 0.15
+                (rms error relative to the truth's range); the learner drags handles, then compares
+       explain  model: html model answer, shown after the learner writes */
+  const KICK = { choice: "Predict", number: "Estimate", set: "Try it", sketch: "Sketch", explain: "Explain" };
+  function ask(parent, o) {
+    const type = o.type || "choice";
+    const box = h("div", { class: "lx-ask", "data-type": type }, parent);
+    h("div", { class: "lx-kicker", text: o.kicker || KICK[type] }, box);
+    h("div", { class: "lx-q", html: o.prompt }, box);
+    const body = h("div", { class: "lx-ask-body" }, box);
+    const fb = h("div", { class: "lx-feedback", "aria-live": "polite" }, box);
+    let answered = false;
+    function done(ok, value, extra) {
+      fb.className = "lx-feedback " + (ok == null ? "" : ok ? "good" : "bad");
+      const head = ok == null ? "" : `<b>${ok ? "Right." : "Not quite."}</b> `;
+      fb.innerHTML = head + (extra || "") + ((ok ? o.right : o.wrong) || (ok == null ? o.right || "" : ""));
+      typeset(fb);
+      if (!answered) { answered = true; box.dataset.answered = "1"; (o.reveal || []).forEach(openGate); }
+      if (o.onAnswer) o.onAnswer(ok, value);
+    }
+    if (type === "choice") {
+      const opts = h("div", { class: "lx-opts" }, body);
+      const bs = o.options.map((op, k) => h("button", { type: "button", class: "lx-opt", html: op, onclick: () => {
+        const graded = o.grade !== false;
+        bs.forEach((b, j) => { b.disabled = true; if (!graded) { if (j === k) b.classList.add("picked"); } else if (j === o.answer) b.classList.add("right"); else if (j === k) b.classList.add("wrong"); });
+        done(graded ? k === o.answer : null, k);
+      } }, opts));
+    } else if (type === "number") {
+      const row = h("div", { class: "lx-row" }, body); row.style.alignItems = "center";
+      const inp = h("input", { type: "text", inputmode: "decimal", "aria-label": "your estimate" }, row);
+      if (o.unit) h("span", { html: o.unit }, row);
+      const go = () => {
+        const v = parseFloat(inp.value.replace(",", ".").replace("−", "-"));
+        if (!isFinite(v)) { fb.className = "lx-feedback"; fb.textContent = "Enter a number."; return; }
+        const tol = o.tol ?? 0.1, err = (v - o.answer) / (Math.abs(o.answer) || 1), ok = Math.abs(err) <= tol;
+        const dir = ok ? "" : `Your estimate is too ${err > 0 ? "high" : "low"}. `;
+        done(ok, v, dir);
+      };
+      button(row, "Check", go, { cls: "lx-primary" });
+      inp.addEventListener("keydown", e => { if (e.key === "Enter") go(); });
+    } else if (type === "set") {
+      const row = h("div", { class: "lx-row" }, body);
+      let solveBtn = null;
+      button(row, o.checkLabel || "Check", () => {
+        const r = o.check(); const ok = typeof r === "object" ? !!r.pass : !!r;
+        done(ok, null, (typeof r === "object" && r.msg ? r.msg + " " : ""));
+        if (!ok && o.solve && !solveBtn) solveBtn = button(row, "Show me", () => { o.solve(); }, {});
+      }, { cls: "lx-primary" });
+    } else if (type === "sketch") {
+      const P = o.plot, n = o.xs.length, ys = o.ys ? o.ys.slice() : o.xs.map(() => o.y0 ?? (P.ylim[0] + P.ylim[1]) / 2);
+      const g = s("g", { class: "lx-sketch" }, P.svg);
+      const tg = s("g", {}, g), line = s("path", { class: "sk" }, g);
+      const dots = o.xs.map((x, i) => {
+        const c = s("circle", { r: 7, class: "f4", "aria-label": `sketch point ${i + 1}; arrow keys move it` }, g);
+        drag(P, c, { get: () => [x, ys[i]], set: (_, y) => { ys[i] = clamp(y, P.ylim[0], P.ylim[1]); draw(); }, step: [0, (P.ylim[1] - P.ylim[0]) / 40] });
+        return c;
+      });
+      function draw() {
+        line.setAttribute("d", o.xs.map((x, i) => (i ? "L" : "M") + P.X(x).toFixed(1) + "," + P.Y(ys[i]).toFixed(1)).join(""));
+        dots.forEach((c, i) => { c.setAttribute("cx", P.X(o.xs[i])); c.setAttribute("cy", P.Y(ys[i])); });
+      }
+      draw();
+      h("p", { html: o.hint || "Drag the pink points to sketch your guess, then compare with the real curve (blue).", style: "margin:0;font-size:13.5px" }, body);
+      const row = h("div", { class: "lx-row" }, body);
+      button(row, "Compare with the real curve", () => {
+        tg.replaceChildren();
+        const pts = sample(o.truth, P.xlim[0], P.xlim[1], 300);
+        let d = ""; pts.forEach(([x, y], i) => { d += (i ? "L" : "M") + P.X(x).toFixed(1) + "," + P.Y(clamp(y, P.ylim[0] - 10, P.ylim[1] + 10)).toFixed(1); });
+        s("path", { d, class: "s1" }, tg);
+        const tv = o.xs.map(o.truth), span = (Math.max(...tv) - Math.min(...tv)) || 1;
+        const rms = Math.sqrt(o.xs.reduce((a, _, i) => a + (ys[i] - tv[i]) ** 2, 0) / n) / span;
+        done(rms <= (o.tol ?? 0.15), rms, `Your sketch is off by ${(100 * rms).toFixed(0)}% of the curve's range. `);
+      }, { cls: "lx-primary" });
+    } else if (type === "explain") {
+      const ta = h("textarea", { placeholder: "In your own words…", "aria-label": "your explanation" }, body);
+      const row = h("div", { class: "lx-row" }, body);
+      button(row, o.compareLabel || "Compare with a model answer", () => {
+        if (box.querySelector(".lx-model")) return;
+        const m = h("div", { class: "lx-model", html: o.model }, body); typeset(m);
+        done(null, ta.value);
+      });
+    }
+    typeset(box);
+    return { el: box, get answered() { return answered; } };
+  }
+
+  /* ---------- self-tests ---------- */
+  window.__lxTests = window.__lxTests || [];
+  function check(name, fn) {
+    let pass = false, detail = "";
+    try { const r = fn(); if (typeof r === "object" && r) { pass = !!r.pass; detail = r.detail || ""; } else pass = !!r; }
+    catch (e) { detail = "threw: " + e.message; }
+    window.__lxTests.push({ name, pass, detail });
+    if (!pass) console.warn("LX check failed:", name, detail);
+    return pass;
+  }
+  const near = (a, b, tol = 1e-9) => Math.abs(a - b) <= tol * Math.max(1, Math.abs(a), Math.abs(b));
+
+  return { h, s, typeset, setHTML, linspace, clamp, sample, C, eigSym, niceTicks, fig, plot, drag, camera, widget, guide, legend,
+           controls, slider, segmented, button, limits, readout, player, ask, gate, check, near, rng, reduceMotion };
+})();
+/* LX:LIB-END */</script>
+
+<script>
+/* PATTERN */
+const C = LX.C, PI = Math.PI;
+/* Logical states as coherent-state superpositions: [coefficient, index] with index 0 → +α, 1 → −α. */
+const STATES = { "0": [[1, 0]], "1": [[1, 1]], "+": [[1, 0], [1, 1]], "-": [[1, 0], [-1, 1]] };
+/* ⟨a|b⟩ for coherent states */
+function ov(a, b) { return C.exp({ re: -(C.abs2(a) + C.abs2(b)) / 2 + a.re * b.re + a.im * b.im, im: a.re * b.im - a.im * b.re }); }
+/* Joint state after U(t): Σ_k c_k |b_k⟩_c |g_k⟩_t; the branch with control −α has its target rotated by θ. */
+function terms(ctl, tgt, alpha, t) {
+  const out = [];
+  for (const [cc, ci] of STATES[ctl]) for (const [ct, ti] of STATES[tgt]) {
+    let g = C.of(ti ? -alpha : alpha);
+    if (ci) g = C.mul(g, C.expi(PI * t));
+    out.push({ c: C.of(cc * ct), b: C.of(ci ? -alpha : alpha), g, ci });
+  }
+  return out;
+}
+/* Reduced state of one mode ("b" control, "g" target): ρ = Σ M_kl |x_k⟩⟨x_l|, normalised. */
+function reduced(T, m) {
+  const o = m === "b" ? "g" : "b", K = T.length, M = [];
+  let N = 0;
+  for (let k = 0; k < K; k++) { M[k] = []; for (let l = 0; l < K; l++) {
+    M[k][l] = C.mul(C.mul(T[k].c, C.conj(T[l].c)), ov(T[l][o], T[k][o]));
+    N += C.mul(M[k][l], ov(T[l][m], T[k][m])).re;
+  } }
+  for (const r of M) for (let l = 0; l < K; l++) r[l] = C.scale(r[l], 1 / N);
+  return { M, x: T.map(e => e[m]), K };
+}
+/* W(β) = Σ M_kl (2/π) ⟨x_l|x_k⟩ exp(−2 (β* − x_l*)(β − x_k)) */
+function wigner(R, bx, by) {
+  let w = 0;
+  for (let k = 0; k < R.K; k++) for (let l = 0; l < R.K; l++) {
+    const m = R.M[k][l]; if (C.abs2(m) < 1e-24) continue;
+    const u = C.conj(C.sub(C.of(bx, by), R.x[l])), v = C.sub(C.of(bx, by), R.x[k]);
+    w += C.mul(C.mul(m, ov(R.x[l], R.x[k])), C.exp(C.scale(C.mul(u, v), -2))).re;
+  }
+  return 2 / PI * w;
+}
+function purity(R) {
+  let p = 0;
+  for (let k = 0; k < R.K; k++) for (let l = 0; l < R.K; l++) for (let m = 0; m < R.K; m++) for (let n = 0; n < R.K; n++)
+    p += C.mul(C.mul(R.M[k][l], R.M[m][n]), C.mul(ov(R.x[l], R.x[m]), ov(R.x[n], R.x[k]))).re;
+  return p;
+}
+
+/* ---------- widget 1: the gate in phase space ---------- */
+const LIM = 3.6, NG = 120;
+const W1 = LX.widget(document.getElementById("stage"), { layout: "split", title: "The CNOT in phase space", badge: "exact" });
+/* Field on a plane: sample f(x, y) ∈ [−1, 1] on an n × n grid into a canvas and show it as an image
+   scaled into the plot area (the browser smooths it). Positive values in --fg, negative in --c4, opacity ∝ |f|.
+   Choose n from the smallest feature (see the header): ≥ 10 cells across it, ≤ ~2 screen px per cell. */
+function rgbOf(name) {
+  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim(), m = v.match(/^#([0-9a-f]{6})$/i);
+  return m ? [0, 2, 4].map(i => parseInt(m[1].slice(i, i + 2), 16)) : [128, 128, 128];
+}
+function fieldPlot(P, { lim, n }) {
+  const x0 = P.X(-lim), y0 = P.Y(lim);
+  const img = LX.s("image", { x: x0, y: y0, width: P.X(lim) - x0, height: P.Y(-lim) - y0, preserveAspectRatio: "none" });
+  P.svg.insertBefore(img, P.g.fill);
+  const cv = document.createElement("canvas"); cv.width = cv.height = n;
+  const cx = cv.getContext("2d"), data = cx.createImageData(n, n), grid = LX.linspace(-lim, lim, n);
+  return { n, cell: grid[1] - grid[0], draw(f) {
+    const pos = rgbOf("--fg"), neg = rgbOf("--c4"), d = data.data;
+    for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
+      const v = f(grid[i], grid[n - 1 - j]), c = v >= 0 ? pos : neg, o = 4 * (j * n + i);
+      d[o] = c[0]; d[o + 1] = c[1]; d[o + 2] = c[2]; d[o + 3] = Math.round(255 * 0.9 * Math.min(1, Math.abs(v)));
+    }
+    cx.putImageData(data, 0, 0);
+    img.setAttribute("href", cv.toDataURL());
+  } };
+}
+/* Wigner function of a reduced state as a fast closure: (x, y) → W·π/2 ∈ [−1, 1] (pairs precomputed). */
+function wignerField(R) {
+  const pairs = [];
+  for (let k = 0; k < R.K; k++) for (let l = 0; l < R.K; l++) {
+    if (C.abs2(R.M[k][l]) < 1e-24) continue;
+    const A = C.mul(R.M[k][l], ov(R.x[l], R.x[k]));
+    pairs.push([A.re, A.im, R.x[l].re, R.x[l].im, R.x[k].re, R.x[k].im]);
+  }
+  return (bx, by) => {
+    let w = 0;
+    for (const [ar, ai, lr, li, kr, ki] of pairs) {
+      const ur = bx - lr, ui = -(by - li), vr = bx - kr, vi = by - ki;
+      const m = Math.exp(-2 * (ur * vr - ui * vi)), e = -2 * (ur * vi + ui * vr);
+      w += m * (ar * Math.cos(e) - ai * Math.sin(e));
+    }
+    return w;   /* (2/π)·w is W; W·π/2 = w */
+  };
+}
+function phasePlot(caption) {
+  const P = LX.plot(LX.fig(W1, caption), { xlim: [-LIM, LIM], ylim: [-LIM, LIM], width: 380, height: 388, xlabel: "\\mathrm{Re}\\,\\beta", ylabel: "\\mathrm{Im}\\,\\beta" });
+  P.field = fieldPlot(P, { lim: LIM, n: NG });
+  P.heat = R => P.field.draw(wignerField(R));
+  return P;
+}
+const Pc = phasePlot("Control: Wigner function of its reduced state.");
+const Pt = phasePlot("Target: Wigner function of its reduced state.");
+const lab0 = Pc.tex(0, 0, "\\ket{0}", { keep: true, anchor: "n" }), lab1 = Pc.tex(0, 0, "\\ket{1}", { keep: true, anchor: "n" });
+
+/* State: the inputs `orig`, the number of completed gates k (mod 2, since CNOT² = 1), and the time t of the
+   current run. The target in the control-|1⟩ branch is rotated by π(k + t). The selection buttons show the
+   logical state: the start of the run while t < T, the output once t = T (none if the output is entangled). */
+const st = { orig: { c: "+", t: "0" }, k: 0 };
+function cnot(s) {
+  if (s.c === "0" || s.c === "1") return { c: s.c, t: s.c === "1" && (s.t === "0" || s.t === "1") ? (s.t === "0" ? "1" : "0") : s.t };
+  if (s.t === "+") return { ...s };
+  if (s.t === "-") return { c: s.c === "+" ? "-" : "+", t: "-" };
+  return null;   /* control in a superposition, target in |0⟩ or |1⟩: entangled output */
+}
+const label = n => (n % 2 ? cnot(st.orig) : st.orig);
+const runStart = () => label(st.k);
+function pick(which, v) {
+  const shown = label(st.k + (sT.get() >= 1 ? 1 : 0)) || { c: "0", t: "0" };
+  st.orig = { ...shown, [which]: v }; st.k = 0;
+  if (sT.get() >= 1) sT.set(0, false);
+  draw1();
+}
+const ctl = LX.controls(W1); ctl.classList.add("lx-span2");
+const opts = ["0", "1", "+", "-"].map(v => ({ value: v, label: `\\(\\ket{${v}}\\)` }));
+const sCtl = LX.segmented(ctl, { id: "ctl", label: "Control", value: "+", options: opts, onChange: v => pick("c", v) });
+const sTgt = LX.segmented(ctl, { id: "tgt", label: "Target", value: "0", options: opts, onChange: v => pick("t", v) });
+const sT = LX.slider(ctl, { id: "t", label: "time \\(t/T\\)", min: 0, max: 1, step: 0.01, value: 0.35, onInput: draw1 });
+const sA = LX.slider(ctl, { id: "alpha", label: "cat size \\(\\alpha\\)", min: 1, max: 2.2, step: 0.05, value: 1.6, onInput: draw1 });
+const play = LX.player(ctl, { id: "play", onFrame: dt => {
+  if (sT.get() >= 1 && dt === 0) { st.k = (st.k + 1) % 2; sT.set(0, false); }   /* run another CNOT on the output */
+  const t = Math.min(1, sT.get() + dt / 2.5); sT.set(t, false); draw1();
+  if (t >= 1) play.pause();
+} });
+const roTheta = LX.readout(ctl, "rotation \\(\\theta = \\pi t/T\\):");
+const roPur = LX.readout(roTheta.el.parentNode, "control purity \\(\\Tr\\rho_c^2\\):");
+const roSep = LX.readout(roTheta.el.parentNode, "target \\(\\ket{0}\\)–\\(\\ket{1}\\) distance:");
+const entNote = LX.h("p", { class: "ent-note", html: "Output entangled: neither cat has a state of its own, so no button is lit." }, ctl);
+LX.typeset(entNote);
+LX.legend(ctl, [["target, control-\\(\\ket{0}\\) branch", "--accent", "line"], ["target, control-\\(\\ket{1}\\) branch", "--c2", "line"], ["\\(W \\gt 0\\)", "--fg", "dot"], ["\\(W \\lt 0\\) (interference)", "--c4", "dot"]]);
+LX.guide(W1, [
+  ["Left panel", "The control's Wigner function. Blobs at \\(\\pm\\alpha\\) are \\(\\ket{0}\\) and \\(\\ket{1}\\); the pink-and-grey fringes between them are the coherence of a cat superposition."],
+  ["Right panel", "The target. Rings mark its coherent components: blue where the control is \\(\\ket{0}\\) (they stay put), orange where it is \\(\\ket{1}\\) (they rotate by \\(\\theta\\) along the orange arc). Dashed lines are the pump axes."],
+  ["Control, Target", "The logical state of each cat. During the gate they show the input; when the gate reaches \\(t = T\\) they jump to the output. If the output is entangled, no button is lit."],
+  ["Time", "Scrub \\(t/T\\), or press Play to run the gate to \\(t = T\\). Pressing Play again applies a second CNOT to the output."],
+  ["Readouts", "Control purity drops below 1 when the modes are entangled. The target's \\(\\ket{0}\\) and \\(\\ket{1}\\) stay \\(2\\alpha\\) apart throughout: the bit-flip barrier never lowers."]
+]);
+function ring(P, z, cls) { return LX.s("circle", { cx: P.X(z.re), cy: P.Y(z.im), r: Math.abs(P.X(Math.SQRT1_2) - P.X(0)), class: cls + " thin" }, P.g.top); }
+function draw1() {
+  const a = sA.get(), t = sT.get(), th = PI * (st.k + t), s0 = st.orig;
+  const T = terms(s0.c, s0.t, a, st.k + t);
+  const Rc = reduced(T, "b"), Rt = reduced(T, "g");
+  const shown = label(st.k + (t >= 1 ? 1 : 0));
+  sCtl.set(shown ? shown.c : null, false); sTgt.set(shown ? shown.t : null, false);
+  entNote.hidden = !!shown;
+  Pc.clearAll(); Pt.clearAll();
+  Pc.heat(Rc); Pt.heat(Rt);
+  ring(Pc, C.of(a), "s1"); ring(Pc, C.of(-a), "s2");
+  Pc.placeTex(lab0, a, -0.85, "n"); Pc.placeTex(lab1, -a, -0.85, "n");
+  Pt.fn(x => Math.sqrt(Math.max(0, a * a - x * x)), { a: -a, b: a, cls: "sm dash faint" });
+  Pt.fn(x => -Math.sqrt(Math.max(0, a * a - x * x)), { a: -a, b: a, cls: "sm dash faint" });
+  const hasB1 = T.some(e => e.ci), hasB0 = T.some(e => !e.ci);
+  if (hasB0) Pt.line(-LIM, 0, LIM, 0, { cls: "s1 thin dash" });
+  const drawn = [];
+  if (hasB1) Pt.line(-LIM * Math.cos(th), -LIM * Math.sin(th), LIM * Math.cos(th), LIM * Math.sin(th), { cls: "s2 thin dash" });
+  for (const e of T) {
+    if (drawn.some(d => C.abs2(C.sub(d, e.g)) < 1e-9)) continue; drawn.push(e.g);
+    if (e.ci && t > 0) {   /* arc travelled during this run */
+      const end = Math.atan2(e.g.im, e.g.re);
+      Pt.path(LX.linspace(end - PI * t, end, 60).map(p => [a * Math.cos(p), a * Math.sin(p)]), { cls: "s2" });
+    }
+    ring(Pt, e.g, e.ci ? "s2" : "s1");
+  }
+  roTheta.set((180 * t).toFixed(0) + "°");
+  roPur.set(purity(Rc).toFixed(3));
+  roSep.set("2α = " + (2 * a).toFixed(2) + " at every t");
+}
+draw1();
+/* redraw the heatmaps with the new colours when the theme changes */
+if (window.matchMedia) matchMedia("(prefers-color-scheme: dark)").addEventListener("change", draw1);
+new MutationObserver(draw1).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
+/* ---------- self-tests ---------- */
+LX.check("coherent overlap |⟨α|−α⟩|² = e^{−4α²}", () => LX.near(C.abs2(ov(C.of(1.3), C.of(-1.3))), Math.exp(-4 * 1.69), 1e-12));
+LX.check("odd cat: W(0) = −2/π", () => LX.near(wigner(reduced(terms("0", "-", 1.5, 0), "g"), 0, 0), -2 / PI, 1e-9));
+LX.check("even cat: W(0) = +2/π", () => LX.near(wigner(reduced(terms("0", "+", 1.5, 0), "g"), 0, 0), 2 / PI, 1e-9));
+LX.check("Wigner integrates to 1 (entangled mid-gate state)", () => {
+  const R = reduced(terms("+", "-", 1.4, 0.5), "g"), n = 160, xs = LX.linspace(-6, 6, n), d = xs[1] - xs[0];
+  let s = 0; for (const x of xs) for (const y of xs) s += wigner(R, x, y) * d * d;
+  return { pass: Math.abs(s - 1) < 1e-3, detail: s.toFixed(5) };
+});
+LX.check("truth table: control 1, target 0 → target at −α", () => { const e = terms("1", "0", 1.6, 1)[0]; return LX.near(e.g.re, -1.6, 1e-12) && Math.abs(e.g.im) < 1e-12; });
+LX.check("product input stays pure", () => LX.near(purity(reduced(terms("1", "+", 1.6, 0.4), "b")), 1, 1e-9));
+LX.check("control |+⟩, target |0⟩, t = T: purity ≈ 1/2", () => Math.abs(purity(reduced(terms("+", "0", 2, 1), "b")) - 0.5) < 1e-3);
+LX.check("phase kickback: control |+⟩ → |−⟩ (W_c(0) = −2/π)", () => LX.near(wigner(reduced(terms("+", "-", 1.8, 1), "b"), 0, 0), -2 / PI, 1e-6));LX.check("fast Wigner closure matches the reference formula", () => {
+  const R = reduced(terms("+", "-", 1.7, 0.3), "g"), f = wignerField(R);
+  return [[0, 0], [0.4, -1.1], [1.7, 0.2], [-2, 1]].every(([x, y]) => LX.near(f(x, y) * 2 / PI, wigner(R, x, y), 1e-9));
+});
+LX.check("grid resolves the finest fringe: ≥ 10 cells per period π/(2α) at the largest α", () => {
+  const per = PI / (2 * +sA.input.max), cells = per / Pc.field.cell;
+  return { pass: cells >= 10, detail: cells.toFixed(1) + " cells per fringe" };
+});
+</script>
