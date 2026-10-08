@@ -23,6 +23,11 @@
                  explain (why pinned at zero; what a staggered potential does).
     8 Close      five bullets; sources in the footer.
 
+  Linking       One shared state S = {v, w, N} for the whole chapter: every widget's v/w/N slider is bound
+                to it (sharedSlider → setS), so moving one moves the others and redraws every view. The
+                cursor k of the winding widget is view-only state and stays local. See widget-craft.md,
+                "Linking widgets".
+
   Physics       H = v sum_n (c†_{n,A} c_{n,B} + h.c.) + w sum_n (c†_{n+1,A} c_{n,B} + h.c.), v, w >= 0,
                 lattice constant 1, spinless, zero on-site energies. Chain starts on A, ends on B.
                 d(k) = (v + w cos k, w sin k), E = ±|v + w e^{ik}|, gap 2|v - w| at k = pi.
@@ -259,7 +264,7 @@ mjx-container[jax="SVG"] > svg a { fill: var(--accent); stroke: var(--accent); }
     </div>
 
     <h2 id="explore">First look: an open chain</h2>
-    <p>The widget below diagonalises \eqref{eq:H} numerically for an open chain. The large panel shows the chain and, below it, where the two eigenstates closest to \(E = 0\) live. The spectrum panel shows all energies as a function of \(v\), with a cursor at the current value. Spend a few minutes with it before reading on.</p>
+    <p>The widget below diagonalises \eqref{eq:H} numerically for an open chain. The large panel shows the chain and, below it, where the two eigenstates closest to \(E = 0\) live. The spectrum panel shows all energies as a function of \(v\), with a cursor at the current value. All four widgets in this chapter show this same chain: change \(v\) or \(w\) in any of them and the others follow. Spend a few minutes with it before reading on.</p>
     <div class="lx-wide" id="w-explore"></div>
     <ul>
       <li>Set \(v = 0.2\), \(w = 1\). Look at the two pink levels nearest zero in the spectrum, and at where those states sit on the chain.</li>
@@ -937,24 +942,40 @@ function drawBars(P, rhoA, rhoB, N) {
   }
 }
 
+/* ================= Shared state: one chain, four views =================
+   S holds the physics every widget shows: hoppings v, w and the chain length N. A slider in any
+   widget writes to S through setS(), which moves every other slider bound to the same key and
+   redraws every view, so the four widgets always show the same chain. View-only state (the
+   cursor k in the winding widget) stays local to its widget. */
+const S = { v: 0.4, w: 1, N: 16 }, VM = 1.5, EM = 3.2;
+const bound = { v: [], w: [], N: [] }, views = [];
+function bind(key, slider) { bound[key].push(slider); return slider; }
+function setS(patch, from) {
+  Object.assign(S, patch);
+  for (const key in patch) bound[key].forEach(s => { if (s !== from) s.set(S[key], false); });
+  views.forEach(redraw => redraw(patch));
+}
+/* A slider for one key of S: it writes through setS and follows changes made elsewhere. */
+function sharedSlider(parent, key, o) {
+  const s = LX.slider(parent, { ...o, value: S[key], onInput: x => setS({ [key]: x }, s) });
+  return bind(key, s);
+}
+
 /* ================= Widget 1: explore the open chain ================= */
-const X = { v: 0.4, w: 1, N: 16 }, VM = 1.5, EM = 3.2;
 const wX = LX.widget($("w-explore"), { layout: "hero", title: "An open SSH chain", badge: "computed" });
 const xCol = LX.h("div", { class: "lx-col" }, wX);
 const xFig = LX.fig(xCol, "Top: the chain; bond thickness is proportional to the hopping. Bottom: \\(|\\psi|^2\\) on each site, averaged over the two eigenstates closest to \\(E = 0\\).");
-const PC = LX.plot(xFig, { xlim: [0.4, X.N + 0.6], ylim: [-1, 1], ticks: false, frame: false, height: 64, margin: { l: 56, r: 16, t: 4, b: 4 } });
+const PC = LX.plot(xFig, { xlim: [0.4, S.N + 0.6], ylim: [-1, 1], ticks: false, frame: false, height: 64, margin: { l: 56, r: 16, t: 4, b: 4 } });
 const lv = PC.tex(1, 0.45, "v", { anchor: "s" }), lw = PC.tex(2.5, 0.45, "w", { anchor: "s" });
-const PD = LX.plot(xFig, { xlim: [0.4, X.N + 0.6], ylim: [0, 0.5], xlabel: "\\text{cell } n", ylabel: "|\\psi|^2", height: 250 });
+const PD = LX.plot(xFig, { xlim: [0.4, S.N + 0.6], ylim: [0, 0.5], xlabel: "\\text{cell } n", ylabel: "|\\psi|^2", height: 250 });
 LX.legend(xFig, [["A sites", "--accent", "line"], ["B sites", "--c2", "line"], ["exact semi-infinite end state", "--muted", "dash"]]);
 const fFig = LX.fig(wX, "All \\(2N\\) energies of the open chain against \\(v\\), at the current \\(w\\) and \\(N\\). Pink: the two levels nearest zero. Orange line: the current \\(v\\).");
 const PF = LX.plot(fFig, { xlim: [0, VM], ylim: [-EM, EM], xlabel: "v", ylabel: "E", width: 400, height: 340 });
 const xc = LX.controls(wX);
-const xv = LX.slider(xc, { id: "x-v", label: "intracell hopping \\(v\\)", min: 0, max: VM, step: 0.01, value: X.v, onInput: x => { X.v = x; xUpdate(); } });
-const xw = LX.slider(xc, { id: "x-w", label: "intercell hopping \\(w\\)", min: 0, max: VM, step: 0.01, value: X.w, onInput: x => { X.w = x; xUpdate(true); } });
-const xn = LX.slider(xc, { id: "x-N", label: "cells \\(N\\)", min: 4, max: 30, step: 1, value: X.N, fmt: x => String(x), onInput: x => { X.N = x; xUpdate(true); } });
-LX.button(LX.h("div", { class: "lx-row" }, xc), "Swap \\(v\\) and \\(w\\)", () => {
-  [X.v, X.w] = [X.w, X.v]; xv.set(X.v, false); xw.set(X.w, false); xUpdate(true);
-}, { id: "x-swap" });
+sharedSlider(xc, "v", { id: "x-v", label: "intracell hopping \\(v\\)", min: 0, max: VM, step: 0.01 });
+sharedSlider(xc, "w", { id: "x-w", label: "intercell hopping \\(w\\)", min: 0.05, max: VM, step: 0.01 });
+sharedSlider(xc, "N", { id: "x-N", label: "cells \\(N\\)", min: 4, max: 30, step: 1, fmt: x => String(x) });
+LX.button(LX.h("div", { class: "lx-row" }, xc), "Swap \\(v\\) and \\(w\\)", () => setS({ v: S.w, w: S.v }), { id: "x-swap" });
 const xr = LX.h("div", { class: "lx-readouts" }, xc);
 const rPair = LX.readout(xr, "levels nearest 0: \\(\\pm\\)");
 const rGap = LX.readout(xr, "bulk gap \\(2|v-w|\\) =");
@@ -962,13 +983,13 @@ LX.guide(wX, [
   ["Chain", "Blue dots are A sites, orange dots B sites. Each cell is an A–B pair joined by a \\(v\\) bond; neighbouring cells are joined by \\(w\\) bonds. Thicker line, larger hopping."],
   ["\\(|\\psi|^2\\) panel", "Where the two states closest to zero energy live, site by site. Peaks at the ends mean end states; a spread-out pattern means bulk states. Dashed: the exact end-state envelope \\eqref{eq:xi}, drawn when \\(v \\lt w\\)."],
   ["Spectrum", "Each line is one eigenvalue of the open chain as \\(v\\) varies. Bulk states form the two bands; a level that stays near \\(E = 0\\) inside the gap is not a bulk state."],
-  ["Sliders", "\\(v\\) moves the cursor only; \\(w\\) and \\(N\\) recompute the whole spectrum. <b>Swap</b> exchanges \\(v\\) and \\(w\\), which leaves the bulk bands unchanged."],
+  ["Sliders", "\\(v\\) moves the cursor only; \\(w\\) and \\(N\\) recompute the whole spectrum. <b>Swap</b> exchanges \\(v\\) and \\(w\\), which leaves the bulk bands unchanged. All four widgets in this chapter show the same chain: \\(v\\), \\(w\\) and \\(N\\) set here are the values used below, and moving them below changes them here."],
   ["Readouts", "The energy of the two levels nearest zero, and the bulk gap from \\eqref{eq:E}."]
 ]);
 let flow = null;
-function xUpdate(recompute = false) {
-  const { v, w, N } = X;
-  if (recompute) { PC.setLim([0.4, N + 0.6], null); PD.setLim([0.4, N + 0.6], null); }
+function xUpdate(patch) {
+  const { v, w, N } = S, recompute = !flow || "w" in patch || "N" in patch;
+  if ("N" in patch) { PC.setLim([0.4, N + 0.6], null); PD.setLim([0.4, N + 0.6], null); }
   PC.placeTex(lv, 1, 0.45, "s"); PC.placeTex(lw, 2.5, 0.45, "s");
   drawChain(PC, v, w, N);
   const C = chain(v, w, N);
@@ -980,7 +1001,7 @@ function xUpdate(recompute = false) {
     PD.path(Array.from({ length: N }, (_, i) => [i + 1 - 0.25, a * q ** i]), { cls: "sm dash", layer: "top" });
     PD.path(Array.from({ length: N }, (_, i) => [N - i + 0.25, a * q ** i]), { cls: "sm dash", layer: "top" });
   }
-  if (recompute || !flow) flow = LX.linspace(0, VM, 76).map(vv => [vv, sturmEig(offdiag(vv, w, 2 * N))]);
+  if (recompute) flow = LX.linspace(0, VM, 76).map(vv => [vv, sturmEig(offdiag(vv, w, 2 * N))]);
   PF.clearAll();
   PF.hline(0, { cls: "gr" });
   for (let j = 0; j < 2 * N; j++) {
@@ -994,28 +1015,28 @@ function xUpdate(recompute = false) {
   rPair.set(e < 1e-12 ? "0 (to machine precision)" : e.toExponential(1).replace("-", "−"));
   rGap.set(fmt(2 * Math.abs(v - w)));
 }
-xUpdate(true);
+views.push(xUpdate);
 LX.gate(PD.svg.parentNode, "Answer the opening question to see the states");
 LX.gate(PF.svg.parentNode, "Answer the opening question to see the spectrum");
 LX.gate(xr, "Hidden until you answer");
 
 /* ================= Widget 2: bulk bands ================= */
-const B = { v: 0.4, w: 1 };
 const wB = LX.widget($("w-bands"), { layout: "aside", title: "Bulk bands", badge: "exact" });
 const PB = LX.plot(LX.fig(wB, "\\(E_\\pm(k) = \\pm|v + w\\,e^{ik}|\\) over the Brillouin zone. Shaded: the gap."), { xlim: [-PI, PI], ylim: [-EM, EM], xlabel: "k", ylabel: "E", height: 330 });
 const gapLab = PB.tex(0, 0, "2|v-w|", { anchor: "c" });
 const bc = LX.controls(wB);
-LX.slider(bc, { id: "b-v", label: "\\(v\\)", min: 0, max: VM, step: 0.01, value: B.v, onInput: x => { B.v = x; bDraw(); } });
-LX.slider(bc, { id: "b-w", label: "\\(w\\)", min: 0, max: VM, step: 0.01, value: B.w, onInput: x => { B.w = x; bDraw(); } });
+sharedSlider(bc, "v", { id: "b-v", label: "\\(v\\)", min: 0, max: VM, step: 0.01 });
+sharedSlider(bc, "w", { id: "b-w", label: "\\(w\\)", min: 0.05, max: VM, step: 0.01 });
 LX.button(LX.h("div", { class: "lx-row" }, bc), "Keep a copy of these bands", () => PB.ghost(), { id: "b-ghost" });
 const rBG = LX.readout(bc, "gap \\(2|v-w|\\) =");
 LX.guide(wB, [
   ["Blue curves", "The two bands \\(E_\\pm(k)\\) of the infinite chain, \\eqref{eq:E}."],
   ["Green band", "The gap between them, smallest at the zone edge \\(k = \\pm\\pi\\); the dots mark the band edges there."],
+  ["Sliders", "The same \\(v\\) and \\(w\\) as in the open-chain widget above: they move together."],
   ["Copy", "<b>Keep a copy</b> freezes the current bands as a faint dashed curve, so you can compare two parameter sets."]
 ]);
 function bDraw() {
-  const { v, w } = B, g = Math.abs(v - w);
+  const { v, w } = S, g = Math.abs(v - w);
   PB.clear("main"); PB.clear("fill"); PB.clear("top");
   PB.path([[-PI, -g], [PI, -g], [PI, g], [-PI, g]], { cls: "a3", layer: "fill", close: true });
   PB.fn(k => band(k, v, w), { cls: "s1" }); PB.fn(k => -band(k, v, w), { cls: "s1" });
@@ -1023,26 +1044,28 @@ function bDraw() {
   gapLab.style.display = g > 0.15 ? "" : "none";
   rBG.set(fmt(2 * g));
 }
-bDraw();
+views.push(patch => { if ("v" in patch || "w" in patch) bDraw(); });
 
 /* ================= Widget 3: winding of d(k) ================= */
-const Wd = { r: 0.5, k: 2.2 };
+const Wd = { k: 2.2 };                                   // view-only: the cursor on the loop
 const wW = LX.widget($("w-wind"), { layout: "split", title: "The loop traced by \\(\\mathbf d(k)\\)", badge: "exact" });
-const PL = LX.plot(LX.fig(wW, "\\(\\mathbf d(k)\\) in the plane as \\(k\\) runs from \\(-\\pi\\) to \\(\\pi\\) (\\(w = 1\\)). Grey dot: the origin. Orange arrow: \\(\\mathbf d\\) at the current \\(k\\)."),
+const PL = LX.plot(LX.fig(wW, "\\(\\mathbf d(k)\\) in the plane as \\(k\\) runs from \\(-\\pi\\) to \\(\\pi\\). Grey dot: the origin. Orange arrow: \\(\\mathbf d\\) at the current \\(k\\)."),
   { xlim: [-1.5, 3.3], ylim: [-1.507, 1.507], xlabel: "d_x", ylabel: "d_y", width: 420, height: 300, margin: { l: 44, r: 16, t: 30, b: 44 } });
 const PP = LX.plot(LX.fig(wW, "The angle \\(\\varphi(k)\\) of \\(\\mathbf d(k)\\), followed continuously from \\(\\varphi(0) = 0\\). Its total change over the zone is \\(2\\pi W\\)."),
   { xlim: [-PI, PI], ylim: [-1.3, 1.3], xlabel: "k", ylabel: "\\varphi/\\pi", width: 420, height: 300 });
 const wc = LX.controls(wW); wc.classList.add("lx-span2");
-LX.slider(wc, { id: "w-r", label: "ratio \\(v/w\\)", min: 0, max: 2, step: 0.01, value: Wd.r, onInput: x => { Wd.r = x; wDraw(); } });
+sharedSlider(wc, "v", { id: "w-v", label: "intracell hopping \\(v\\)", min: 0, max: VM, step: 0.01 });
 LX.slider(wc, { id: "w-k", label: "wavenumber \\(k\\)", min: -PI, max: PI, step: 0.01, value: Wd.k, onInput: x => { Wd.k = x; wDraw(); } });
-const rW = LX.readout(wc, "winding \\(W\\) =");
+const wr = LX.h("div", { class: "lx-readouts" }, wc);
+const rWw = LX.readout(wr, "\\(w\\) =");
+const rW = LX.readout(wr, "winding \\(W\\) =");
 LX.guide(wW, [
   ["Loop", "The circle of radius \\(w\\) centred at \\((v, 0)\\) traced by \\(\\mathbf d(k)\\); the small arrow on it shows the direction of increasing \\(k\\). Does it enclose the grey origin?"],
   ["Angle", "The same information as one number per \\(k\\): the angle of the orange arrow. It ends at \\(\\pm\\pi\\) when the loop encloses the origin, and returns to 0 when it does not."],
-  ["Sliders", "\\(v/w\\) moves the circle sideways; \\(k\\) moves the orange arrow and the dot in the angle plot."]
+  ["Sliders", "\\(v\\) moves the circle sideways; it is the same \\(v\\) as in the widgets above, and \\(w\\) (the radius) is the value set there. \\(k\\) moves the orange arrow and the dot in the angle plot; it belongs to this widget only."]
 ]);
 function wDraw() {
-  const v = Wd.r, w = 1, k = Wd.k;
+  const { v, w } = S, k = Wd.k;
   PL.clearAll();
   PL.hline(0, { cls: "gr" }); PL.vline(0, { cls: "gr" });
   PL.path(LX.linspace(0, TAU, 300).map(q => dvec(q, v, w)), { cls: "s1" });
@@ -1060,36 +1083,42 @@ function wDraw() {
   let i = Math.round((k + PI) / TAU * (ph.length - 1)); i = LX.clamp(i, 0, ph.length - 1);
   PP.dot(k, ph[i][1] / PI, { r: 5, cls: "f2" });
   const W = Math.abs(v - w) < 0.005 ? NaN : winding(v, w);
+  rWw.set(fmt(w));
   rW.set(isNaN(W) ? "undefined: the loop passes through the origin" : String(W));
 }
-wDraw();
+views.push(patch => { if ("v" in patch || "w" in patch) wDraw(); });
 
 /* ================= Widget 4: the left end state ================= */
-const Ed = { r: 0.5 }, NE = 20;
 const wE = LX.widget($("w-edge"), { layout: "split", title: "The end states, up close", badge: "computed" });
-const eFig1 = LX.fig(wE, "\\(|\\psi|^2\\) on A (blue) and B (orange) sites, averaged over the two states nearest \\(E = 0\\). Open chain of 20 cells, \\(w = 1\\).");
-const PE = LX.plot(eFig1, { xlim: [0.4, NE + 0.6], ylim: [0, 1], xlabel: "\\text{cell } n", ylabel: "|\\psi|^2", width: 420, height: 300 });
+const eFig1 = LX.fig(wE, "\\(|\\psi|^2\\) on A (blue) and B (orange) sites, averaged over the two states nearest \\(E = 0\\), for the same open chain as the first widget.");
+const PE = LX.plot(eFig1, { xlim: [0.4, S.N + 0.6], ylim: [0, 1], xlabel: "\\text{cell } n", ylabel: "|\\psi|^2", width: 420, height: 300 });
 const eFig2 = LX.fig(wE, "The left end state alone: its density on A sites on a log scale (dots), and the exact envelope \\eqref{eq:xi} (dashed).");
-const PE2 = LX.plot(eFig2, { xlim: [0.5, NE + 0.5], ylim: [-8, 0.4], xlabel: "\\text{cell } n", ylabel: "\\log_{10}|\\psi_{n,A}|^2", width: 420, height: 300 });
+const PE2 = LX.plot(eFig2, { xlim: [0.5, S.N + 0.5], ylim: [-8, 0.4], xlabel: "\\text{cell } n", ylabel: "\\log_{10}|\\psi_{n,A}|^2", width: 420, height: 300 });
 const ec = LX.controls(wE); ec.classList.add("lx-span2");
-const eS = LX.slider(ec, { id: "e-r", label: "ratio \\(v/w\\)", min: 0.05, max: 1.5, step: 0.005, value: Ed.r, fmt: x => x.toFixed(3), onInput: x => { Ed.r = x; eDraw(); } });
-const rXi = LX.readout(ec, "decay length \\(\\xi = 1/\\ln(w/v)\\) =");
+const eS = sharedSlider(ec, "v", { id: "e-v", label: "intracell hopping \\(v\\)", min: 0, max: VM, step: 0.005, fmt: x => x.toFixed(3) });
+const er = LX.h("div", { class: "lx-readouts" }, ec);
+const rRatio = LX.readout(er, "\\(v/w\\) =");
+const rXi = LX.readout(er, "decay length \\(\\xi = 1/\\ln(w/v)\\) =");
 LX.guide(wE, [
   ["Densities", "Where the two states nearest zero live, averaged over the pair (the average does not depend on how the two nearly degenerate states mix). For \\(v \\lt w\\): a blue peak at the left end, an orange one at the right end. For \\(v \\gt w\\): bulk standing waves."],
   ["Log plot", "\\(\\log_{10}|\\psi_{n,A}|^2\\) of the left end state, which is twice the blue bar (the left state carries half of the pair's weight). A straight line means exponential decay, with slope \\(-2/(\\xi \\ln 10)\\) per cell. Points below \\(10^{-8}\\) are not drawn."],
-  ["Slider", "\\(v/w\\). Watch the slope of the line and the far end of the chain as \\(v/w \\to 1\\)."]
+  ["Slider", "The shared \\(v\\); \\(w\\) and \\(N\\) are the values set in the first widget. Watch the slope of the line and the far end of the chain as \\(v \\to w\\)."]
 ]);
-function eDraw() {
-  const r = Ed.r, C = chain(r, 1, NE);
+function eDraw(patch) {
+  const { v, w, N } = S, r = v / w, C = chain(v, w, N);
+  if ("N" in patch) { PE.setLim([0.4, N + 0.6], null); PE2.setLim([0.5, N + 0.5], null); }
   const a = C.rho.filter((_, i) => i % 2 === 0), b = C.rho.filter((_, i) => i % 2 === 1);
   PE.setLim(null, [0, Math.max(...C.rho) * 1.15]); PE.clearAll();
-  drawBars(PE, a, b, NE);
+  drawBars(PE, a, b, N);
   PE2.clearAll();
-  if (r < 1) PE2.path(LX.linspace(1, NE, 60).map(n => [n, Math.log10(1 - r * r) + 2 * (n - 1) * Math.log10(r)]), { cls: "sm dash" });
+  if (r > 0 && r < 1) PE2.path(LX.linspace(1, N, 60).map(n => [n, Math.log10(1 - r * r) + 2 * (n - 1) * Math.log10(r)]), { cls: "sm dash" });
   a.forEach((x, i) => { const y = Math.log10(2 * x); if (y > -8) PE2.dot(i + 1, y, { r: 3.5, cls: "f1", layer: "main" }); });
+  rRatio.set(r.toFixed(3));
   rXi.set(r < 1 ? fmt(xi(r)) + " cells" : "no end state (v ≥ w)");
 }
-eDraw();
+views.push(eDraw);
+
+setS({ v: S.v, w: S.w, N: S.N });                   // first frame: every view drawn from S
 
 /* ================= Questions ================= */
 const hookOpts = [
@@ -1143,10 +1172,10 @@ LX.ask($("q-set"), {
   type: "set",
   prompt: "Use the <a href=\"#edge\">end-state widget</a>: set \\(v/w\\) so that the density of the left end state drops by a factor of 100 between cell 1 and cell 3. The state is then essentially gone within two unit cells.",
   check: () => {
-    const r = Ed.r, ratio = r ** 4;
+    const r = S.v / S.w, ratio = r ** 4;
     return { pass: r >= 0.29 && r <= 0.345, msg: `At v/w = ${r.toFixed(3)} the density drops by a factor ${(1 / ratio).toFixed(0)} from cell 1 to cell 3.` };
   },
-  solve: () => { eS.set(0.316); $("w-edge").scrollIntoView({ behavior: "smooth", block: "center" }); },
+  solve: () => { eS.set(0.316 * S.w); $("w-edge").scrollIntoView({ behavior: "smooth", block: "center" }); },
   right: "Over two cells the density falls by \\((v/w)^4\\), so \\((v/w)^4 = 0.01\\) gives \\(v/w \\approx 0.32\\) and \\(\\xi \\approx 0.87\\) cells.",
   wrong: "Over two cells the density falls by \\((v/w)^4\\). On the log plot you need a drop of two decades between \\(n = 1\\) and \\(n = 3\\)."
 });

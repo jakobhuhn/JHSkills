@@ -42,12 +42,12 @@ Adapt the view to what the learner must *see*, not just the equation's form. Exa
 
 When a topic needs several shapes, put them on one page as **linked views of one state**, not as separate widgets:
 
-- One state object; every figure is a view of it; every control changes it.
+- One state object; every figure is a view of it; every control changes it. `widget-craft.md` ("Linking widgets") says how to bind sliders across widgets.
 - Arrange widgets in the order the text visits them; the text between them says what to look at next.
 - Share colors: a quantity has the same color in every view.
 - When the text moves to a new aspect, it may offer a button or limit that sets the shared state for the next view, but it never takes control away.
 
-`examples/ssh-chapter.html` shows a full Chapter built from several shapes: spectral flow (bands and the finite-chain spectrum), topology (winding of \(d(k)\)), spatial structure (edge-state densities) and a phase transition (gap closing at \(v = w\)), embedded in text with questions. `examples/bcs-gap-explainer.html` shows the short form: one confusion, one widget.
+`examples/ssh-chapter.html` shows a full Chapter built from several shapes: spectral flow (bands and the finite-chain spectrum), topology (winding of \(d(k)\)), spatial structure (edge-state densities) and a phase transition (gap closing at \(v = w\)), embedded in text with questions, all four widgets linked through one shared state. `examples/bcs-gap-explainer.html` shows the short form: one confusion, one widget.
 
 For arranging a single widget (controls beside a figure, 2×2 with controls in a cell, …) see `assets/layouts.html`. For the question formats see `patterns/00-question-formats.html`.
 

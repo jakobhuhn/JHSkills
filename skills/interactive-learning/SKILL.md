@@ -27,8 +27,8 @@ Turn a piece of established physics into an interactive page: a **text** with ma
 | `assets/layouts.html` | When arranging a widget: five layout recipes with code. |
 | `patterns/NN-*.html` | The 1–4 patterns you selected. Each is one working widget for one concept shape; its header comment says how to adapt it and which questions fit around it. |
 | `patterns/00-question-formats.html` | When writing questions: the five `LX.ask` types and `LX.gate`. |
-| `examples/ssh-chapter.html` | A full Chapter: text, math, three widgets, questions. |
-| `examples/bcs-gap-explainer.html` | A short Explainer: one confusion, one widget. |
+| `examples/ssh-chapter.html` | When writing a Chapter. A full Chapter: text, math, four linked widgets, questions. Read the header comment and the `<article>`; skip the scripts, except the shared-state block at the top of the last script when you link widgets. |
+| `examples/bcs-gap-explainer.html` | When writing an Explainer. One confusion, one widget. Read the header comment and the `<article>`; skip the scripts. |
 
 ## Workflow
 

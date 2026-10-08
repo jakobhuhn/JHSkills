@@ -34,6 +34,20 @@ Never draw a feature you cannot justify. Each visible feature of the widget shou
 - **Time.** Animate only what evolves in time (`LX.player`). Pair a continuous evolution with a scrub slider and start paused under reduced motion.
 - **Gate results, not controls.** `LX.gate(el)` hides a result until an `LX.ask` with `reveal: [el]` is answered; it only ever opens. Never disable a control that the learner has used.
 
+## Linking widgets
+
+When several widgets on a page show the same system, they share one state, so the reader never has two different chains or two different couplings on screen at once.
+
+- **One physics state per page.** Put the parameters of the system (couplings, sizes, temperature) in one object `S`. Every widget draws from `S`; none keeps its own copy.
+- **One write path.** Controls never assign to `S` directly; they call `setS(patch, from)`, which updates `S`, moves every other slider bound to the same key (`slider.set(value, false)`, so it does not fire again) and calls every view's redraw with the patch.
+- **Redraw only what depends on the patch.** Each view registers a redraw that checks which keys changed (`"w" in patch`) and skips or recomputes accordingly. Expensive recomputation (a spectral flow) runs only when its inputs change.
+- **The same parameter may have a slider in several widgets** when the widgets are far apart in the text: the reader needs the control next to the figure. These sliders are bound, so it is still one control, not a duplicate. Each widget gets only the sliders for the relationship it is about; it shows the other shared values as readouts and says in its guide where they are set.
+- **View state stays local.** A cursor, a zoom, a selected site or a "keep a copy" ghost belongs to one view and is not in `S`.
+- **Say it once in the text** ("All widgets in this chapter show the same chain") and once in each guide.
+- **Keep widgets separate on purpose** when they show contrasting cases side by side, or a different system (a toy model next to the real one). Then give them visibly different titles.
+
+`examples/ssh-chapter.html` shows the pattern: `S = {v, w, N}`, `sharedSlider()`, `setS()` and one redraw per widget.
+
 ## Layout
 
 Arrange each widget freely; there is no fixed figure-and-sidebar grid. `LX.widget(mount, { layout })` gives five arrangements, all collapsing to one column on narrow screens:
@@ -66,7 +80,7 @@ Rules: no empty grid cells; the most important view is the largest; controls sit
 ## Code rules
 
 - Start from `assets/base.html`. Keep the three marked blocks (`LX:HEAD`, `LX:STYLE`, `LX:LIB`) unchanged; add page CSS after `/* LX:STYLE-END */` and code in the `PATTERN` script.
-- One state object per widget, one `update()` that redraws everything from it (`P.clearAll()` first). Controls only change the state and call `update()`. Widgets on the same page may share state when they are linked views of one system.
+- One state object per widget, one `update()` that redraws everything from it (`P.clearAll()` first). Controls only change the state and call `update()`. Widgets that show the same system share one page state (see "Linking widgets").
 - Keep numerics small enough to run on every slider move (aim under ~16 ms). Precompute what does not depend on the control being moved; keep load-time precomputation under ~200 ms.
 - Choose units that make the key scale 1 (energies in units of \(T_c\), hopping \(t = 1\), lengths in lattice constants) and fix dimensionless couplings at a value where the effect is clearly visible; say so in the conventions line.
 - Display math must fit about 360 px (the text column on a phone). Break long equations with `aligned` or `split`; wide ones scroll horizontally as a fallback.

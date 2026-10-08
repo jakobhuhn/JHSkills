@@ -27,7 +27,7 @@ skills/interactive-learning/
   assets/base.html            page skeleton (article + widgets) + the LX helper library
   assets/layouts.html         five widget layout recipes
   patterns/                   17 widgets, one per concept shape, + 00 question formats
-  examples/ssh-chapter.html   a full Chapter: text, math, three widgets, questions
+  examples/ssh-chapter.html   a full Chapter: text, math, four linked widgets, questions
   examples/bcs-gap-explainer.html  a short Explainer: one confusion, one widget
 tests/                        render-and-check harness (Playwright + local MathJax)
 ```
