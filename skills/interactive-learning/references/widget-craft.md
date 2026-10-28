@@ -16,7 +16,7 @@ Exact vs computed: closed forms evaluated directly are exact. Anything that need
 
 The schematic rule matters: a cartoon with numbers on its axes reads as data. If a curve's shape is known but its numbers depend on a method or approximation, draw it schematic.
 
-Never draw a feature you cannot justify. Each visible feature of the widget should correspond to something in the source (the user's knowledge base, or a standard textbook result).
+Never draw a feature you cannot justify. Each visible feature of the widget should correspond to something in the source (the material the user provided, or a standard textbook result).
 
 ## Interaction design
 

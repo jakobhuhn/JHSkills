@@ -23,7 +23,7 @@ skills/interactive-learning/
     widget-selection.md       concept shape → widget pattern, composition, topic examples
     widget-craft.md           badges, interaction, layouts, visual and code rules
     math-rendering.md         MathJax 3.2.2 (SVG output) conventions
-    knowledge-sources.md      using a user knowledge base, or model knowledge without one
+    knowledge-sources.md      using material the user provides, or model knowledge without it
     lx-api.md                 generated: the LX helper API summary
   assets/base.html            page skeleton (article + widgets) + the LX helper library
   assets/layouts.html         five widget layout recipes
@@ -64,7 +64,7 @@ Widgets are organised by the *shape* of the insight, not by topic. Each pattern 
 
 ### Knowledge
 
-If you point Claude to your own notes (any format, e.g. a markdown "LLM wiki" or an Obsidian vault), the skill follows their notation and cites them. Without notes it uses model knowledge, restricted to textbook-level results, and says so on the page.
+Give Claude whatever you have: a paper, lecture notes, your own markdown notes, a dataset, a link. No format or setup is required; the skill reads what the page needs, follows the material's notation and cites it. Data you provide can be plotted next to the model. Without material it uses model knowledge, restricted to textbook-level results, and says so on the page.
 
 ### Install
 
