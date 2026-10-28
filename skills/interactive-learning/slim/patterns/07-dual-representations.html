@@ -94,7 +94,7 @@ const PU = LX.plot(LX.fig(W0, "Uncertainty plane: the packet as a point \\((\\De
 
 const ctl = LX.controls(W0);
 LX.h("p", { class: "hint07", html: "Drag the pink handles on the two upper plots: the dot on the axis moves the centre, the dot at the end of the bracket changes the width." }, ctl);
-const chirpSeg = LX.segmented(ctl, { id: "chirp", label: "Phase across the packet", value: "off",
+const chirpSeg = LX.segmented(ctl, { id: "chirp", primary: true, label: "Phase across the packet", value: "off",
   options: [{ value: "off", label: "flat (\\(\\beta = 0\\))" }, { value: "on", label: "chirped (\\(\\beta = 2\\))" }],
   onChange: v => { S.b = v === "on" ? BETA_ON : 0; draw(); } });
 const ro = LX.h("div", { class: "lx-readouts" }, ctl);

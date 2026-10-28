@@ -91,4 +91,5 @@ Edit the full files, not `slim/`; the sync script overwrites `slim/`.
 - missing MathJax output or raw TeX;
 - a question that cannot be answered, or a gate that stays closed;
 - a slider or button that changes nothing;
-- horizontal overflow at 400 px. `--shots` writes light/dark, desktop/phone screenshots to `tests/screenshots/`.
+- horizontal overflow at 400 px;
+- at 400 px, a figure more than one phone screen from its controls with no pinned primary control, or a pinned strip that is off screen. `--shots` writes light/dark, desktop/phone screenshots to `tests/screenshots/`.

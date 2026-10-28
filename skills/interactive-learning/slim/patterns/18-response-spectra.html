@@ -173,7 +173,7 @@ LX.legend(figT, [["\\(\\chi(t)\\)", "--fg", "line"], ["decay envelope", "--muted
 
 /* controls */
 const ctl = LX.controls(colR, "lx-vert");
-const gS = LX.slider(ctl, { id: "gamma", label: "damping \\(\\gamma\\) at fixed \\(\\omega_0\\)", min: 0.02, max: GMAX, step: 0.01, value: S.g, onInput: v => { S.g = v; update(); } });
+const gS = LX.slider(ctl, { id: "gamma", primary: true, label: "damping \\(\\gamma\\) at fixed \\(\\omega_0\\)", min: 0.02, max: GMAX, step: 0.01, value: S.g, onInput: v => { S.g = v; update(); } });
 const kkRow = LX.h("div", { class: "lx-group" }, ctl);
 LX.h("span", { text: "Causality check" }, kkRow);
 const kkBtn = LX.button(LX.h("div", { class: "lx-row" }, kkRow), "Rebuild Re χ from Im χ", () => { S.kk = !S.kk; update(); }, { id: "kk" });

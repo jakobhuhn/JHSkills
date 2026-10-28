@@ -85,7 +85,7 @@ const PM = LX.plot(LX.fig(W, "Measurement probabilities in the \\(Z\\) basis (bl
 
 const ctl = LX.controls(W);
 const pifmt = v => (v / PI).toFixed(3) + "π";
-const thS = LX.slider(ctl, { id: "th", label: "polar angle \\(\\theta\\)", min: 0, max: PI, step: 0.005, value: S.th, fmt: pifmt, onInput: v => { S.th = v; draw(); } });
+const thS = LX.slider(ctl, { id: "th", primary: true, label: "polar angle \\(\\theta\\)", min: 0, max: PI, step: 0.005, value: S.th, fmt: pifmt, onInput: v => { S.th = v; draw(); } });
 const phS = LX.slider(ctl, { id: "ph", label: "relative phase \\(\\varphi\\)", min: 0, max: 2 * PI, step: 0.005, value: S.ph, fmt: pifmt, onInput: v => { S.ph = v; draw(); } });
 const gaS = LX.slider(ctl, { id: "ga", label: "global phase \\(\\gamma\\)", min: 0, max: 2 * PI, step: 0.005, value: 0, fmt: pifmt, onInput: v => { S.ga = v; draw(); } });
 const grp = LX.h("div", { class: "lx-group", id: "states" }, ctl);

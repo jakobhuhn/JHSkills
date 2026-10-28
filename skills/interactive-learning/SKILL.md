@@ -52,7 +52,7 @@ Read the `slim/` copies, never the full pages under `assets/`, `patterns/` and `
    - limits behave as the physics says, and the self-tests pass;
    - schematic plots have no numeric ticks;
    - every control changes something, and every gate opens;
-   - every TeX string renders, and the page works at phone width.
+   - every TeX string renders, and the page works at phone width: one or two primary controls are pinned, and nothing interesting is transient (`widget-craft.md`, "Seeing it on a phone").
 
    If the repo's `tests/run.mjs` harness is available, run it on the file (it accepts slim pages).
 10. **Deliver.** Expand the page: `node scripts/lx.mjs expand page.html page.full.html` (the script is in the skill folder; without a shell, paste the three blocks from `assets/base.html` over the markers). Publish the full page as an Artifact when the session supports it. Otherwise give the user a standalone `.html` file: the full page wrapped in a doctype skeleton (see the comment at the top of `base.html`). Keep the slim page as the source for later edits. Give it a short name as title.

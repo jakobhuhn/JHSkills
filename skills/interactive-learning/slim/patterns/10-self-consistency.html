@@ -135,7 +135,7 @@ const PT = LX.plot(fT, { xlim: [0.2, 1.6], ylim: [-1.1, 1.1], xlabel: "T", ylabe
 LX.legend(fT, [["equilibrium", "--accent", "line"], ["metastable", "--accent", "dash"], ["unstable", "--c4", "dash"], ["where the iteration ends", "--c2", "dot"]]);
 
 const ctl = LX.controls(W);
-const TS = LX.slider(ctl, { id: "T", label: "temperature \\(T/T_c\\)", min: 0.3, max: 1.6, step: 0.005, value: S.T, onInput: v => { S.T = v; update(); } });
+const TS = LX.slider(ctl, { id: "T", primary: true, label: "temperature \\(T/T_c\\)", min: 0.3, max: 1.6, step: 0.005, value: S.T, onInput: v => { S.T = v; update(); } });
 const HS = LX.slider(ctl, { id: "h", label: "field \\(h\\)", min: -0.2, max: 0.2, step: 0.005, value: S.h, onInput: v => { S.h = v; update(); } });
 const MS = LX.slider(ctl, { id: "m0", label: "initial guess \\(m_0\\)", min: -1, max: 1, step: 0.01, value: S.m0, onInput: v => { S.m0 = v; update(); } });
 const ctl2 = LX.controls(W);

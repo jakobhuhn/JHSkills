@@ -112,7 +112,7 @@ const PR = LX.plot(fR, { xlim: [0, Math.log10(MAXN)], ylim: [-1.08, 1.08], width
 LX.legend(fR, [["running mean", "--accent", "line"], ["\\(\\langle\\vec\\sigma\\cdot\\hat n\\rangle\\)", "--c2", "dash"], ["\\(\\pm1\\sigma\\), \\(\\pm2\\sigma\\) funnel", "--c3", "line"]]);
 
 const ctl = LX.controls(W);
-const thS = LX.slider(ctl, { id: "th", label: "state \\(\\theta\\)", min: 0, max: PI, step: 0.005, value: S.th, fmt: v => (v / PI).toFixed(3) + "π", onInput: v => { S.th = v; reset(); } });
+const thS = LX.slider(ctl, { id: "th", primary: true, label: "state \\(\\theta\\)", min: 0, max: PI, step: 0.005, value: S.th, fmt: v => (v / PI).toFixed(3) + "π", onInput: v => { S.th = v; reset(); } });
 const phS = LX.slider(ctl, { id: "ph", label: "state \\(\\varphi\\)", min: 0, max: 1.99 * PI, step: PI / 200, value: S.ph, fmt: v => (v / PI).toFixed(3) + "π", onInput: v => { S.ph = v; reset(); } });
 const bSeg = LX.segmented(ctl, { id: "basis", label: "Measure", value: "Z",
   options: [{ value: "Z", label: "\\(\\sigma_z\\)" }, { value: "X", label: "\\(\\sigma_x\\)" }, { value: "T", label: "tilted axis" }],

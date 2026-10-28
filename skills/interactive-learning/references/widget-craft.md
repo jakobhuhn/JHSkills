@@ -27,12 +27,23 @@ Never draw a feature you cannot justify. Each visible feature of the widget shou
 - **Linked views.** Show the same state in two or three representations that update together (landscape + order parameter; band structure + winding curve + real-space density). Most insight is in the link.
 - **Limit buttons.** `LX.limits(...)` with one button per regime the topic's literature names. Label them with the physics ("Atomic limit", "Critical point"), not the parameter values.
 - **Ghost traces.** When the text asks "how did that change?", let the learner keep a copy (`P.ghost()`) with a clearly visible button, and give the copy a legend entry and a way to clear it.
-- **Readouts.** Show the two or three numbers the text talks about (gap, winding number, \(\Delta x\,\Delta k\)), with `LX.readout`. Not more.
+- **Readouts.** Show the two or three numbers the text talks about (gap, winding number, \(\Delta x\,\Delta k\)). A number that changes with the control the reader is moving goes inside the figure it describes (`P.hud(key, text, {at})`, a corner of the plot); the rest go in `LX.readout`. Not more.
 - **Sensible ranges.** Slider ranges cover the interesting regimes and nothing else. Start the widget in a state that already shows something.
 - **Direct manipulation where it is natural.** Drag a trial point on a landscape, drag a phasor, drag the width of a wavepacket, click to drop a ball into a flow. This often replaces several sliders and makes the relationship obvious. Every draggable also works with arrow keys (`LX.drag` does this). Say in the guide that something is draggable or clickable.
 - **Durations mean something.** When the physics is "a pulse of length \(	au\) does X", let the learner choose \(	au\) and run the evolution for exactly \(	au\), then stop. Do not show an endless oscillation and ask them to read off the right moment.
-- **Time.** Animate only what evolves in time (`LX.player`). Pair a continuous evolution with a scrub slider and start paused under reduced motion.
+- **Time.** Animate only what evolves in time. The time slider is the control; Play drives it (`LX.player(parent, {slider, speed, loop})`), so every frame Play can show is also reachable by scrubbing, and being late costs nothing. A run leaves its trace on the plot (pattern 02) rather than vanishing. Start paused under reduced motion.
 - **Gate results, not controls.** `LX.gate(el)` hides a result until an `LX.ask` with `reveal: [el]` is answered; it only ever opens. Never disable a control that the learner has used.
+
+## Seeing it on a phone
+
+Below about 620 px every layout becomes one column, so a control can end up two screens away from the figure it drives, and a transient started by Play is over before the reader has scrolled back. Four rules keep the widget usable there:
+
+- **Nothing interesting is transient.** Scrub beats play (see *Time* above); a prediction is asked before a run, so the reader is looking at the figure when it happens; a run leaves its trace.
+- **One or two primary controls per widget, pinned.** Mark the control the reader will move most with `{primary: true}` (slider, segmented, limits, player) or `LX.pin(parent, el)`. On a narrow card it moves into a strip at the bottom of the screen that stays while the widget is in view, so Play or the main slider is always in reach; on a wide card it stays where it is. A pinned control follows the visibility of its original place (a hidden mode box hides it). Two sliders fit the strip; more do not.
+- **The first figure, then the controls, then the rest.** On a narrow card the library reorders the column this way. Put the figure that reacts to the primary control first.
+- **Two quantities that must be seen together share one figure.** An overlay, an inset, or a half-width pair; a third linked figure becomes a view toggle or an inset. Three stacked figures are not linked for a phone reader.
+
+The harness fails a page in which a figure sits more than one phone screen from its controls without a pinned primary control, and a page whose pinned strip is off screen while its figure is at the top.
 
 ## Linking widgets
 

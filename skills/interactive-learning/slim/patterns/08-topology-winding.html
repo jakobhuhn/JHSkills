@@ -95,11 +95,11 @@ const mk = (id, label, max, key) => LX.slider(ctl, { id, label, min: 0, max, ste
 const vS = mk("v", "intracell hopping \\(v\\)", 2, "v");
 const wS = mk("w", "intercell hopping \\(w\\)", 2, "w");
 const uS = mk("u", "second-neighbour term \\(u\\)", 1.5, "u");
-const kS = LX.slider(ctl, { id: "k", label: "momentum \\(k\\)", min: 0, max: TAU, step: 0.01, value: S.k, onInput: v => { S.k = v; update(); } });
+const kS = LX.slider(ctl, { id: "k", primary: true, label: "momentum \\(k\\)", min: 0, max: TAU, step: 0.01, value: S.k, onInput: v => { S.k = v; update(); } });
 const act = LX.h("div", { class: "lx-group" }, ctl);
 LX.h("span", { text: "Run and compare" }, act);
 const actRow = LX.h("div", { class: "lx-row" }, act);
-LX.player(actRow, { id: "play", autoplay: true, onFrame: dt => { S.k = (S.k + 1.2 * dt) % TAU; kS.set(S.k, false); update(); } });
+LX.player(actRow, { id: "play", autoplay: true, slider: kS, speed: 1.2, primary: true });   /* Play drives the k slider; it wraps at 2π */
 LX.button(actRow, "Keep a copy", () => PD.ghost(), { id: "ghost" });
 const setP = (v, w, u) => { vS.set(v, false); wS.set(w, false); uS.set(u, false); Object.assign(S, { v, w, u }); update(); };
 LX.limits(ctl, [

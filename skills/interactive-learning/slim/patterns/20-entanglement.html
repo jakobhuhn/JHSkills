@@ -147,7 +147,7 @@ const rDL = LX.readout(roB, "\\(|\\lambda_1 - \\lambda_2| =\\)");
 /* (4) controls */
 const ctl = LX.controls(W);
 const pifmt = v => (v / PI).toFixed(3).replace("-", "−") + "π";
-const thS = LX.slider(ctl, { id: "th", label: "entangling angle \\(\\theta\\)", min: 0, max: PI / 2, step: 0.0025, value: S.th, fmt: pifmt, onInput: v => { S.th = v; update(); } });
+const thS = LX.slider(ctl, { id: "th", primary: true, label: "entangling angle \\(\\theta\\)", min: 0, max: PI / 2, step: 0.0025, value: S.th, fmt: pifmt, onInput: v => { S.th = v; update(); } });
 const alS = LX.slider(ctl, { id: "al", label: "rotation of A alone, \\(\\alpha\\)", min: -PI, max: PI, step: 0.005, value: S.al, fmt: pifmt, onInput: v => { S.al = v; update(); } });
 const beS = LX.slider(ctl, { id: "be", label: "rotation of B alone, \\(\\beta\\)", min: -PI, max: PI, step: 0.005, value: S.be, fmt: pifmt, onInput: v => { S.be = v; update(); } });
 const setAll = (th, al, be) => { thS.set(th, false); alS.set(al, false); beS.set(be, false); Object.assign(S, { th, al, be }); update(); };

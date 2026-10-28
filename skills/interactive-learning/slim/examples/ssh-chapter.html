@@ -325,7 +325,7 @@ LX.legend(xFig, [["A sites", "--accent", "line"], ["B sites", "--c2", "line"], [
 const fFig = LX.fig(wX, "All \\(2N\\) energies of the open chain against \\(v\\), at the current \\(w\\) and \\(N\\). Pink: the two levels nearest zero. Orange line: the current \\(v\\).");
 const PF = LX.plot(fFig, { xlim: [0, VM], ylim: [-EM, EM], xlabel: "v", ylabel: "E", width: 400, height: 340 });
 const xc = LX.controls(wX);
-sharedSlider(xc, "v", { id: "x-v", label: "intracell hopping \\(v\\)", min: 0, max: VM, step: 0.01 });
+sharedSlider(xc, "v", { id: "x-v", primary: true, label: "intracell hopping \\(v\\)", min: 0, max: VM, step: 0.01 });
 sharedSlider(xc, "w", { id: "x-w", label: "intercell hopping \\(w\\)", min: 0.05, max: VM, step: 0.01 });
 sharedSlider(xc, "N", { id: "x-N", label: "cells \\(N\\)", min: 4, max: 30, step: 1, fmt: x => String(x) });
 LX.button(LX.h("div", { class: "lx-row" }, xc), "Swap \\(v\\) and \\(w\\)", () => setS({ v: S.w, w: S.v }), { id: "x-swap" });
@@ -378,7 +378,7 @@ const wB = LX.widget($("w-bands"), { layout: "aside", title: "Bulk bands", badge
 const PB = LX.plot(LX.fig(wB, "\\(E_\\pm(k) = \\pm|v + w\\,e^{ik}|\\) over the Brillouin zone. Shaded: the gap."), { xlim: [-PI, PI], ylim: [-EM, EM], xlabel: "k", ylabel: "E", height: 330 });
 const gapLab = PB.tex(0, 0, "2|v-w|", { anchor: "c" });
 const bc = LX.controls(wB);
-sharedSlider(bc, "v", { id: "b-v", label: "\\(v\\)", min: 0, max: VM, step: 0.01 });
+sharedSlider(bc, "v", { id: "b-v", primary: true, label: "\\(v\\)", min: 0, max: VM, step: 0.01 });
 sharedSlider(bc, "w", { id: "b-w", label: "\\(w\\)", min: 0.05, max: VM, step: 0.01 });
 LX.button(LX.h("div", { class: "lx-row" }, bc), "Keep a copy of these bands", () => PB.ghost(), { id: "b-ghost" });
 const rBG = LX.readout(bc, "gap \\(2|v-w|\\) =");
@@ -407,7 +407,7 @@ const PL = LX.plot(LX.fig(wW, "\\(\\mathbf d(k)\\) in the plane as \\(k\\) runs 
 const PP = LX.plot(LX.fig(wW, "The angle \\(\\varphi(k)\\) of \\(\\mathbf d(k)\\), followed continuously from \\(\\varphi(0) = 0\\). Its total change over the zone is \\(2\\pi W\\)."),
   { xlim: [-PI, PI], ylim: [-1.3, 1.3], xlabel: "k", ylabel: "\\varphi/\\pi", width: 420, height: 300 });
 const wc = LX.controls(wW); wc.classList.add("lx-span2");
-sharedSlider(wc, "v", { id: "w-v", label: "intracell hopping \\(v\\)", min: 0, max: VM, step: 0.01 });
+sharedSlider(wc, "v", { id: "w-v", primary: true, label: "intracell hopping \\(v\\)", min: 0, max: VM, step: 0.01 });
 LX.slider(wc, { id: "w-k", label: "wavenumber \\(k\\)", min: -PI, max: PI, step: 0.01, value: Wd.k, onInput: x => { Wd.k = x; wDraw(); } });
 const wr = LX.h("div", { class: "lx-readouts" }, wc);
 const rWw = LX.readout(wr, "\\(w\\) =");
@@ -448,7 +448,7 @@ const PE = LX.plot(eFig1, { xlim: [0.4, S.N + 0.6], ylim: [0, 1], xlabel: "\\tex
 const eFig2 = LX.fig(wE, "The left end state alone: its density on A sites on a log scale (dots), and the exact envelope \\eqref{eq:xi} (dashed).");
 const PE2 = LX.plot(eFig2, { xlim: [0.5, S.N + 0.5], ylim: [-8, 0.4], xlabel: "\\text{cell } n", ylabel: "\\log_{10}|\\psi_{n,A}|^2", width: 420, height: 300 });
 const ec = LX.controls(wE); ec.classList.add("lx-span2");
-const eS = sharedSlider(ec, "v", { id: "e-v", label: "intracell hopping \\(v\\)", min: 0, max: VM, step: 0.005, fmt: x => x.toFixed(3) });
+const eS = sharedSlider(ec, "v", { id: "e-v", primary: true, label: "intracell hopping \\(v\\)", min: 0, max: VM, step: 0.005, fmt: x => x.toFixed(3) });
 const er = LX.h("div", { class: "lx-readouts" }, ec);
 const rRatio = LX.readout(er, "\\(v/w\\) =");
 const rXi = LX.readout(er, "decay length \\(\\xi = 1/\\ln(w/v)\\) =");

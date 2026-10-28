@@ -7,7 +7,8 @@
 //     (one-line LX:HEAD / LX:STYLE / LX:LIB markers, see scripts/lx.mjs) is expanded in memory first
 //   - serves MathJax 3.2.2 from tests/node_modules (CDNs are often blocked in CI/sandboxes)
 //   - fails on console errors / page errors / failing LX.check self-tests
-//   - requires MathJax SVG output, no horizontal overflow at 400 px
+//   - requires MathJax SVG output, no horizontal overflow at 400 px, and at 400 px a control within one phone
+//     screen of the figure it drives (or a pinned primary control whose strip is on screen)
 //   - answers every inline question (LX.ask) and requires every gate to open, no locked controls
 //   - requires every enabled slider and button inside a widget to change what the widget shows
 //     (mark a container data-lx-idle to exempt a control that legitimately does nothing at times)
@@ -105,6 +106,8 @@ for (const file of files) {
           const fire = (el, ev = "input") => el.dispatchEvent(new Event(ev, { bubbles: true }));
           const label = el => (el.closest(".lx-slider")?.querySelector(".lx-lab")?.textContent || el.textContent || el.id || "").trim().slice(0, 40);
           for (const w of document.querySelectorAll(".lx-widget")) {
+            w.querySelectorAll('button[aria-pressed="true"]').forEach(b => b.click());   // pause autoplaying players: the checks below compare states
+            await wait();
             for (const r of w.querySelectorAll("input[type=range]")) {
               if (r.disabled || r.closest(".lx-ask")) continue;
               const v = r.value; r.value = r.min; fire(r); await wait(); const a = sig(w);
@@ -136,6 +139,34 @@ for (const file of files) {
       }
       if (width === 400) {
         const over = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+        if (width === 400 && scheme === "light") {
+          // phone reach: the control that drives a figure must be within one phone screen (700 px) of it, or pinned
+          const reach = await page.evaluate(async (PH) => {
+            const out = [];
+            for (const card of document.querySelectorAll(".lx-widget")) {
+              const fig = card.querySelector(".lx-fig, .lx-plot"), ctl = card.querySelector(".lx-controls, .lx-float");
+              const name = card.id || (card.querySelector("h3") || {}).textContent || "widget";
+              if (!fig || !ctl) continue;
+              const pin = card.lxPin && !card.lxPin.strip.hidden ? card.lxPin.strip : null;
+              if (pin) {
+                fig.scrollIntoView({ block: "start" }); await new Promise(r => requestAnimationFrame(r));
+                const r = pin.getBoundingClientRect();
+                if (r.top >= innerHeight || r.bottom <= 0) out.push(`${name}: pinned strip is off screen while its figure is at the top`);
+                continue;
+              }
+              const c = ctl.getBoundingClientRect();
+              let worst = 0;
+              for (const f of card.querySelectorAll(".lx-fig, .lx-plot")) {
+                if (f.closest(".lx-fig") !== f && f.closest(".lx-fig")) continue;   // count a figure once
+                const r = f.getBoundingClientRect(), d = Math.max(r.top - c.bottom, c.top - r.bottom);
+                worst = Math.max(worst, d);
+              }
+              if (worst > PH) out.push(`${name}: a figure is ${Math.round(worst)} px from the controls at 400 px; pin a primary control ({primary: true}) or shorten the stack`);
+            }
+            scrollTo(0, 0); return out;
+          }, 700);
+          problems.push(...reach);
+        }
         if (over > 1) problems.push(`horizontal overflow ${over}px at 400px (${scheme})`);
       }
       if (shots) await page.screenshot({ path: path.join(shotDir, `${path.basename(file, ".html")}.${scheme}.${width}.png`), fullPage: true });

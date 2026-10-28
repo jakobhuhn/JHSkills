@@ -91,7 +91,7 @@ const PB = LX.plot(LX.fig(W0, "Where \\(I\\) at the cursor comes from"),
 
 const ctl = LX.controls(W0);
 const NS = LX.slider(ctl, { id: "N", label: "number of paths \\(N\\)", min: 1, max: 8, step: 1, value: S.N, fmt: v => String(v), onInput: v => { S.N = v; rescale(); draw(); } });
-const DS = LX.slider(ctl, { id: "D", label: "which-path information \\(D\\)", min: 0, max: 1, step: 0.01, value: S.D,
+const DS = LX.slider(ctl, { id: "D", primary: true, label: "which-path information \\(D\\)", min: 0, max: 1, step: 0.01, value: S.D,
   fmt: v => v.toFixed(2) + (v === 0 ? " (none)" : v === 1 ? " (full)" : ""), onInput: v => { S.D = v; draw(); } });
 const setD = v => { S.d = LX.clamp(v, -2 * PI, 2 * PI); draw(); };
 LX.limits(ctl, [

@@ -185,6 +185,7 @@ const ctl = LX.controls(W);
 const runG = LX.h("div", { class: "lx-group" }, ctl);
 LX.h("span", { text: "Run the circuit" }, runG);
 const rr = LX.h("div", { class: "lx-row" }, runG);
+LX.pin(rr, rr);   /* the step buttons are the primary control: pinned on a phone */
 const bBack = LX.button(rr, "◀ Back", () => setK(S.k - 1), { id: "back", title: "undo the last applied step" });
 const bFwd = LX.button(rr, "Forward ▶", () => setK(S.k + 1), { id: "fwd", cls: "lx-primary", title: "apply the next step" });
 const bReset = LX.button(rr, "Reset", () => setK(0), { id: "reset", title: "back to |00⟩, no gates applied" });

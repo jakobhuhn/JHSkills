@@ -183,7 +183,7 @@ PT.svg.addEventListener("pointerup", () => { scrub = false; });
 
 /* ---- controls ---- */
 const ctl = LX.controls(W);
-LX.segmented(ctl, { id: "stats", label: "Statistics", value: S.stat,
+LX.segmented(ctl, { id: "stats", primary: true, label: "Statistics", value: S.stat,
   options: KEYS.map(k => ({ value: k, label: STATS[k].name })), onChange: v => { S.stat = v; update(); } });
 LX.segmented(ctl, { id: "faxis", label: "Occupation axis", value: "lin",
   options: [{ value: "lin", label: "linear" }, { value: "log", label: "log" }],

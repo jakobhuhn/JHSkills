@@ -203,7 +203,7 @@ const scaleNote = LX.s("text", { x: PM.X(-XL) + 8, y: PM.margin.t + 16, "text-an
 const ctl = LX.controls(col, "lx-vert");
 const modeSeg = LX.segmented(ctl, { id: "mode", label: "Barriers", value: S.mode,
   options: [{ value: "single", label: "one barrier" }, { value: "double", label: "two barriers" }], onChange: v => setMode(v) });
-const aS = LX.slider(ctl, { id: "a", label: "barrier width \\(a\\)", min: 0.75, max: 2.5, step: 0.05, value: S.a, onInput: v => { S.a = v; update(); } });
+const aS = LX.slider(ctl, { id: "a", primary: true, label: "barrier width \\(a\\)", min: 0.75, max: 2.5, step: 0.05, value: S.a, onInput: v => { S.a = v; update(); } });
 const dS = LX.slider(ctl, { id: "d", label: "well width \\(d\\)", min: 0.75, max: 3, step: 0.05, value: S.d, onInput: v => { S.d = v; update(); } });
 const scaleSeg = LX.segmented(ctl, { id: "scale", label: "\\(T\\) axis", value: "lin",
   options: [{ value: "lin", label: "linear" }, { value: "log", label: "log\\(_{10}\\)" }], onChange: v => setScale(v === "log") });

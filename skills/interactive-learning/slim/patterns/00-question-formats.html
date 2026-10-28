@@ -95,7 +95,7 @@ const PB = LX.plot(LX.fig(figs, "The box: levels and the current state \\(\\psi_
 const figE = LX.fig(figs, "Energy against box width, \\(E_n(L)\\)");
 const PE = LX.plot(figE, { xlim: LL, ylim: [0, EMAX], xlabel: "L", ylabel: "E", width: 420, height: 360, xticks: 4, yticks: 4 });
 const ctl = LX.controls(W0);
-const nS = LX.slider(ctl, { id: "n", label: "quantum number \\(n\\)", min: 1, max: NMAX, step: 1, value: S.n, fmt: v => String(v), onInput: v => { S.n = v; draw(); } });
+const nS = LX.slider(ctl, { id: "n", primary: true, label: "quantum number \\(n\\)", min: 1, max: NMAX, step: 1, value: S.n, fmt: v => String(v), onInput: v => { S.n = v; draw(); } });
 const LS = LX.slider(ctl, { id: "L", label: "box width \\(L\\)", min: LL[0], max: LL[1], step: 0.01, value: S.L, onInput: v => { S.L = v; draw(); } });
 const ro = LX.h("div", { class: "lx-readouts" }, ctl);
 const rE = LX.readout(ro, "\\(E_n =\\)");

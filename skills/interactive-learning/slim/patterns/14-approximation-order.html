@@ -87,7 +87,7 @@ const PC = LX.plot(fC, { xlim: [-3.38, 3.38], ylim: [-1.8, 1.8], xlabel: "\\math
 const texP = PC.tex(0.3, 1, "+\\ii a", { anchor: "w" }), texM = PC.tex(0.3, -1, "-\\ii a", { anchor: "w" });
 
 const ctl = LX.controls(W);
-const nS = LX.slider(ctl, { id: "order", label: "order \\(N\\) (highest power \\(\\lambda^N\\))", min: 0, max: NMAX, step: 2, value: S.N, fmt: v => String(v), onInput: v => { S.N = v; update(); } });
+const nS = LX.slider(ctl, { id: "order", primary: true, label: "order \\(N\\) (highest power \\(\\lambda^N\\))", min: 0, max: NMAX, step: 2, value: S.N, fmt: v => String(v), onInput: v => { S.N = v; update(); } });
 const lS = LX.slider(ctl, { id: "lam", label: "coupling \\(\\lambda\\)", min: 0, max: 2, step: 0.01, value: S.lam, onInput: v => { S.lam = v; update(); } });
 const aS = LX.slider(ctl, { id: "a", label: "unperturbed half-gap \\(a\\)", min: 0.5, max: 1.5, step: 0.01, value: S.a, onInput: v => { S.a = v; update(); } });
 const ro = LX.h("div", { class: "lx-readouts" }, ctl);

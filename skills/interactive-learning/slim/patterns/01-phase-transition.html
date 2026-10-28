@@ -105,7 +105,7 @@ const trailPath = LX.s("path", { class: "s2 thin faint" }, PO.g.fill);
 const handle = LX.s("circle", { r: 7, class: "f2", "aria-label": "current t; drag sideways or use arrow keys" }, PO.g.top);
 
 const ctl = LX.controls(W, "lx-span2");
-const tS = LX.slider(ctl, { id: "t", label: "control parameter \\(t\\)", min: -1, max: 1, step: 0.005, value: S.t, onInput: v => { S.t = v; update(); } });
+const tS = LX.slider(ctl, { id: "t", primary: true, label: "control parameter \\(t\\)", min: -1, max: 1, step: 0.005, value: S.t, onInput: v => { S.t = v; update(); } });
 const hS = LX.slider(ctl, { id: "h", label: "field \\(h\\)", min: -0.3, max: 0.3, step: 0.005, value: 0, onInput: v => { S.h = v; update(); } });
 const kind = LX.segmented(ctl, { id: "kind", label: "Transition type", value: "second",
   options: [{ value: "second", label: "Continuous \\((b>0)\\)" }, { value: "first", label: "First order \\((b<0,\\ c>0)\\)" }],

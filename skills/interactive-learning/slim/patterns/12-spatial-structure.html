@@ -112,7 +112,7 @@ const PB = LX.plot(LX.fig(figs, "Correlation with site \\(i\\): bars exact, dash
 const PX = LX.plot(LX.fig(figs, "Correlation length \\(\\xi(T)\\) (log scale); dashed: \\(\\ee^{2J/T}/2\\)"), { xlim: [0.3, 4], ylim: [-0.5, 3], xlabel: "T/J", ylabel: "\\log_{10}\\xi", height: 320, width: 460 });
 
 const ctl = LX.controls(W);
-const TS = LX.slider(ctl, { id: "T", label: "temperature \\(T/J\\)", min: 0.3, max: 4, step: 0.01, value: S.T, onInput: v => { S.T = v; update(); } });
+const TS = LX.slider(ctl, { id: "T", primary: true, label: "temperature \\(T/J\\)", min: 0.3, max: 4, step: 0.01, value: S.T, onInput: v => { S.T = v; update(); } });
 const IS = LX.slider(ctl, { id: "site", label: "selected site \\(i\\)", min: 0, max: N - 1, step: 1, value: S.i, fmt: v => String(v), onInput: v => { S.i = v; update(); } });
 const SC = LX.segmented(ctl, { id: "scale", label: "Correlation axis", value: "lin",
   options: [{ value: "lin", label: "linear" }, { value: "log", label: "log" }], onChange: v => { S.log = v === "log"; PB.setLim(null, S.log ? [-3, 0.1] : [0, 1.05]); update(); } });

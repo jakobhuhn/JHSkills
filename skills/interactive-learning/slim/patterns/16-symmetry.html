@@ -95,7 +95,7 @@ const PD = LX.plot(fD, { xlim: [0, 10], ylim: [-2.5, -0.3], xlabel: "V_0", ylabe
 
 const ctl = LX.controls(W);
 const pBtn = LX.button(ctl, "Apply parity \\(P\\)", () => applyP(), { id: "parity", cls: "lx-primary", title: "mirror both states: x → −x" });
-const vS = LX.slider(ctl, { id: "V0", label: "barrier height \\(V_0\\)", min: 0, max: 10, step: 0.1, value: S.V0, fmt: v => v.toFixed(1), onInput: v => { S.V0 = v; recompute(); } });
+const vS = LX.slider(ctl, { id: "V0", primary: true, label: "barrier height \\(V_0\\)", min: 0, max: 10, step: 0.1, value: S.V0, fmt: v => v.toFixed(1), onInput: v => { S.V0 = v; recompute(); } });
 const ro = LX.h("div", { class: "lx-readouts" }, ctl);
 const rP0 = LX.readout(ro, "parity of \\(\\psi_0\\):");
 const rP1 = LX.readout(ro, "parity of \\(\\psi_1\\):");

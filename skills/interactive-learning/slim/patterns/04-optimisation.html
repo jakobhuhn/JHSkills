@@ -93,7 +93,7 @@ const handle = LX.s("circle", { r: 8, class: "f2", "aria-label": "trial paramete
 LX.drag(PE, handle, { get: () => [S.a, E(S.a)], step: [0.01, 0], set: x => { stopAnim(); setA(x); } });
 
 const ctl = LX.controls(W, "lx-span2");
-const aS = LX.slider(ctl, { id: "a", label: FAM.gauss.label, min: FAM.gauss.lim[0], max: FAM.gauss.lim[1], step: FAM.gauss.step, value: S.a,
+const aS = LX.slider(ctl, { id: "a", primary: true, label: FAM.gauss.label, min: FAM.gauss.lim[0], max: FAM.gauss.lim[1], step: FAM.gauss.step, value: S.a,
   fmt: v => v.toFixed(3), onInput: v => { stopAnim(); S.a = v; update(); } });
 const famSeg = LX.segmented(ctl, { id: "fam", label: "Trial family", value: "gauss",
   options: [{ value: "gauss", label: "Gaussian \\(e^{-\\alpha r^2}\\)" }, { value: "slater", label: "Slater \\(e^{-\\beta r}\\)" }],

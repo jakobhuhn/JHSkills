@@ -103,7 +103,7 @@ const handle = LX.s("circle", { r: 8, class: "f4", "aria-label": "detuning curso
 LX.drag(PS, handle, { get: () => [S.eps, 0], step: [0.05, 0], set: x => eS.set(Math.round(LX.clamp(x, ...ELIM) * 100) / 100) });
 
 const ctl = LX.controls(W0);
-const eS = LX.slider(ctl, { id: "eps", label: "detuning \\(\\varepsilon\\) (cursor)", min: ELIM[0], max: ELIM[1], step: 0.01, value: S.eps, onInput: v => { S.eps = v; update(); } });
+const eS = LX.slider(ctl, { id: "eps", primary: true, label: "detuning \\(\\varepsilon\\) (cursor)", min: ELIM[0], max: ELIM[1], step: 0.01, value: S.eps, onInput: v => { S.eps = v; update(); } });
 const dS = LX.slider(ctl, { id: "D", label: "coupling \\(\\Delta\\)", min: 0, max: 1.5, step: 0.01, value: S.D, onInput: v => { S.D = v; update(); } });
 const gS = LX.slider(ctl, { id: "g", label: "symmetry-breaking coupling \\(g\\)", min: 0, max: 0.6, step: 0.01, value: S.g, onInput: v => { S.g = v; update(); } });
 const modelSeg = LX.segmented(ctl, { id: "model", label: "Model", value: "two",

@@ -115,6 +115,9 @@ mjx-container[display="true"] { overflow-x: auto; overflow-y: hidden; max-width:
 @container (max-width: 620px) {
   .lx-split, .lx-grid2, .lx-aside, .lx-aside.lx-left, .lx-hero { grid-template-columns: minmax(0, 1fr); }
   .lx-hero > :first-child { grid-row: auto; }
+  /* one column: the first figure, then the controls, then the other figures (a control should sit next to what it drives) */
+  .lx-w > :first-child { order: -2; }
+  .lx-w > .lx-controls { order: -1; }
 }
 .lx-figs { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); }
 .lx-fig { position: relative; min-width: 0; display: grid; gap: 6px; margin: 0; }
@@ -127,6 +130,12 @@ mjx-container[display="true"] { overflow-x: auto; overflow-y: hidden; max-width:
 .lx-controls { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: end; background: var(--bg); border-radius: 8px; padding: 10px 12px; }
 :is(.lx-aside, .lx-hero, .lx-grid2) > .lx-controls, .lx-controls.lx-vert { flex-direction: column; flex-wrap: nowrap; align-items: stretch; }
 :is(.lx-aside, .lx-hero, .lx-grid2) > .lx-controls .lx-slider, .lx-controls.lx-vert .lx-slider { flex: none; min-width: 0; }
+/* primary controls on a narrow card: a strip at the end of the card that sticks to the bottom of the viewport while the card is on screen */
+.lx-pin { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: end; position: sticky; bottom: 0; z-index: 3; margin: 0 -12px -12px; padding: 8px 12px calc(10px + env(safe-area-inset-bottom, 0px)); background: var(--surface); border-top: 1px solid var(--line); border-radius: 0 0 12px 12px; box-shadow: 0 -8px 14px -10px rgba(0, 0, 0, .35); }
+.lx-pin[hidden] { display: none; }
+.lx-pin .lx-slider { flex: 1 1 160px; min-width: 0; }
+.lx-pin .lx-group > span:first-child { display: none; }
+.lx-hud { font: 12px var(--f-mono); fill: var(--fg); paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; }
 .lx-slider { display: grid; gap: 2px; min-width: min(100%, 200px); flex: 1 1 200px; }
 .lx-slider .lx-lab { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--muted); }
 .lx-slider output, .lx-readouts b { font-family: var(--f-mono); font-variant-numeric: tabular-nums; color: var(--fg); font-weight: 500; }
@@ -227,14 +236,17 @@ span.lx-gated::after { font-size: 12px; white-space: nowrap; padding: 0; }
    DOM      LX.h(tag, attrs, parent) · LX.fig(parent, caption) · LX.typeset(el)
    Numbers  LX.linspace · LX.clamp · LX.sample(f,a,b,n) · LX.C (complex) · LX.eigSym(A) · LX.niceTicks · LX.rng(seed)
    Plots    LX.plot(parent, {xlim, ylim, ticks, frame, xlabel, ylabel, width, height}) → path/fn/dot/line/vline/hline/
-            area/text/tex/arrow/clear/clearAll/ghost/setLim/setLabels/X/Y/inv/svg/g
-            layers: grid, axes, ghost, fill, main, top, handles (handles is never cleared by clearAll: put draggables there)
+            area/text/tex/arrow/clear/clearAll/ghost/setLim/setLabels/X/Y/inv/svg/g · P.hud(key, text, {at: ne|nw|se|sw}) readout in a corner
+            layers: grid, axes, ghost, fill, main, top, handles, hud (handles and hud are never cleared by clearAll)
             LX.drag(plot, node, {get, set, step, start, end}) · LX.fig(parent, caption, {below}) · LX.setHTML(el, html)
    3D       LX.camera({yaw, pitch, scale}) → project([x,y,z]) · rotate by dragging an element
    Widget   LX.widget(mount, {layout: stack|split|grid2|aside|hero, left, title, badge}) → body element
             LX.guide(widgetOrBody, [[term, description], ...]) — the "What you are looking at" block
             LX.legend(parent, [[label, colorVar, "line"|"dash"|"dot"], ...])
-   Controls LX.controls(parent) · LX.slider · LX.segmented · LX.button · LX.limits · LX.readout · LX.player
+   Controls LX.controls(parent) · LX.slider · LX.segmented · LX.button · LX.limits · LX.readout
+            LX.player(parent, {slider, speed, loop} | {onFrame}) — Play drives a slider, so everything is scrubbable
+            {primary: true} on a slider/segmented/limits/player, or LX.pin(parent, el): on a phone it sticks to the
+            bottom of the screen while the widget is in view (one or two per widget: the control the reader moves most)
    Text     LX.ask(parent, {type: choice|number|set|sketch|explain, prompt, ..., reveal}) — inline question
             LX.gate(el, message) — hide a result until a question that lists it in `reveal` is answered
    Checks   LX.check(name, fn) → window.__lxTests */
@@ -353,7 +365,7 @@ const LX = (() => {
     const mk = s("marker", { id: id + "a", viewBox: "0 0 10 10", refX: 9, refY: 5, markerWidth: 7, markerHeight: 7, orient: "auto-start-reverse" }, defs);
     s("path", { d: "M0,0 L10,5 L0,10 z", fill: "context-stroke" }, mk);
     const g = {};
-    for (const name of ["grid", "axes", "ghost", "fill", "main", "top", "handles"]) {
+    for (const name of ["grid", "axes", "ghost", "fill", "main", "top", "handles", "hud"]) {
       g[name] = s("g", name === "ghost" ? { class: "g-ghost", "clip-path": `url(#${id})` } : ["fill", "main"].includes(name) ? { "clip-path": `url(#${id})` } : {}, svg);
     }
     const pw = () => W - m.l - m.r, ph = () => H - m.t - m.b;
@@ -368,6 +380,17 @@ const LX = (() => {
       setLabels(xl, yl) { if (xl != null) o.xlabel = xl; if (yl != null) o.ylabel = yl; drawAxes(); return P; },
       /* Clear everything a redraw owns: main, fill, top and the TeX overlay (not grid/axes/ghost). */
       clearAll() { for (const l of ["main", "fill", "top", "tex"]) P.clear(l); return P; },
+      /* A readout inside the plot, in a corner (at: ne | nw | se | sw), created once and updated by key: P.hud("T", "T = 1.20"). */
+      hud(key, str, opt = {}) {
+        let el = P._hud[key];
+        if (!el) {
+          const at = opt.at || "ne", e = at[1] === "e", n = at[0] === "n", row = Object.values(P._hud).filter(h => h.dataset.at === (opt.at || "ne")).length;
+          el = s("text", { class: "lx-hud", x: e ? W - m.r - 6 : m.l + 6, y: n ? m.t + 14 + 15 * row : H - m.b - 8 - 15 * row, "text-anchor": e ? "end" : "start", "data-at": at }, g.hud);
+          P._hud[key] = el;
+        }
+        el.textContent = str; return el;
+      },
+      _hud: {},
       clear(layer = "main") {
         if (layer === "tex") { [...overlay.children].filter(c => !c.dataset.axis && !c.dataset.keep).forEach(c => c.remove()); return P; }
         g[layer].replaceChildren(); return P;
@@ -495,6 +518,7 @@ const LX = (() => {
     const show = () => { out.textContent = fmt(+input.value); };
     input.addEventListener("input", () => { show(); o.onInput && o.onInput(+input.value); });
     show(); typeset(lab);
+    if (o.primary) pin(parent, wrap);
     return { el: wrap, input, get: () => +input.value, set(v, fire = true) { input.value = v; show(); if (fire && o.onInput) o.onInput(+input.value); } };
   }
   function segmented(parent, o) {
@@ -512,6 +536,7 @@ const LX = (() => {
       return inp;
     });
     typeset(grp);
+    if (o.primary) pin(parent, grp);
     return { el: grp, get: () => value, set(v, fire = true) { value = v; inputs.forEach(i => i.checked = i.value == v); if (fire && o.onChange) o.onChange(v); } };
   }
   function button(parent, label, onClick, o = {}) {
@@ -525,6 +550,7 @@ const LX = (() => {
     h("span", { text: title }, grp);
     const row = h("div", { class: "lx-row" }, grp);
     items.forEach(it => button(row, it.label, it.apply, { title: it.title, cls: "lx-limit", id: it.id }));
+    if (o.primary) pin(parent, grp);
     typeset(grp); return grp;
   }
   function readout(parent, label) {
@@ -532,13 +558,22 @@ const LX = (() => {
     const span = h("span", { html: label + " " }, r); const b = h("b", {}, span); typeset(span);
     return { el: span, b, set(v) { b.textContent = v; }, html(v) { setHTML(b, v); } };
   }
-  /* Animation loop with a play/pause button. onFrame(dt in seconds). Starts paused under reduced motion. */
+  /* Animation loop with a play/pause button. onFrame(dt in seconds). Starts paused under reduced motion.
+     {slider, speed, loop} makes Play drive a slider (speed in slider units per second, default: full range in 8 s;
+     loop defaults to true), so anything Play can show is also reachable by scrubbing. {primary: true} pins the button. */
   function player(parent, o) {
     let playing = false, last = 0, raf = 0;
     const btn = button(parent, "Play", () => (playing ? pause() : play()), { id: o.id });
     btn.setAttribute("aria-pressed", "false");
-    function frame(t) { const dt = last ? Math.min(0.05, (t - last) / 1000) : 0; last = t; o.onFrame(dt); if (playing) raf = requestAnimationFrame(frame); }
-    function play() { if (playing) return; playing = true; last = 0; btn.textContent = "Pause"; btn.setAttribute("aria-pressed", "true"); raf = requestAnimationFrame(frame); }
+    if (o.primary) pin(parent, btn);
+    const sl = o.slider, lo = sl ? +sl.input.min : 0, hi = sl ? +sl.input.max : 1, speed = o.speed ?? (hi - lo) / 8;
+    function step(dt) {
+      let v = sl.get() + speed * dt;
+      if (v >= hi) { if (o.loop === false) { sl.set(hi); pause(); return; } v = lo + (v - hi); }
+      sl.set(v);
+    }
+    function frame(t) { const dt = last ? Math.min(0.05, (t - last) / 1000) : 0; last = t; if (sl) step(dt); if (o.onFrame) o.onFrame(dt); if (playing) raf = requestAnimationFrame(frame); }
+    function play() { if (playing) return; if (sl && o.loop === false && sl.get() >= hi) sl.set(lo); playing = true; last = 0; btn.textContent = "Pause"; btn.setAttribute("aria-pressed", "true"); raf = requestAnimationFrame(frame); }
     function pause() { playing = false; cancelAnimationFrame(raf); btn.textContent = "Play"; btn.setAttribute("aria-pressed", "false"); }
     if (o.autoplay && !reduceMotion) play();
     return { btn, play, pause, get playing() { return playing; } };
@@ -562,12 +597,46 @@ const LX = (() => {
     body.card = card;
     return body;
   }
+  /* Primary controls. pin(parent, el, ...) marks controls the reader will move most (one or two per widget; also
+     {primary: true} on slider/segmented/limits/player). On a card narrower than 620 px they move into a strip at the
+     end of the card that sticks to the bottom of the viewport while any part of the card is on screen, so a figure
+     can be driven without scrolling to its controls; on a wide card they stay where they were created. */
+  function pin(parent, ...els) {
+    const card = (parent.card || parent).closest(".lx-widget");
+    if (!card) return els[0];
+    if (!card.lxPin) {
+      const strip = h("div", { class: "lx-pin", hidden: true, role: "group", "aria-label": "main controls" }, card);
+      const pinned = [];
+      const apply = () => {
+        const narrow = card.getBoundingClientRect().width <= 620;
+        let shown = 0;
+        for (const p of pinned) {
+          if (narrow && p.el.parentNode !== strip) { p.mark = p.mark || document.createComment("lx-pin"); p.el.parentNode.insertBefore(p.mark, p.el); strip.appendChild(p.el); }
+          else if (!narrow && p.mark && p.mark.parentNode) { p.mark.parentNode.insertBefore(p.el, p.mark); p.mark.remove(); }
+          if (narrow) {   /* a pinned control follows the visibility of the place it came from (e.g. a mode box that is hidden) */
+            const vis = !p.mark.parentNode || p.mark.parentNode.getClientRects().length > 0, want = vis ? "" : "none";
+            if (p.el.style.display !== want) p.el.style.display = want;
+            if (vis) shown++;
+          }
+        }
+        const hide = !narrow || !shown;
+        if (strip.hidden !== hide) strip.hidden = hide;
+      };
+      card.lxPin = { strip, pinned, apply };
+      if (window.ResizeObserver) new ResizeObserver(apply).observe(card); else addEventListener("resize", apply);
+      new MutationObserver(apply).observe(card, { attributes: true, attributeFilter: ["hidden", "style", "class"], subtree: true });
+    }
+    for (const el of els) card.lxPin.pinned.push({ el });
+    card.lxPin.apply();
+    return els[0];
+  }
   /* "What you are looking at": one line per figure and per control. */
   function guide(parent, items, title = "What you are looking at") {
     const card = parent.card || parent;
     const dl = h("dl", { class: "lx-guide" }, card);
     if (title) h("b", { text: title }, dl);
     for (const [t, d] of items) { h("dt", { html: t }, dl); h("dd", { html: d }, dl); }
+    if (card.lxPin) card.appendChild(card.lxPin.strip);   /* the pinned strip stays the card's last child */
     typeset(dl); return dl;
   }
   function legend(parent, items) {
@@ -697,7 +766,7 @@ const LX = (() => {
   const near = (a, b, tol = 1e-9) => Math.abs(a - b) <= tol * Math.max(1, Math.abs(a), Math.abs(b));
 
   return { h, s, typeset, setHTML, linspace, clamp, sample, C, eigSym, niceTicks, fig, plot, drag, camera, widget, guide, legend,
-           controls, slider, segmented, button, limits, readout, player, ask, gate, check, near, rng, reduceMotion };
+           controls, slider, segmented, button, limits, readout, player, pin, ask, gate, check, near, rng, reduceMotion };
 })();
 /* LX:LIB-END */
 </script>
@@ -742,11 +811,11 @@ const mk = (id, label, max, key) => LX.slider(ctl, { id, label, min: 0, max, ste
 const vS = mk("v", "intracell hopping \\(v\\)", 2, "v");
 const wS = mk("w", "intercell hopping \\(w\\)", 2, "w");
 const uS = mk("u", "second-neighbour term \\(u\\)", 1.5, "u");
-const kS = LX.slider(ctl, { id: "k", label: "momentum \\(k\\)", min: 0, max: TAU, step: 0.01, value: S.k, onInput: v => { S.k = v; update(); } });
+const kS = LX.slider(ctl, { id: "k", primary: true, label: "momentum \\(k\\)", min: 0, max: TAU, step: 0.01, value: S.k, onInput: v => { S.k = v; update(); } });
 const act = LX.h("div", { class: "lx-group" }, ctl);
 LX.h("span", { text: "Run and compare" }, act);
 const actRow = LX.h("div", { class: "lx-row" }, act);
-LX.player(actRow, { id: "play", autoplay: true, onFrame: dt => { S.k = (S.k + 1.2 * dt) % TAU; kS.set(S.k, false); update(); } });
+LX.player(actRow, { id: "play", autoplay: true, slider: kS, speed: 1.2, primary: true });   /* Play drives the k slider; it wraps at 2π */
 LX.button(actRow, "Keep a copy", () => PD.ghost(), { id: "ghost" });
 const setP = (v, w, u) => { vS.set(v, false); wS.set(w, false); uS.set(u, false); Object.assign(S, { v, w, u }); update(); };
 LX.limits(ctl, [

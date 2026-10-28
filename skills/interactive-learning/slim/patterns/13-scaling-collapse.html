@@ -109,8 +109,8 @@ const PC = LX.plot(figC, { xlim: [-4, 4], ylim: [-1.6, 2.4], ticks: false, zeroL
 LX.legend(figC, [["\\(L = 8\\)", "--accent"], ["\\(L = 16\\)", "--c2"], ["\\(L = 32\\)", "--c3"], ["\\(L = 64\\)", "--c4"], ["spread between the curves", "--muted", "dot"]]);
 
 const ctl = LX.controls(W);
-const AS = LX.slider(ctl, { id: "a", label: "trial \\(a\\) (stretches \\(t\\) by \\(L^{a}\\))", min: 0, max: 2.5, step: 0.01, value: S.a, onInput: v => { S.a = v; update(); } });
-const BS = LX.slider(ctl, { id: "b", label: "trial \\(b\\) (divides \\(\\chi\\) by \\(L^{b}\\))", min: 0, max: 2.5, step: 0.01, value: S.b, onInput: v => { S.b = v; update(); } });
+const AS = LX.slider(ctl, { id: "a", primary: true, label: "trial \\(a\\) (stretches \\(t\\) by \\(L^{a}\\))", min: 0, max: 2.5, step: 0.01, value: S.a, onInput: v => { S.a = v; update(); } });
+const BS = LX.slider(ctl, { id: "b", primary: true, label: "trial \\(b\\) (divides \\(\\chi\\) by \\(L^{b}\\))", min: 0, max: 2.5, step: 0.01, value: S.b, onInput: v => { S.b = v; update(); } });
 const qBox = LX.h("div", { class: "lx-group" }, ctl);
 const qLab = LX.h("div", { class: "qlab" }, qBox);
 LX.h("span", { text: "collapse quality" }, qLab);
