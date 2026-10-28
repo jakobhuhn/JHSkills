@@ -1,0 +1,180 @@
+<!-- GENERATED from patterns/08-topology-winding.html by tests/sync-base.mjs; edit that file, then run the script. -->
+<title>Winding Number</title>
+<!--
+PATTERN 08 · TOPOLOGY / INVARIANTS
+When to use     An integer computed from a smooth object stays fixed under every smooth deformation and
+                can only change at a singular event (a gap closing, a zero, a degeneracy). Use it for
+                winding numbers (SSH, 1D chiral classes), Chern numbers, Berry phase quantisation,
+                vortices and topological defects, Z₂ invariants, index theorems, Thouless pumps,
+                degree of a map, phase slips.
+Widget anatomy  (1) the loop d(k) in the plane with the origin marked, a point running along k, the
+                    arrow from the origin to it, and a dashed circle of radius min|d| (half the gap);
+                (2) linked plot of the unwrapped angle φ(k)/2π: its total rise is the integer W;
+                (3) sliders v, w, u and k, a play loop, "Keep a copy" (ghosts the loop), jumps to
+                    each phase and to the gap closing;
+                (4) readouts: W, min|d|, band gap 2 min|d|, |d(k)|; a "What you are looking at" guide.
+Layout          aside: the two linked plots sit side by side in the wide column (they share k, so they
+                belong next to each other); sliders, buttons and readouts form the narrow column.
+Teaching moments  Suggestions for the chapter around the widget:
+                - choice: raise w past v; does W grow smoothly or jump? (misconception: it is geometric)
+                - set: "make the gap close" (check min|d| < 0.02), then "find a W = 2 loop".
+                - choice: at w = v, what happens to the bands? (gap closes, angle undefined)
+                - number: with v = 0.4, w = 1.2, at which u does W become 2? (u = w − v = 0.8)
+                - explain: why can W only change when min|d| = 0?
+                - transfer: edge states of an open SSH chain count |W|.
+Adapt by        Replace dvec(k) with any closed curve in a plane (for a 2×2 chiral Hamiltonian,
+                h(k) = d_x σ_x + d_y σ_y). For a Chern number, replace the curve by a map of the Brillouin
+                torus to the sphere and count the solid angle; keep min|d| as the gap readout.
+Physics         d(k) = (v + w cos k + u cos 2k, w sin k + u sin 2k) = Re/Im of v + w z + u z², z = e^{ik}.
+                W = (1/2π)∮ dφ = number of zeros of v + w z + u z² inside the unit circle (argument
+                principle). With u = 0 this is the SSH model: W = 1 for w > v, 0 for w < v, min|d| = |v − w|.
+                Energies of h(k) = d(k)·σ are ±|d(k)|, so the band gap is 2 min_k |d(k)|.
+-->
+<!-- LX:HEAD -->
+<style>
+/* LX:STYLE */
+/* page-specific styles go below */
+</style>
+
+<main class="lx-page">
+  <header class="lx-head">
+    <p class="lx-eyebrow">Topological matter · Winding number</p>
+    <h1>When can a whole number change?</h1>
+    <p class="lx-lede">As \(k\) runs once around the Brillouin zone, the vector \(\mathbf d(k)\) traces a closed loop. Count how many times it winds around the origin, then try to change that count by deforming the loop.</p>
+    <div class="lx-meta">
+      <span>\(\mathbf d(k) = (v + w\cos k + u\cos 2k,\; w\sin k + u\sin 2k)\), \(h(k) = \mathbf d(k)\cdot\boldsymbol\sigma\), \(k \in [0, 2\pi)\), lattice constant 1</span>
+    </div>
+  </header>
+  <div class="lx-stage" id="stage"></div>
+  <footer class="lx-foot">
+    <span>Source: model knowledge. Standard treatment: Asbóth, Oroszlány &amp; Pályi, <i>A Short Course on Topological Insulators</i>, ch. 1 (the SSH model); Bernevig &amp; Hughes, <i>Topological Insulators and Topological Superconductors</i>.</span>
+  </footer>
+</main>
+
+<script>
+/* LX:LIB */
+</script>
+
+<script>
+/* PATTERN */
+const TAU = 2 * Math.PI;
+const S = { v: 1.5, w: 0.5, u: 0, k: 0.8 };
+const dvec = (k, p = S) => [p.v + p.w * Math.cos(k) + p.u * Math.cos(2 * k), p.w * Math.sin(k) + p.u * Math.sin(2 * k)];
+/* Unwrapped angle φ(k) on a fine grid; its total change / 2π is the winding number. */
+function angles(p = S, n = 2000) {
+  const out = []; let prev = null, acc = 0;
+  for (let i = 0; i <= n; i++) {
+    const k = TAU * i / n, [x, y] = dvec(k, p), a = Math.atan2(y, x);
+    if (prev !== null) { let d = a - prev; d -= TAU * Math.round(d / TAU); acc += d; } else acc = a;
+    prev = a; out.push([k, acc]);
+  }
+  return out;
+}
+const winding = (p = S) => { const a = angles(p); return Math.round((a[a.length - 1][1] - a[0][1]) / TAU); };
+const minD = (p = S) => Math.min(...LX.linspace(0, TAU, 4001).map(k => Math.hypot(...dvec(k, p))));
+/* Independent count: zeros of v + w z + u z² with |z| < 1. */
+function rootsInside({ v, w, u }) {
+  if (Math.abs(u) < 1e-14) return Math.abs(w) < 1e-14 ? 0 : +(Math.abs(v / w) < 1);
+  const disc = w * w - 4 * u * v;
+  if (disc < 0) return (v / u) < 1 ? 2 : 0;           // complex pair, |z|² = v/u
+  const r = [(-w + Math.sqrt(disc)) / (2 * u), (-w - Math.sqrt(disc)) / (2 * u)];
+  return r.filter(z => Math.abs(z) < 1).length;
+}
+const fmt = (v, d = 3) => v.toFixed(d).replace("-", "−");
+
+/* ---- layout: aside = the two linked plots side by side, controls in the narrow column ---- */
+const W0 = LX.widget(document.getElementById("stage"), { layout: "aside", title: "The loop \\(\\mathbf d(k)\\) and its winding number", badge: "exact" });
+const figs = LX.h("div", { class: "lx-figs" }, W0);
+const PD = LX.plot(LX.fig(figs, "The loop \\(\\mathbf d(k)\\) in the plane"),
+  { xlim: [-3.2, 3.2], ylim: [-3.2, 3.2], xlabel: "d_x", ylabel: "d_y", width: 400, height: 408 });
+const PA = LX.plot(LX.fig(figs, "Angle of \\(\\mathbf d(k)\\), counted in full turns"),
+  { xlim: [0, TAU], ylim: [-1, 2.5], xlabel: "k", ylabel: "\\varphi/2\\pi", width: 400, height: 408 });
+
+const ctl = LX.controls(W0);
+const mk = (id, label, max, key) => LX.slider(ctl, { id, label, min: 0, max, step: 0.01, value: S[key], onInput: v => { S[key] = v; update(); } });
+const vS = mk("v", "intracell hopping \\(v\\)", 2, "v");
+const wS = mk("w", "intercell hopping \\(w\\)", 2, "w");
+const uS = mk("u", "second-neighbour term \\(u\\)", 1.5, "u");
+const kS = LX.slider(ctl, { id: "k", label: "momentum \\(k\\)", min: 0, max: TAU, step: 0.01, value: S.k, onInput: v => { S.k = v; update(); } });
+const act = LX.h("div", { class: "lx-group" }, ctl);
+LX.h("span", { text: "Run and compare" }, act);
+const actRow = LX.h("div", { class: "lx-row" }, act);
+LX.player(actRow, { id: "play", autoplay: true, onFrame: dt => { S.k = (S.k + 1.2 * dt) % TAU; kS.set(S.k, false); update(); } });
+LX.button(actRow, "Keep a copy", () => PD.ghost(), { id: "ghost" });
+const setP = (v, w, u) => { vS.set(v, false); wS.set(w, false); uS.set(u, false); Object.assign(S, { v, w, u }); update(); };
+LX.limits(ctl, [
+  { label: "Trivial", title: "v > w, u = 0", apply: () => setP(1.5, 0.5, 0) },
+  { label: "Topological", title: "w > v, u = 0", apply: () => setP(0.5, 1.5, 0) },
+  { label: "Gap closing", title: "v = w, u = 0", apply: () => setP(1, 1, 0) },
+  { label: "Winding 2", title: "large u", apply: () => setP(0.3, 0.5, 1.5) }
+]);
+const ro = LX.h("div", { class: "lx-readouts" }, ctl);
+const rW = LX.readout(ro, "winding \\(W\\) =");
+const rM = LX.readout(ro, "\\(\\min_k|\\mathbf d|\\) =");
+const rG = LX.readout(ro, "band gap \\(2\\min_k|\\mathbf d|\\) =");
+const rD = LX.readout(ro, "\\(|\\mathbf d(k)|\\) =");
+
+LX.guide(W0, [
+  ["Left plot", "The tip of \\(\\mathbf d(k)\\) as \\(k\\) runs from 0 to \\(2\\pi\\): a closed loop (blue). The orange arrow points from the origin to \\(\\mathbf d(k)\\) at the current \\(k\\). \\(W\\) counts how many times this arrow turns around the origin in one trip around the loop."],
+  ["Dashed circle", "Radius \\(\\min_k|\\mathbf d(k)|\\), the closest approach of the loop to the origin. The bands of \\(h(k)\\) are \\(\\pm|\\mathbf d(k)|\\), so this radius is half the band gap. When it shrinks to zero the origin turns pink: the gap is closed."],
+  ["Right plot", "The angle \\(\\varphi(k)\\) of the arrow, unwrapped (no jumps at \\(2\\pi\\)) and measured in full turns. Its total rise from \\(k = 0\\) to \\(2\\pi\\) is \\(W\\). For \\(W = 0\\) it wiggles and returns; for \\(W = 1\\) it climbs one level."],
+  ["\\(v,\\ w\\)", "Intra- and intercell hopping of the SSH chain. With \\(u = 0\\) the loop is a circle of radius \\(w\\) centred at \\((v, 0)\\): it encloses the origin when \\(w > v\\)."],
+  ["\\(u\\)", "A second-neighbour term that adds a second harmonic. It distorts the loop strongly; \\(W\\) stays the same until the loop touches the origin."],
+  ["\\(k\\), Play", "Move the point along the loop by hand, or let it run. <i>Keep a copy</i> leaves a faded copy of the loop to compare shapes."],
+  ["What to look for", "\\(W\\) never changes while the dashed circle has a nonzero radius. It changes only at a gap closing, where the loop passes through the origin and the angle curve develops a vertical step."]
+]);
+
+PD.tex(0, 0, "0", { anchor: "ne" });
+let wLabel = { src: null, el: null };
+function update() {
+  const md = minD(), gapless = md < 0.02, ang = angles(), W = winding();
+  PD.clear(); PD.clear("top");
+  PD.hline(0, { cls: "gr" }); PD.vline(0, { cls: "gr" });
+  PD.path(LX.linspace(0, TAU, 201).map(t => [md * Math.cos(t), md * Math.sin(t)]), { cls: "sm dash" });
+  PD.path(LX.linspace(0, TAU, 600).map(k => dvec(k)), { cls: "s1" });
+  const [x, y] = dvec(S.k);
+  PD.arrow(0, 0, x, y, { cls: "s2" });
+  PD.dot(0, 0, { r: 5, cls: gapless ? "f4" : "fm" });
+  PD.dot(x, y, { r: 6, cls: "f2" });
+
+  PA.clear(); PA.clear("top");
+  for (let n = -1; n <= 2; n++) PA.hline(n, { cls: n ? "sm thin dash" : "sm" });
+  const a0 = ang[0][1];
+  PA.path(ang.map(([k, a]) => [k, (a - a0) / TAU]), { cls: "s1" });
+  const i = Math.round(S.k / TAU * (ang.length - 1));
+  PA.dot(S.k, (ang[i][1] - a0) / TAU, { r: 6, cls: "f2" });
+  /* TeX labels are created only when their text changes: re-typesetting every animation frame is wasteful. */
+  const lab = gapless ? "W\\ \\text{undefined}" : "W = " + W;
+  if (lab !== wLabel.src) { PA.clear("tex"); wLabel = { src: lab, el: PA.tex(TAU, 0, lab, { anchor: "se" }) }; }
+  PA.placeTex(wLabel.el, TAU, gapless ? 2.3 : Math.min(W, 2.3), "se");
+
+  rW.set(gapless ? "undefined (gap closed)" : String(W));
+  rM.set(fmt(md)); rG.set(fmt(2 * md)); rD.set(fmt(Math.hypot(x, y)));
+}
+update();
+
+/* ---- self-tests ---- */
+LX.check("SSH: W = 0 for v > w, W = 1 for w > v; second harmonic gives W = 2", () =>
+  winding({ v: 1.5, w: 0.5, u: 0 }) === 0 && winding({ v: 0.5, w: 1.5, u: 0 }) === 1 && winding({ v: 0.3, w: 0.5, u: 1.5 }) === 2);
+LX.check("W = number of zeros of v + wz + uz² inside |z| < 1 (30 seeded samples)", () => {
+  let seed = 11; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  let tested = 0;
+  for (let i = 0; i < 60 && tested < 30; i++) {
+    const p = { v: 2 * rnd(), w: 2 * rnd(), u: 1.5 * rnd() };
+    if (minD(p) < 0.05) continue; tested++;
+    if (winding(p) !== rootsInside(p)) return { pass: false, detail: JSON.stringify(p) };
+  }
+  return { pass: tested === 30, detail: tested };
+});
+LX.check("SSH gap: min|d| = |v − w| at k = π", () => [[1.5, 0.5], [0.4, 1.2], [1, 1]].every(([v, w]) => LX.near(minD({ v, w, u: 0 }), Math.abs(v - w), 1e-9)));
+LX.check("winding integral (1/2π)∮(d_x d_y′ − d_y d_x′)/|d|² dk is an integer equal to W", () => {
+  const p = { v: 0.4, w: 1.2, u: 0.5 }, n = 4000; let s = 0;
+  for (let i = 0; i < n; i++) {
+    const k = TAU * (i + 0.5) / n, [x, y] = dvec(k, p);
+    const dx = -p.w * Math.sin(k) - 2 * p.u * Math.sin(2 * k), dy = p.w * Math.cos(k) + 2 * p.u * Math.cos(2 * k);
+    s += (x * dy - y * dx) / (x * x + y * y);
+  }
+  const W = s / n;   // (1/2π)·Σ·(2π/n)
+  return { pass: Math.abs(W - winding(p)) < 1e-9, detail: W };
+});
+</script>

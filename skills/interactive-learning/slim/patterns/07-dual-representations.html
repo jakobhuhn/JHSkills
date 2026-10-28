@@ -1,0 +1,204 @@
+<!-- GENERATED from patterns/07-dual-representations.html by tests/sync-base.mjs; edit that file, then run the script. -->
+<title>Position and Momentum</title>
+<!--
+PATTERN 07 · DUAL REPRESENTATIONS
+When to use     One object seen in two bases at once (here position and momentum). Each change acts
+                simply in one view and in a less obvious way in the other; the insight is the dictionary.
+                Use it for Fourier pairs (x ↔ k, t ↔ ω), uncertainty relations, real ↔ reciprocal space,
+                Wannier ↔ Bloch states, site ↔ momentum occupation, Wigner functions, number ↔ phase,
+                any change of basis where "local in one" means "spread in the other".
+Widget anatomy  (1) position space: |ψ(x)|² (filled) and Re ψ(x), the 2Δx bracket; two pink handles:
+                    the centre x₀ (on the axis) and the width (end of the bracket, sets σ);
+                (2) momentum space: |φ(k)|² and Re φ(k), the 2Δk bracket; handles for the centre k₀ and
+                    the width (dragging it sets σ through Δk = √(1+β²)/(2σ));
+                (3) uncertainty plane: the state as a point (Δx, Δk) and a rectangle of area Δx·Δk; the
+                    shaded region below the hyperbola Δx·Δk = 1/2 is forbidden;
+                (4) one toggle, chirp off/on; readouts; a "What you are looking at" guide.
+                Direct manipulation replaces the four sliders of the earlier version: the learner drags
+                the thing they want to change, in the view where it is simple, and watches the other view.
+Layout          grid2: x-space | k-space on top (the dual pair side by side), uncertainty plane |
+                controls below. The plane sits under position space; all four cells are used.
+Teaching moments  Suggestions for the chapter around the widget:
+                - choice: squeeze |ψ|² by 3; what happens to |φ|²? (widens by 3, not narrows)
+                - sketch: Δk as a function of Δx (a hyperbola), before revealing the plane.
+                - number: the product Δx·Δk for any unchirped Gaussian (1/2).
+                - choice: shift x₀; what happens to |φ(k)|²? (nothing; only the phase of φ)
+                - set: "give the packet a local wavelength of π" (k₀ = 2), checked from S.k0.
+                - choice/explain: turn the chirp on; why does the product rise above 1/2 while Δx stays?
+Adapt by        Replace psi()/phi() with your transform pair (closed form if possible, otherwise a direct
+                sum over a grid). Keep both modulus and real part on screen: phases only show in Re.
+                Put each parameter's handle in the view where it acts simply.
+Physics         ψ(x) = (2πσ²)^{−1/4} exp[−(1 + iβ)(x − x₀)²/(4σ²) + i k₀ x],  φ(k) = (2π)^{−1/2} ∫ψ e^{−ikx} dx
+                = (2πσ²)^{−1/4} (2a)^{−1/2} exp[−(k − k₀)²/(4a) − i(k − k₀)x₀],  a = (1 + iβ)/(4σ²).
+                Δx = σ,  Δk = √(1 + β²)/(2σ),  Δx·Δk = √(1 + β²)/2 ≥ 1/2 (equality for β = 0). Chirp on: β = 2.
+-->
+<!-- LX:HEAD -->
+<style>
+/* LX:STYLE */
+/* page-specific styles go below */
+.hint07 { margin: 0; font-size: 13.5px; color: var(--muted); }
+</style>
+
+<main class="lx-page">
+  <header class="lx-head">
+    <p class="lx-eyebrow">Quantum mechanics · Fourier duality</p>
+    <h1>Why can a state not be sharp in both position and momentum?</h1>
+    <p class="lx-lede">One Gaussian wavepacket, drawn in position space and in momentum space at the same time. Grab its width or its centre in either picture and see what the other picture does.</p>
+    <div class="lx-meta">
+      <span>\(\hbar = 1\) so \(p = k\); \(\phi(k) = \tfrac{1}{\sqrt{2\pi}}\int \psi(x)\, e^{-ikx}\,dx\); \(\Delta\) = standard deviation</span>
+    </div>
+  </header>
+  <div class="lx-stage" id="stage"></div>
+  <footer class="lx-foot">
+    <span>Source: model knowledge. Standard treatment: Griffiths &amp; Schroeter, <i>Introduction to Quantum Mechanics</i>, ch. 2 and ch. 3; Sakurai &amp; Napolitano, <i>Modern Quantum Mechanics</i>, ch. 1.</span>
+  </footer>
+</main>
+
+<script>
+/* LX:LIB */
+</script>
+
+<script>
+/* PATTERN */
+const { C } = LX, PI = Math.PI;
+const BETA_ON = 2;
+const S = { s: 1, x0: 0, k0: 1.5, b: 0 };
+const XL = [-10, 10], KL = [-8, 8], SL = [0.4, 2.5], X0L = [-5, 5], K0L = [-4, 4];
+
+const cexp = z => C.scale(C.expi(z.im), Math.exp(z.re));
+const csqrt = z => { const r = Math.sqrt(C.abs(z)), t = C.arg(z) / 2; return C.of(r * Math.cos(t), r * Math.sin(t)); };
+
+const aOf = (p = S) => C.of(1 / (4 * p.s * p.s), p.b / (4 * p.s * p.s));
+const norm = (p = S) => Math.pow(2 * PI * p.s * p.s, -0.25);
+function psi(x, p = S) {
+  const u = x - p.x0, a = aOf(p);
+  return C.scale(cexp(C.add(C.scale(a, -u * u), C.of(0, p.k0 * x))), norm(p));
+}
+function phi(k, p = S) {
+  const a = aOf(p), q = k - p.k0;
+  const g = cexp(C.add(C.scale(C.div(C.of(1), a), -q * q / 4), C.of(0, -q * p.x0)));
+  return C.scale(C.div(g, csqrt(C.scale(a, 2))), norm(p));
+}
+const dx = (p = S) => p.s;
+const dk = (p = S) => Math.sqrt(1 + p.b * p.b) / (2 * p.s);
+const f = (v, d = 3) => (Math.abs(v) < 0.5 * 10 ** -d ? 0 : v).toFixed(d).replace("-", "−");
+
+/* ---- layout: grid2 = x-space | k-space, uncertainty plane | controls ---- */
+const W0 = LX.widget(document.getElementById("stage"), { layout: "grid2", title: "One wavepacket, two pictures", badge: "exact" });
+const PX = LX.plot(LX.fig(W0, "Position space: \\(|\\psi(x)|^2\\) (blue, filled) and \\(\\mathrm{Re}\\,\\psi(x)\\) (orange)"),
+  { xlim: XL, ylim: [-1.1, 1.15], xlabel: "x", height: 360, yticks: 4 });
+const PK = LX.plot(LX.fig(W0, "Momentum space: \\(|\\phi(k)|^2\\) (blue, filled) and \\(\\mathrm{Re}\\,\\phi(k)\\) (orange)"),
+  { xlim: KL, ylim: [-1.5, 2.1], xlabel: "k", height: 360, yticks: 4 });
+const PU = LX.plot(LX.fig(W0, "Uncertainty plane: the packet as a point \\((\\Delta x, \\Delta k)\\)"),
+  { xlim: [0, 3], ylim: [0, 3], xlabel: "\\Delta x", ylabel: "\\Delta k", height: 360, xticks: 6, yticks: 6 });
+
+const ctl = LX.controls(W0);
+LX.h("p", { class: "hint07", html: "Drag the pink handles on the two upper plots: the dot on the axis moves the centre, the dot at the end of the bracket changes the width." }, ctl);
+const chirpSeg = LX.segmented(ctl, { id: "chirp", label: "Phase across the packet", value: "off",
+  options: [{ value: "off", label: "flat (\\(\\beta = 0\\))" }, { value: "on", label: "chirped (\\(\\beta = 2\\))" }],
+  onChange: v => { S.b = v === "on" ? BETA_ON : 0; draw(); } });
+const ro = LX.h("div", { class: "lx-readouts" }, ctl);
+const rX = LX.readout(ro, "\\(\\Delta x =\\)");
+const rK = LX.readout(ro, "\\(\\Delta k =\\)");
+const rP = LX.readout(ro, "\\(\\Delta x\\,\\Delta k =\\)");
+const rM = LX.readout(ro, "\\((\\langle x\\rangle, \\langle k\\rangle) =\\)");
+
+LX.guide(W0, [
+  ["Position plot", "The packet in space. The filled blue curve is the probability density \\(|\\psi(x)|^2\\); the orange curve is \\(\\mathrm{Re}\\,\\psi(x)\\), which shows the phase: its wiggles have wavelength \\(2\\pi/k_0\\). The green bracket spans \\(\\langle x\\rangle \\pm \\Delta x\\)."],
+  ["Momentum plot", "The same state written as a superposition of plane waves \\(e^{ikx}\\): \\(|\\phi(k)|^2\\) is the probability of finding momentum \\(k\\). The green bracket spans \\(\\langle k\\rangle \\pm \\Delta k\\)."],
+  ["Pink handles", "On each plot, the dot on the axis sets the centre (\\(x_0\\) on the left, \\(k_0\\) on the right) and the dot at the right end of the bracket sets the width. Both width handles change the same parameter \\(\\sigma\\), so dragging one moves the other. Arrow keys work when a handle has focus."],
+  ["Uncertainty plane", "Horizontal: \\(\\Delta x\\); vertical: \\(\\Delta k\\). The packet is the blue dot; the blue rectangle has area \\(\\Delta x\\,\\Delta k\\). The shaded region below the orange hyperbola \\(\\Delta x\\,\\Delta k = \\tfrac12\\) is forbidden for every state. With the chirp on, the dashed curve shows where chirped packets live."],
+  ["Chirp", "Adds a quadratic phase \\(e^{-i\\beta(x-x_0)^2/4\\sigma^2}\\): the local wavelength varies across the packet. \\(|\\psi(x)|^2\\) does not change; look at \\(\\mathrm{Re}\\,\\psi\\) and at the momentum plot."],
+  ["What to look for", "Narrow \\(|\\psi|^2\\) and \\(|\\phi|^2\\) widens by the same factor: the dot slides along the hyperbola and the product stays exactly \\(\\tfrac12\\). Moving \\(x_0\\) does not move or reshape \\(|\\phi(k)|^2\\); only \\(\\mathrm{Re}\\,\\phi\\) starts to oscillate. Moving \\(k_0\\) does not move \\(|\\psi(x)|^2\\); it changes the wavelength of \\(\\mathrm{Re}\\,\\psi\\). With the chirp on, \\(\\Delta x\\) is unchanged but \\(\\Delta k\\) grows, and the dot leaves the hyperbola."]
+]);
+
+/* handles: created once in their own layer (never cleared), moved on every redraw */
+function handleLayer(P) { return LX.s("g", {}, P.svg); }
+function mkHandle(P, layer, label, get, set) {
+  const c = LX.s("circle", { r: 8, class: "f4", "aria-label": label + "; drag or use arrow keys" }, layer);
+  LX.drag(P, c, { get, set, step: [(P.xlim[1] - P.xlim[0]) / 100, 0] });
+  return c;
+}
+const HX = handleLayer(PX), HK = handleLayer(PK);
+const setS = s => { S.s = LX.clamp(s, ...SL); draw(); };
+const hx0 = mkHandle(PX, HX, "centre x0", () => [S.x0, 0], x => { S.x0 = LX.clamp(x, ...X0L); draw(); });
+const hxs = mkHandle(PX, HX, "width: right end of the Δx bracket", () => [S.x0 + dx(), 0], x => setS(x - S.x0));
+const hk0 = mkHandle(PK, HK, "centre k0", () => [S.k0, 0], k => { S.k0 = LX.clamp(k, ...K0L); draw(); });
+const hks = mkHandle(PK, HK, "width: right end of the Δk bracket", () => [S.k0 + dk(), 0],
+  k => { const w = Math.max(k - S.k0, 1e-3); setS(Math.sqrt(1 + S.b * S.b) / (2 * w)); });
+const place = (P, c, x, y) => { c.setAttribute("cx", P.X(x)); c.setAttribute("cy", P.Y(y)); };
+
+/* one panel: density filled, real part as a line, ±Δ bracket at e^{-1/2} of the peak */
+function panel(P, F, c, w, name, lim, hc, hw) {
+  P.clearAll();
+  P.hline(0, { cls: "gr" });
+  const pts = LX.linspace(lim[0], lim[1], 900).map(x => [x, F(x)]);
+  P.area(pts.map(([x, z]) => [x, C.abs2(z)]), { cls: "a1" });
+  P.path(pts.map(([x, z]) => [x, C.abs2(z)]), { cls: "s1" });
+  P.path(pts.map(([x, z]) => [x, z.re]), { cls: "s2 thin" });
+  const h = C.abs2(F(c)) * Math.exp(-0.5), t = 0.025 * (P.ylim[1] - P.ylim[0]);
+  P.line(c - w, h, c + w, h, { cls: "s3", layer: "top" });
+  P.line(c - w, h - t, c - w, h + t, { cls: "s3", layer: "top" });
+  P.text(LX.clamp(c - w, lim[0] + 1.6, lim[1]), h, "2" + name, { anchor: "end", dx: -8, dy: 4, cls: "f3" });
+  P.vline(c, { cls: "sm thin dash", layer: "top" });
+  place(P, hc, c, 0); place(P, hw, Math.min(c + w, lim[1]), h);
+}
+
+/* uncertainty plane: static parts drawn once */
+const hyper = c => LX.linspace(0.05, 3, 300).map(x => [x, c / x]);
+PU.area(hyper(0.5).map(([x, y]) => [x, Math.min(y, 3.2)]), { cls: "a2", layer: "ghost" });
+PU.path(hyper(0.5), { cls: "s2 thin", layer: "ghost" });
+PU.g.ghost.classList.remove("g-ghost");
+PU.tex(2.95, 0.5 / 2.95, "\\Delta x\\,\\Delta k = \\tfrac12", { anchor: "se", color: "var(--c2)" });
+PU.text(0.6, 0.18, "forbidden", { anchor: "middle", layer: "ghost" });
+function drawPlane() {
+  PU.clear("main"); PU.clear("fill"); PU.clear("top");   /* the hyperbola, its labels and the forbidden region are static */
+  if (S.b) PU.path(hyper(Math.sqrt(1 + S.b * S.b) / 2), { cls: "s1 thin dash" });
+  const X = dx(), K = dk(), Kc = Math.min(K, 3);
+  PU.path([[0, 0], [X, 0], [X, Kc], [0, Kc]], { cls: "a1", close: true, layer: "fill" });
+  PU.path([[0, Kc], [X, Kc], [X, 0]], { cls: "s1 thin" });
+  PU.dot(X, Kc, { r: 6, cls: "f1" });
+  const right = X < 2;
+  PU.text(X, Kc, "area Δx·Δk = " + f(X * K, 2), { anchor: right ? "start" : "end", dx: right ? 10 : -10, dy: Kc > 2.7 ? 16 : -8 });
+}
+
+function draw() {
+  panel(PX, x => psi(x), S.x0, dx(), "Δx", XL, hx0, hxs);
+  panel(PK, k => phi(k), S.k0, dk(), "Δk", KL, hk0, hks);
+  drawPlane();
+  rX.set(f(dx())); rK.set(f(dk())); rP.set(f(dx() * dk()));
+  rM.set(`(${f(S.x0, 2)}, ${f(S.k0, 2)})`);
+}
+draw();
+
+/* ---- self-tests ---- */
+const P0 = { s: 0.8, x0: 1.3, k0: -0.7, b: 1.6 };
+const grid = (lim, n) => LX.linspace(lim[0], lim[1], n);
+function moments(F, lim, n = 4001) {
+  const xs = grid(lim, n), h = xs[1] - xs[0];
+  let m0 = 0, m1 = 0, m2 = 0;
+  for (const x of xs) { const p = C.abs2(F(x)); m0 += p * h; m1 += p * x * h; m2 += p * x * x * h; }
+  return { n: m0, mean: m1 / m0, sd: Math.sqrt(m2 / m0 - (m1 / m0) ** 2) };
+}
+LX.check("closed-form φ(k) equals the numerical Fourier integral of ψ (chirped, shifted, boosted)", () => {
+  const xs = grid([-14, 14], 6001), h = xs[1] - xs[0];
+  let err = 0;
+  for (const k of [-2.1, -0.7, 0.4, 1.9]) {
+    let z = C.of(0);
+    for (const x of xs) z = C.add(z, C.scale(C.mul(psi(x, P0), C.expi(-k * x)), h / Math.sqrt(2 * PI)));
+    err = Math.max(err, C.abs(C.sub(z, phi(k, P0))));
+  }
+  return { pass: err < 1e-8, detail: err.toExponential(2) };
+});
+LX.check("both representations normalised: ∫|ψ|² = ∫|φ|² = 1", () => LX.near(moments(x => psi(x, P0), [-14, 14]).n, 1, 1e-8) && LX.near(moments(k => phi(k, P0), [-14, 14]).n, 1, 1e-8));
+LX.check("unchirped Gaussian: Δx·Δk = 1/2 from the densities", () => {
+  const p = { s: 0.6, x0: -1, k0: 2, b: 0 };
+  const mx = moments(x => psi(x, p), [-12, 12]), mk = moments(k => phi(k, p), [-12, 12]);
+  return { pass: LX.near(mx.sd * mk.sd, 0.5, 1e-6) && LX.near(mk.mean, 2, 1e-6), detail: (mx.sd * mk.sd).toFixed(8) };
+});
+LX.check("chirp β: Δx·Δk = √(1+β²)/2 from the densities", () => {
+  const mx = moments(x => psi(x, P0), [-14, 14]), mk = moments(k => phi(k, P0), [-14, 14]);
+  return { pass: LX.near(mx.sd, P0.s, 1e-6) && LX.near(mx.sd * mk.sd, Math.sqrt(1 + P0.b ** 2) / 2, 1e-6), detail: (mx.sd * mk.sd).toFixed(8) };
+});
+LX.check("shifting x₀ leaves |φ(k)|² unchanged", () => [-1.5, 0, 0.9].every(k => LX.near(C.abs2(phi(k, P0)), C.abs2(phi(k, { ...P0, x0: -3.7 })), 1e-12)));
+</script>

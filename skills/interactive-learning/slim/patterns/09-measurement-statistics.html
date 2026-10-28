@@ -1,0 +1,275 @@
+<!-- GENERATED from patterns/09-measurement-statistics.html by tests/sync-base.mjs; edit that file, then run the script. -->
+<title>Born Rule Statistics</title>
+<!--
+PATTERN 09 · MEASUREMENT / STATISTICS
+Concept shape   Single outcomes are random; only their statistics carry the physics. The insight lives in
+                how a histogram or a running average converges, how fast (1/√N), and how often an honest
+                measurement lands outside its own error bar.
+Use it for      Born rule and projective measurement, shot noise, quantum state tomography, estimating
+                gate fidelities, Stern–Gerlach sequences, photon counting statistics, Monte Carlo
+                sampling error, any "what does one run tell you vs many runs" question.
+Widget anatomy  (1) histogram of outcome frequencies with the exact probabilities (dashed) and the ±1σ and ±2σ
+                    bands of the standard error √(p(1−p)/N); the bar outline and the label above it say whether
+                    the observed frequency is inside ±1σ, between 1σ and 2σ, or outside ±2σ;
+                (2) running mean of the outcome vs log₁₀(shots) inside the 1σ and 2σ funnels;
+                (3) "Repeat this experiment": runs 100 (or 1000) further experiments with the same N and the same
+                    setup, plots each one's deviation z = (f − p)/σ as a dot on a strip with the ±1σ, ±2σ zones,
+                    and tallies the fraction outside ±1σ and ±2σ against the exact binomial expectation
+                    (≈ 32% and ≈ 5% for large N);
+                (4) state θ, φ, basis σ_z / σ_x / tilted (the tilt slider is disabled unless "tilted" is chosen),
+                    "Measure 1 / 10 / 100 / 1000", Reset; readouts N, f₊, p₊, σ, z with a verdict;
+                (5) a seeded PRNG so runs and self-tests are reproducible.
+Layout          grid2: histogram and running mean on top; controls with the record readouts in the third
+                cell; the repeated-experiment strip and its tally in the fourth, beside the controls that set N.
+Teaching moments  (suggestions for the surrounding chapter)
+                  choice: the outcome of one shot on |+⟩ in σ_z (random, not 0);
+                  number: the typical deviation of f₊ after 100 shots (0.05);
+                  number: the shots needed for 10× more precision (100×);
+                  choice: what fraction of honest experiments lands outside the ±1σ band (≈ 1/3), then run 100
+                       experiments to check; the band is a standard error, not a bound;
+                  choice: which basis distinguishes |+⟩ from |−⟩ (σ_x);
+                  number: the Born probability for |0⟩ on an axis tilted by 60° (3/4).
+Adapt by        Replace probs() with the outcome distribution of your measurement (more outcomes → more
+                bars, the band uses √(p(1−p)/N) per bar). Keep the seeded sampler, the funnel and the
+                repeated-experiment tally: it is what makes "error bar" concrete.
+Physics         |ψ⟩ = cos(θ/2)|0⟩ + e^{iφ} sin(θ/2)|1⟩, Bloch vector r; measuring σ·n gives ±1 with
+                P(±) = (1 ± n·r)/2 = |⟨±n|ψ⟩|²; ⟨σ·n⟩ = n·r. The count of +1 is binomial(N, p), so the
+                frequency has standard deviation σ = √(p(1−p)/N); running mean of ±1 outcomes has
+                √((1 − ⟨σ·n⟩²)/N), the same z. For large N, z is close to Gaussian: P(|z| > 1) ≈ 0.317,
+                P(|z| > 2) ≈ 0.046; for small N the exact binomial tail (computed in tail()) differs.
+-->
+<!-- LX:HEAD -->
+<style>
+/* LX:STYLE */
+.lx-group > .lx-seg { justify-self: start; }
+.fb { fill: var(--bad); } .sb { fill: none; stroke: var(--bad); stroke-width: 2.2; }
+.ring { fill: none; stroke: var(--fg); stroke-width: 2; }
+/* MathJax SVG already sets its own baseline offset on the svg; an extra shift on the container pushes TeX labels below the text baseline */
+.lx-seg mjx-container, .lx-btn mjx-container { vertical-align: baseline; }
+</style>
+
+<main class="lx-page">
+  <header class="lx-head">
+    <p class="lx-eyebrow">Quantum measurement · Born rule</p>
+    <h1>What does a single quantum measurement tell you?</h1>
+    <p class="lx-lede">Prepare a qubit, choose a measurement axis, and record shots one at a time or in batches. Watch the frequencies settle onto the Born probabilities, how slowly they do it, and how often they land outside their own error bar.</p>
+    <div class="lx-meta">
+      <span>\(\ket{\psi} = \cos\tfrac{\theta}{2}\ket{0} + e^{i\varphi}\sin\tfrac{\theta}{2}\ket{1}\); outcomes \(\pm1\) of \(\vec\sigma\cdot\hat n\); tilted axis \(\hat n = (\sin\alpha, 0, \cos\alpha)\); seeded random numbers</span>
+    </div>
+  </header>
+  <div class="lx-stage" id="stage"></div>
+  <footer class="lx-foot">
+    <span>Source: model knowledge. Standard treatment: Nielsen &amp; Chuang, <i>Quantum Computation and Quantum Information</i>, ch. 2; Sakurai &amp; Napolitano, <i>Modern Quantum Mechanics</i>, ch. 1.</span>
+  </footer>
+</main>
+
+<script>
+/* LX:LIB */
+</script>
+
+<script>
+/* PATTERN */
+const { C } = LX, PI = Math.PI, MAXN = 20000, SEED = 20240611, ZMAX = 4.2, MAXDOTS = 1000;
+const S = { th: PI / 2, ph: 0, basis: "Z", al: PI / 3, rec: new Int8Array(MAXN), cum: new Int32Array(MAXN + 1), n: 0, rng: null, last: null,
+  exp: { zs: [], out1: 0, out2: 0, rng: null } };
+
+/* mulberry32: small seeded PRNG, uniform in [0, 1) */
+function mulberry32(a) { return () => { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+
+const amps = (th = S.th, ph = S.ph) => [C.of(Math.cos(th / 2)), C.scale(C.expi(ph), Math.sin(th / 2))];
+const axis = (basis = S.basis, al = S.al) => basis === "Z" ? [0, 0, 1] : basis === "X" ? [1, 0, 0] : [Math.sin(al), 0, Math.cos(al)];
+/* P(+1) as |⟨+n|ψ⟩|² with |+n⟩ = cos(ϑ/2)|0⟩ + e^{iϕ} sin(ϑ/2)|1⟩ the +1 eigenvector of σ·n. */
+function pPlus(ab = amps(), n = axis()) {
+  const vt = Math.acos(LX.clamp(n[2], -1, 1)), vp = Math.atan2(n[1], n[0]);
+  const e = [C.of(Math.cos(vt / 2)), C.scale(C.expi(vp), Math.sin(vt / 2))];
+  return C.abs2(C.add(C.mul(C.conj(e[0]), ab[0]), C.mul(C.conj(e[1]), ab[1])));
+}
+const sample = (p, rng) => (rng() < p ? 1 : -1);
+const sigma = (p, N) => N ? Math.sqrt(p * (1 - p) / N) : 0;
+/* deviation in units of the standard error; 0 when σ = 0 (eigenstate: every run gives exactly p) */
+const zOf = (f, p, N) => { const s = sigma(p, N); return s > 1e-12 ? (f - p) / s : 0; };
+const zone = z => Math.abs(z) <= 1 ? "in" : Math.abs(z) <= 2 ? "1" : "2";
+/* Exact binomial probability that |K/N − p| > k σ. Log-space recursion over K, no overflow up to N = 20 000. */
+function tail(N, p, k) {
+  const s = sigma(p, N); if (!N || s < 1e-12) return 0;
+  const lr = Math.log(p / (1 - p)); let lp = N * Math.log(1 - p), sum = 0;
+  for (let K = 0; K <= N; K++) {
+    if (Math.abs(K / N - p) > k * s + 1e-12) sum += Math.exp(lp);
+    lp += Math.log((N - K) / (K + 1)) + lr;
+  }
+  return sum;
+}
+
+/* ---- layout: grid2 ---- */
+const W = LX.widget(document.getElementById("stage"), { layout: "grid2", title: "Born-rule sampling", badge: "exact", badgeText: "Exact probabilities, sampled outcomes" });
+const fH = LX.fig(W, "Outcome frequencies after \\(N\\) shots");
+const PH = LX.plot(fH, { xlim: [0, 3], ylim: [0, 1.08], width: 420, height: 300, margin: { b: 40 }, yticks: 4, ylabel: "\\text{frequency}" });
+[...PH.g.axes.querySelectorAll("text")].filter(t => t.getAttribute("text-anchor") === "middle").forEach(t => t.remove());
+[...PH.g.grid.querySelectorAll("line")].filter(l => l.getAttribute("x1") === l.getAttribute("x2")).forEach(l => l.remove());
+LX.legend(fH, [["observed", "--accent", "line"], ["Born \\(p\\)", "--c2", "dash"], ["\\(\\pm1\\sigma\\), \\(\\pm2\\sigma\\) band", "--c3", "line"]]);
+const fR = LX.fig(W, "Running mean of the \\(\\pm1\\) outcomes against the number of shots");
+const PR = LX.plot(fR, { xlim: [0, Math.log10(MAXN)], ylim: [-1.08, 1.08], width: 420, height: 300, xlabel: "\\log_{10} n", ylabel: "\\text{mean}", yticks: 4 });
+LX.legend(fR, [["running mean", "--accent", "line"], ["\\(\\langle\\vec\\sigma\\cdot\\hat n\\rangle\\)", "--c2", "dash"], ["\\(\\pm1\\sigma\\), \\(\\pm2\\sigma\\) funnel", "--c3", "line"]]);
+
+const ctl = LX.controls(W);
+const thS = LX.slider(ctl, { id: "th", label: "state \\(\\theta\\)", min: 0, max: PI, step: 0.005, value: S.th, fmt: v => (v / PI).toFixed(3) + "π", onInput: v => { S.th = v; reset(); } });
+const phS = LX.slider(ctl, { id: "ph", label: "state \\(\\varphi\\)", min: 0, max: 1.99 * PI, step: PI / 200, value: S.ph, fmt: v => (v / PI).toFixed(3) + "π", onInput: v => { S.ph = v; reset(); } });
+const bSeg = LX.segmented(ctl, { id: "basis", label: "Measure", value: "Z",
+  options: [{ value: "Z", label: "\\(\\sigma_z\\)" }, { value: "X", label: "\\(\\sigma_x\\)" }, { value: "T", label: "tilted axis" }],
+  onChange: v => { S.basis = v; alS.input.disabled = v !== "T"; reset(); } });
+const alS = LX.slider(ctl, { id: "al", label: "tilt \\(\\alpha\\) of the tilted axis", min: 0, max: PI, step: 0.005, value: S.al, fmt: v => (v / PI).toFixed(3) + "π", onInput: v => { S.al = v; if (S.basis === "T") reset(); } });
+alS.input.disabled = true;
+const shots = LX.h("div", { class: "lx-group", id: "shots" }, ctl);
+LX.h("span", { text: "Record shots" }, shots);
+const srow = LX.h("div", { class: "lx-row" }, shots);
+for (const k of [1, 10, 100, 1000]) LX.button(srow, "Measure " + k, () => measure(k), { cls: k === 1 ? "lx-primary" : "" });
+LX.button(srow, "Reset", () => reset(), { id: "reset" });
+const rB = LX.readout(ctl, "Bloch vector \\(\\vec r\\) =");
+const box = rB.el.parentNode; box.style.flexDirection = "column"; box.style.gap = "3px";
+const rN = LX.readout(box, "shots \\(N\\) =");
+const rF = LX.readout(box, "observed \\(f_+\\) =");
+const rP = LX.readout(box, "Born \\(p_+\\) =");
+const rE = LX.readout(box, "standard error \\(\\sigma = \\sqrt{p_+(1-p_+)/N}\\) =");
+const rZ = LX.readout(box, "deviation \\(z = (f_+ - p_+)/\\sigma\\) =");
+
+const col = LX.h("div", { class: "lx-col" }, W);
+const fX = LX.fig(col, "Repeat this experiment: each dot is one more run with the same \\(N\\) and setup, placed at its deviation \\(z\\)");
+const PX = LX.plot(fX, { xlim: [-ZMAX, ZMAX], ylim: [0, 1], frame: false, width: 420, height: 150, margin: { l: 12, r: 12, t: 26, b: 10 } });
+LX.legend(fX, [["inside \\(\\pm1\\sigma\\)", "--accent", "dot"], ["\\(1\\)–\\(2\\sigma\\)", "--c2", "dot"], ["outside \\(\\pm2\\sigma\\)", "--bad", "dot"], ["your record", "--fg", "line"]]);
+/* static zones and their labels (created once) */
+PX.path([[-2, 0.06], [2, 0.06], [2, 1], [-2, 1]], { cls: "a3 faint", layer: "fill", close: true });
+PX.path([[-1, 0.06], [1, 0.06], [1, 1], [-1, 1]], { cls: "a3", layer: "fill", close: true });
+PX.line(-ZMAX, 0.06, ZMAX, 0.06, { cls: "ax", layer: "fill" });
+for (const [v, s] of [[-2, "-2\\sigma"], [-1, "-\\sigma"], [0, "0"], [1, "\\sigma"], [2, "2\\sigma"]]) PX.tex(v, 1, s, { anchor: "s" });
+const xctl = LX.controls(col);
+const xrow = LX.h("div", { class: "lx-row" }, xctl);
+const run100 = LX.button(xrow, "Run 100 experiments", () => runExperiments(100), { cls: "lx-primary", id: "run100" });
+const run1000 = LX.button(xrow, "Run 1000", () => runExperiments(1000), { id: "run1000" });
+const rX = LX.readout(xctl, "experiments run:");
+const xbox = rX.el.parentNode; xbox.style.flexDirection = "column"; xbox.style.gap = "3px";
+const rX1 = LX.readout(xbox, "outside \\(\\pm1\\sigma\\):");
+const rX2 = LX.readout(xbox, "outside \\(\\pm2\\sigma\\):");
+
+LX.guide(W, [
+  ["Histogram", "Bars: the fraction of \\(+1\\) and \\(-1\\) outcomes so far. Dashed orange: the Born probabilities. The teal bands mark \\(p \\pm \\sigma\\) (darker) and \\(p \\pm 2\\sigma\\) (lighter), with \\(\\sigma = \\sqrt{p(1-p)/N}\\) the <b>standard error</b> of a frequency from \\(N\\) shots. The label above the bar says where the observed frequency falls."],
+  ["The band is not a bound", "An honest experiment lands <i>outside</i> \\(\\pm1\\sigma\\) about one time in three (32%) and outside \\(\\pm2\\sigma\\) about one time in twenty (5%). A frequency outside the dark band is normal; far outside \\(\\pm2\\sigma\\) again and again would not be."],
+  ["Running mean", "The average of the \\(\\pm1\\) outcomes as shots accumulate (log axis). It wanders inside a funnel that narrows as \\(1/\\sqrt n\\): ten times more precision costs a hundred times more shots. It leaves the inner funnel now and then, for the same reason."],
+  ["Repeat this experiment", "Runs 100 (or 1000) more experiments with the same \\(N\\) and state, and drops each at its deviation \\(z\\). The tally compares the fraction outside \\(\\pm1\\sigma\\) and \\(\\pm2\\sigma\\) with the exact binomial expectation (close to 32% and 5% once \\(N\\) is large; small \\(N\\) gives coarser steps). Record some shots first; changing the setup or \\(N\\) clears the tally."],
+  ["State and basis", "\\(\\theta, \\varphi\\) set the qubit (its Bloch vector is shown; \\(\\varphi\\) is invisible to \\(\\sigma_z\\), visible to \\(\\sigma_x\\)); the basis sets the measured observable (the tilt slider works only for the tilted axis). Any change clears the record, since data belong to one setup."]
+]);
+
+const f = (v, d = 3) => (Math.abs(v) < 0.5 * 10 ** -d ? 0 : v).toFixed(d).replace("-", "−");
+const pct = v => (100 * v).toFixed(1) + "%";
+
+function clearExp() { const e = S.exp; e.zs = []; e.out1 = 0; e.out2 = 0; e.rng = mulberry32(SEED + 7); }
+function reset() { S.n = 0; S.last = null; S.rng = mulberry32(SEED); clearExp(); draw(); }
+function measure(k) {
+  const p = pPlus();
+  for (let i = 0; i < k && S.n < MAXN; i++) { const o = sample(p, S.rng); S.rec[S.n] = o; S.cum[S.n + 1] = S.cum[S.n] + o; S.last = o; S.n++; }
+  clearExp(); draw();
+}
+function runExperiments(R) {
+  const N = S.n; if (!N) return;
+  const p = pPlus(), e = S.exp;
+  for (let r = 0; r < R; r++) {
+    let k = 0; for (let i = 0; i < N; i++) if (e.rng() < p) k++;
+    const z = zOf(k / N, p, N);
+    e.zs.push(z); if (Math.abs(z) > 1 + 1e-9) e.out1++; if (Math.abs(z) > 2 + 1e-9) e.out2++;
+  }
+  draw();
+}
+
+const freq = () => S.n ? (S.cum[S.n] + S.n) / 2 / S.n : 0;
+function drawHist(p) {
+  PH.clearAll();
+  const N = S.n, nPlus = (S.cum[N] + N) / 2, sd = sigma(p, N);
+  [[1, p, N ? nPlus / N : 0, "+1"], [2, 1 - p, N ? 1 - nPlus / N : 0, "−1"]].forEach(([x, q, fr, lab]) => {
+    if (N) for (const [k, cls] of [[2, "a3 faint"], [1, "a3"]])
+      PH.path([[x - 0.42, Math.max(0, q - k * sd)], [x + 0.42, Math.max(0, q - k * sd)], [x + 0.42, Math.min(1, q + k * sd)], [x - 0.42, Math.min(1, q + k * sd)]], { cls, layer: "fill", close: true });
+    const bar = [[x - 0.3, 0], [x - 0.3, fr], [x + 0.3, fr], [x + 0.3, 0]];
+    const zn = N ? zone(zOf(fr, q, N)) : "in";
+    PH.path(bar, { cls: "a1", layer: "fill", close: true }); PH.path(bar, { cls: zn === "in" ? "s1 thin" : zn === "1" ? "s2" : "sb" });
+    PH.line(x - 0.42, q, x + 0.42, q, { cls: "s2 dash", layer: "top" });
+    PH.text(x, 0, lab, { dy: 16 });
+    if (N) { const tl = PH.text(x, Math.min(1, Math.max(fr, q + 2 * sd)), String(Math.round(x === 1 ? nPlus : N - nPlus)) + (zn === "in" ? "  within 1σ" : zn === "1" ? "  outside 1σ" : "  outside 2σ"), { dy: -6 }); if (zn !== "in") tl.style.fill = zn === "1" ? "var(--c2)" : "var(--bad)"; }
+  });
+}
+function drawRun(p) {
+  PR.clearAll();
+  const m = 2 * p - 1, v = 1 - m * m, L = Math.log10(MAXN);
+  const ns = LX.linspace(0, L, 200).map(t => 10 ** t);
+  for (const [k, cls] of [[2, "a3 faint"], [1, "a3"]])
+    PR.area(ns.map(n => [Math.log10(n), Math.min(1.08, m + k * Math.sqrt(v / n))]).concat(ns.slice().reverse().map(n => [Math.log10(n), Math.max(-1.08, m - k * Math.sqrt(v / n))])), { cls });
+  PR.hline(m, { cls: "s2 dash" });
+  if (S.n) {
+    /* running mean at log-spaced n (all n for the first 60 shots) */
+    const idx = new Set();
+    for (let n = 1; n <= Math.min(S.n, 60); n++) idx.add(n);
+    for (const t of LX.linspace(Math.log10(60), Math.log10(Math.max(60, S.n)), 260)) idx.add(Math.min(S.n, Math.round(10 ** t)));
+    idx.add(S.n);
+    const pts = [...idx].sort((a, b) => a - b).map(n => [Math.log10(n), S.cum[n] / n]);
+    PR.path(pts, { cls: "s1" });
+    const zn = zone(zOf(freq(), p, S.n));
+    PR.dot(Math.log10(S.n), S.cum[S.n] / S.n, { r: 5, cls: zn === "in" ? "f1" : zn === "1" ? "f2" : "fb" });
+  }
+}
+function drawExp(p) {
+  PX.clear(); PX.clear("top");
+  const e = S.exp, R = e.zs.length, start = Math.max(0, R - MAXDOTS), jit = mulberry32(99);
+  for (let i = 0; i < start; i++) jit();
+  for (let i = start; i < R; i++) {
+    const z = e.zs[i], zn = zone(z);
+    PX.dot(LX.clamp(z, -ZMAX + 0.05, ZMAX - 0.05), 0.12 + 0.8 * jit(), { r: 2.6, cls: zn === "in" ? "f1" : zn === "1" ? "f2" : "fb", layer: "main" });
+  }
+  if (S.n) { const z = LX.clamp(zOf(freq(), p, S.n), -ZMAX, ZMAX); PX.line(z, 0.02, z, 0.98, { cls: "s1 thin", layer: "top" }).setAttribute("style", "stroke: var(--fg)"); }
+  const N = S.n;
+  run100.disabled = run1000.disabled = !N || sigma(p, N) < 1e-12;
+  rX.set(R ? String(R) + (R > MAXDOTS ? ` (last ${MAXDOTS} shown)` : "") : N ? (sigma(p, N) < 1e-12 ? "none: eigenstate, every run gives exactly p" : "none yet") : "record shots first");
+  const t1 = tail(N, p, 1), t2 = tail(N, p, 2);
+  rX1.set(R ? `${pct(e.out1 / R)}  (expected ${pct(t1)})` : N ? `expected ${pct(t1)}` : "—");
+  rX2.set(R ? `${pct(e.out2 / R)}  (expected ${pct(t2)})` : N ? `expected ${pct(t2)}` : "—");
+}
+function draw() {
+  const p = pPlus(), N = S.n;
+  drawHist(p); drawRun(p); drawExp(p);
+  rB.set(`(${f(Math.sin(S.th) * Math.cos(S.ph), 2)}, ${f(Math.sin(S.th) * Math.sin(S.ph), 2)}, ${f(Math.cos(S.th), 2)})`);
+  rN.set(String(N) + (S.last === null ? "" : `  (last: ${S.last > 0 ? "+1" : "−1"})`));
+  rF.set(N ? f(freq()) : "—");
+  rP.set(f(p));
+  rE.set(N ? f(sigma(p, N)) : "—");
+  if (!N) { rZ.set("—"); rZ.el.lastChild.style.color = ""; }
+  else { const z = zOf(freq(), p, N), zn = zone(z); rZ.set(f(z, 2) + (zn === "in" ? "  inside ±1σ" : zn === "1" ? "  outside ±1σ, inside ±2σ" : "  outside ±2σ")); rZ.el.lastChild.style.color = zn === "in" ? "var(--good)" : zn === "1" ? "var(--c2)" : "var(--bad)"; }
+}
+reset();
+
+/* ---- self-tests ---- */
+LX.check("Born rule: |⟨+n|ψ⟩|² = (1 + n·r)/2 for Z, X and a tilted axis", () => {
+  const th = 1.2, ph = 2.2, r = [Math.sin(th) * Math.cos(ph), Math.sin(th) * Math.sin(ph), Math.cos(th)];
+  return [axis("Z"), axis("X"), axis("T", 0.9)].every(n => LX.near(pPlus(amps(th, ph), n), (1 + n[0] * r[0] + n[1] * r[1] + n[2] * r[2]) / 2, 1e-12));
+});
+LX.check("φ is invisible in Z statistics but not in X", () => LX.near(pPlus(amps(PI / 2, 0), axis("Z")), pPlus(amps(PI / 2, PI), axis("Z")), 1e-12) &&
+  LX.near(pPlus(amps(PI / 2, 0), axis("X")), 1, 1e-12) && LX.near(pPlus(amps(PI / 2, PI), axis("X")), 0, 1e-12));
+LX.check("tilted axis on |0⟩: p+ = cos²(α/2)", () => LX.near(pPlus(amps(0, 0), axis("T", PI / 3)), 0.75, 1e-12));
+LX.check("seeded sampler: frequency after 20 000 shots within 4σ of p = 0.3", () => {
+  const rng = mulberry32(SEED), N = 20000, p = 0.3; let k = 0;
+  for (let i = 0; i < N; i++) if (sample(p, rng) > 0) k++;
+  const z = Math.abs(k / N - p) / Math.sqrt(p * (1 - p) / N);
+  return { pass: z < 4, detail: "z = " + z.toFixed(2) };
+});
+LX.check("spread of N = 100 frequencies over 2000 runs ≈ √(p(1−p)/N) (1/√N law)", () => {
+  const rng = mulberry32(SEED + 1), p = 0.5, N = 100, R = 2000; let s2 = 0;
+  for (let r = 0; r < R; r++) { let k = 0; for (let i = 0; i < N; i++) if (sample(p, rng) > 0) k++; s2 += (k / N - p) ** 2; }
+  const sd = Math.sqrt(s2 / R);
+  return { pass: Math.abs(sd / 0.05 - 1) < 0.1, detail: sd.toFixed(4) };
+});
+LX.check("exact binomial tails approach the Gaussian 31.7% / 4.6% at large N", () => {
+  const a = tail(20000, 0.3, 1), b = tail(20000, 0.3, 2);
+  return { pass: Math.abs(a - 0.3173) < 0.01 && Math.abs(b - 0.0455) < 0.005, detail: `${a}, ${b}` };
+});
+LX.check("repeated experiments: fraction outside ±1σ matches the exact tail (N = 100, p = 0.5, 4000 runs)", () => {
+  const rng = mulberry32(SEED + 3), N = 100, p = 0.5, R = 4000; let o = 0;
+  for (let r = 0; r < R; r++) { let k = 0; for (let i = 0; i < N; i++) if (rng() < p) k++; if (Math.abs(zOf(k / N, p, N)) > 1 + 1e-9) o++; }
+  const t = tail(N, p, 1), z = Math.abs(o / R - t) / Math.sqrt(t * (1 - t) / R);
+  return { pass: z < 4, detail: `${o / R} vs ${t}` };
+});
+</script>

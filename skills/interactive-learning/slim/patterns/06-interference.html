@@ -1,0 +1,223 @@
+<!-- GENERATED from patterns/06-interference.html by tests/sync-base.mjs; edit that file, then run the script. -->
+<title>N-Path Interference</title>
+<!--
+PATTERN 06 · SUPERPOSITION / INTERFERENCE
+When to use     Several amplitudes add with relative phases and the observable is |sum|². The insight is
+                that amplitudes add first and are squared after: zeros, N² peaks, narrowing with N, and
+                fringes that fade continuously as the paths become distinguishable. Use it for double/N-slit
+                and grating interference, Mach–Zehnder and Ramsey fringes, Bragg peaks and structure
+                factors, Bloch sums, Aharonov–Bohm phases, decoherence and which-path complementarity.
+Widget anatomy  (1) phasor diagram at the chosen screen point: unit arrows a_j = e^{ijδ} head to tail
+                    (blue) and their sum (orange);
+                (2) screen intensity vs phase step δ: the actual intensity (solid) between two labelled
+                    reference curves, "with interference" |Σa_j|² and "without interference" Σ|a_j|² = N;
+                    a pink cursor (drag anywhere on the plot, or arrow keys on the handle) picks the point;
+                (3) intensity budget at the cursor: Σ|a_j|² + γ × (cross terms) = I, as a waterfall of bars,
+                    with the full cross term (γ = 1) drawn as a dashed outline;
+                (4) controls: N, which-path information D (0 = none, 1 = full), two jumps (principal
+                    maximum, first zero); readouts; a "What you are looking at" guide.
+Layout          grid2: phasor | intensity on top (the cursor links them), budget | controls below. The
+                four cells are all used; the budget sits under the phasor because it decomposes the
+                same point.
+Teaching moments  Suggestions for the chapter around the widget:
+                - number: centre intensity when a second identical path opens (4, not 2).
+                - choice: first zero for N = 4 (π/2: the chain closes into a square; misconception: π).
+                - choice: peak height and width at N = 8 vs N = 4 (×4 height, ½ width).
+                - sketch: the screen intensity for N = 2 at D = 1 before seeing it (flat at N).
+                - set: "set D so that the fringe visibility is 0.6" (N = 2: D = 0.8, since D² + V² = 1).
+                - explain: why does the pattern always average to N, whatever D is?
+Adapt by        Replace phasors() with the amplitudes of your paths (unequal lengths, extra phases from a
+                flux or a lattice vector); intensity() then follows. Keep the head-to-tail chain: it makes
+                "why zero here" visible as a closed polygon. For a different decoherence model, replace the
+                overlap matrix G (here all pairwise overlaps equal γ).
+Physics         N paths of unit amplitude with phase step δ (far field, single-slit envelope ignored):
+                coherent |Σ_{j=0}^{N−1} e^{ijδ}|² = sin²(Nδ/2)/sin²(δ/2); peak N², zeros at δ = 2πm/N.
+                Which-path marking: path j leaves a detector in state |d_j⟩, pure, with pairwise overlap
+                ⟨d_j|d_k⟩ = γ (j ≠ k). Screen intensity I = Σ_jk a_j a_k* ⟨d_k|d_j⟩ = Σ|a_j|² + γ Σ_{j≠k} a_j a_k*
+                = (1 − γ)N + γ|Σa_j|². The slider sets the which-path distinguishability D and γ = √(1 − D²);
+                for N = 2 the fringe visibility is V = γ, so D² + V² = 1 (Englert). Period average of I = N.
+-->
+<!-- LX:HEAD -->
+<style>
+/* LX:STYLE */
+/* page-specific styles go below */
+</style>
+
+<main class="lx-page">
+  <header class="lx-head">
+    <p class="lx-eyebrow">Wave mechanics · Superposition</p>
+    <h1>Why do more slits give sharper fringes, and where do the fringes go when you look?</h1>
+    <p class="lx-lede">Each path contributes a unit arrow in the complex plane, turned by \(\delta\) relative to the previous one. Add the arrows head to tail and square the length: that is the screen intensity. Marking which path the particle took removes the cross terms, continuously.</p>
+    <div class="lx-meta">
+      <span>Unit amplitude per path, \(a_j = e^{ij\delta}\); single-slit envelope ignored; detector states with pairwise overlap \(\gamma = \sqrt{1 - D^2}\)</span>
+    </div>
+  </header>
+  <div class="lx-stage" id="stage"></div>
+  <footer class="lx-foot">
+    <span>Source: model knowledge. Standard treatment: Hecht, <i>Optics</i>, ch. 10 (diffraction, many slits); Feynman, Leighton &amp; Sands, <i>The Feynman Lectures on Physics</i> Vol. III, ch. 1; B.-G. Englert, Phys. Rev. Lett. 77, 2154 (1996) (fringe visibility and which-way information).</span>
+  </footer>
+</main>
+
+<script>
+/* LX:LIB */
+</script>
+
+<script>
+/* PATTERN */
+const { C } = LX, PI = Math.PI;
+const S = { N: 2, d: 0.6 * PI, D: 0 };
+
+const phasors = (N, d) => Array.from({ length: N }, (_, j) => C.expi(j * d));
+const amplitude = (N, d) => phasors(N, d).reduce(C.add, C.of(0));
+const coherent = (N, d) => C.abs2(amplitude(N, d));          // |Σ a_j|², "with interference"
+const incoherent = N => N;                                    // Σ |a_j|², "without interference"
+const gammaOf = D => Math.sqrt(Math.max(0, 1 - D * D));      // detector overlap for distinguishability D
+/* screen intensity with partial which-path information: Σ|a_j|² + γ·(cross terms) */
+const intensity = (N, d, D = S.D) => { const g = gammaOf(D); return (1 - g) * incoherent(N) + g * coherent(N, d); };
+const closedForm = (N, d) => Math.abs(Math.sin(d / 2)) < 1e-12 ? N * N : (Math.sin(N * d / 2) / Math.sin(d / 2)) ** 2;
+/* fringe visibility (I_max − I_min)/(I_max + I_min); I_min = (1 − γ)N because the coherent pattern has zeros for N ≥ 2 */
+const visibility = (N, D) => { if (N < 2) return 0; const g = gammaOf(D), lo = (1 - g) * N, hi = lo + g * N * N; return (hi - lo) / (hi + lo); };
+const f = (v, d = 2) => (Math.abs(v) < 0.5 * 10 ** -d ? 0 : v).toFixed(d).replace("-", "−");
+
+/* ---- layout: grid2 = phasor | intensity, budget | controls ---- */
+const W0 = LX.widget(document.getElementById("stage"), { layout: "grid2", title: "Adding amplitudes from \\(N\\) paths", badge: "exact" });
+const PZ = LX.plot(LX.fig(W0, "Phasor sum at the chosen screen point"),
+  { xlim: [-1, 1], ylim: [-1, 1], frame: false, ticks: false, width: 440, height: 340, margin: { l: 8, r: 8, t: 8, b: 8 }, aria: "phasor diagram" });
+const figI = LX.fig(W0, "Screen intensity across the pattern");
+const PI_ = LX.plot(figI, { xlim: [-2, 2], ylim: [0, 4.4], xlabel: "\\delta/\\pi", ylabel: "I", width: 440, height: 340, xticks: 8 });
+LX.legend(figI, [["screen intensity \\(I\\)", "--c2", "line"], ["with interference \\(|\\sum_j a_j|^2\\)", "--accent", "dash"], ["without interference \\(\\sum_j |a_j|^2 = N\\)", "--c3", "dash"]]);
+const PB = LX.plot(LX.fig(W0, "Where \\(I\\) at the cursor comes from"),
+  { xlim: [0, 3.2], ylim: [0, 4.4], frame: false, ticks: false, width: 440, height: 300, margin: { l: 44, r: 8, t: 22, b: 40 }, aria: "intensity budget" });
+
+const ctl = LX.controls(W0);
+const NS = LX.slider(ctl, { id: "N", label: "number of paths \\(N\\)", min: 1, max: 8, step: 1, value: S.N, fmt: v => String(v), onInput: v => { S.N = v; rescale(); draw(); } });
+const DS = LX.slider(ctl, { id: "D", label: "which-path information \\(D\\)", min: 0, max: 1, step: 0.01, value: S.D,
+  fmt: v => v.toFixed(2) + (v === 0 ? " (none)" : v === 1 ? " (full)" : ""), onInput: v => { S.D = v; draw(); } });
+const setD = v => { S.d = LX.clamp(v, -2 * PI, 2 * PI); draw(); };
+LX.limits(ctl, [
+  { label: "Principal maximum", title: "δ = 0", apply: () => setD(0) },
+  { label: "First zero", title: "δ = 2π/N", apply: () => setD(S.N > 1 ? 2 * PI / S.N : PI) }
+], "Move the cursor to");
+const ro = LX.h("div", { class: "lx-readouts" }, ctl);
+const rd = LX.readout(ro, "cursor \\(\\delta =\\)");
+const rI = LX.readout(ro, "\\(I =\\)");
+const rG = LX.readout(ro, "overlap \\(\\gamma = \\sqrt{1-D^2} =\\)");
+const rV = LX.readout(ro, "fringe visibility \\(V =\\)");
+
+LX.guide(W0, [
+  ["Phasor diagram", "What happens at one point of the screen, the one under the pink cursor. Each blue arrow is the amplitude \\(a_j = e^{ij\\delta}\\) of one path (length 1, each turned by \\(\\delta\\) relative to the previous one); they are drawn head to tail. The orange arrow from the origin is their sum. Its squared length is the intensity <i>with</i> interference; the sum of the squared lengths of the blue arrows, \\(N\\), is the intensity <i>without</i> interference. When the chain closes on itself the sum is zero: a dark fringe."],
+  ["Intensity plot", "The screen, laid out by the phase step \\(\\delta\\) between neighbouring paths (it grows with the angle from the centre). The blue dashed curve is the fully coherent pattern \\(|\\sum_j a_j|^2\\); the green dashed line is the flat sum of single-path intensities, \\(N\\). The solid orange curve is what the screen actually shows for the current amount of which-path information. Drag anywhere on the plot (or use the arrow keys on the pink handle) to move the cursor."],
+  ["Budget bars", "The intensity at the cursor taken apart: <b>green</b>, the single-path contributions \\(\\sum_j|a_j|^2 = N\\), which never change; <b>blue</b>, the cross terms \\(\\sum_{j\\ne k} a_j a_k^*\\) multiplied by \\(\\gamma\\) (the dashed outline is the full cross term, \\(\\gamma = 1\\)); <b>orange</b>, their sum \\(I\\). Cross terms are positive on a bright fringe and negative on a dark one."],
+  ["\\(N\\)", "Number of paths. More paths make the coherent peaks higher (\\(N^2\\)) and narrower (first zero at \\(\\delta = 2\\pi/N\\))."],
+  ["\\(D\\)", "How well a detector at the slits can tell which path was taken: 0 means no information, 1 means certain knowledge. Path \\(j\\) leaves the detector in a state \\(\\ket{d_j}\\); the overlap of two such states is \\(\\gamma = \\sqrt{1-D^2}\\), and it multiplies every cross term: \\(I = \\sum_j |a_j|^2 + \\gamma\\sum_{j\\ne k} a_j a_k^*\\)."],
+  ["Readouts", "The cursor position, the intensity there, the overlap \\(\\gamma\\) and the fringe visibility \\(V = (I_{\\max} - I_{\\min})/(I_{\\max} + I_{\\min})\\). For two paths \\(V = \\gamma\\), so \\(D^2 + V^2 = 1\\)."],
+  ["What to look for", "At \\(D = 0\\) the orange curve lies on the blue one: peaks of \\(N^2\\), real zeros. Raise \\(D\\): the orange curve slides continuously toward the green line, the blue budget bar shrinks, and at \\(D = 1\\) only the single-path sum \\(N\\) is left. The phasor diagram does not change, because the amplitudes are the same; what changes is how much of their interference reaches the screen. Throughout, the pattern averages to \\(N\\): interference only moves light between bright and dark fringes."]
+]);
+
+/* phasor window: fixed per N (contains the chain for every δ), equal aspect */
+function rescale() {
+  let x0 = -1, x1 = 1, y0 = -1, y1 = 1;
+  for (const d of LX.linspace(0, 2 * PI, 181)) {
+    let z = C.of(0);
+    for (const p of phasors(S.N, d)) { z = C.add(z, p); x0 = Math.min(x0, z.re); x1 = Math.max(x1, z.re); y0 = Math.min(y0, z.im); y1 = Math.max(y1, z.im); }
+  }
+  const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, h = Math.max(x1 - x0, y1 - y0) / 2 + 0.4;
+  const asp = (PZ.W - 16) / (PZ.H - 16);
+  PZ.setLim([cx - h * asp, cx + h * asp], [cy - h, cy + h]);
+  const top = S.N * S.N * 1.1;
+  PI_.setLim(null, [0, top]);
+  PB.setLim(null, [0, top]);
+  placeBudgetTex();
+}
+
+/* cursor handle on the intensity plot: created once in its own layer (never cleared), moved on redraw */
+const handle = LX.s("circle", { r: 8, class: "f4", "aria-label": "screen position cursor; drag or use arrow keys" }, LX.s("g", {}, PI_.svg));
+LX.drag(PI_, handle, { get: () => [S.d / PI, 0], step: [0.01, 0], set: x => setD(x * PI) });
+let dragging = false;
+const moveTo = e => setD(PI_.toData(e)[0] * PI);
+PI_.svg.addEventListener("pointerdown", e => { if (e.target === handle) return; dragging = true; PI_.svg.setPointerCapture(e.pointerId); moveTo(e); });
+PI_.svg.addEventListener("pointermove", e => { if (dragging) moveTo(e); });
+PI_.svg.addEventListener("pointerup", () => { dragging = false; });
+PI_.svg.style.cursor = "crosshair";
+
+/* budget labels: created once, re-placed when the scale changes */
+const BX = [0.55, 1.6, 2.65];
+const bTex = [PB.tex(0, 0, "\\sum_j |a_j|^2", { color: "var(--c3)" }), PB.tex(0, 0, "\\gamma \\times \\text{cross}", { color: "var(--accent)" }), PB.tex(0, 0, "I", { color: "var(--c2)" })];
+function placeBudgetTex() { bTex.forEach((el, i) => PB.placeTex(el, PB.X(BX[i]), PB.H - 34, "n", true)); }
+
+function drawPhasors() {
+  PZ.clearAll();
+  const [x0, x1] = PZ.xlim, [y0, y1] = PZ.ylim;
+  PZ.line(x0, 0, x1, 0, { cls: "gr" }); PZ.line(0, y0, 0, y1, { cls: "gr" });
+  PZ.text(x1, 0, "Re", { anchor: "end", dy: 14 }); PZ.text(0, y1, "Im", { anchor: "start", dx: 5, dy: 12 });
+  let z = C.of(0);
+  for (const p of phasors(S.N, S.d)) { const n = C.add(z, p); PZ.arrow(z.re, z.im, n.re, n.im, { cls: "s1 thin" }); z = n; }
+  const closed = C.abs(z) <= 1e-3;
+  if (!closed) PZ.arrow(0, 0, z.re, z.im, { cls: "s2" });
+  PZ.dot(0, 0, { r: 3, cls: "fm" });
+  PZ.text(x0, y0, closed ? `Σ aⱼ = 0: the chain closes;  Σ |aⱼ|² = ${S.N}` : `|Σ aⱼ|² = ${f(C.abs2(z))};  Σ |aⱼ|² = ${S.N}`, { anchor: "start", dx: 6, dy: -8 });
+}
+function drawIntensity() {
+  PI_.clearAll();
+  const N = S.N;
+  PI_.fn(x => coherent(N, x * PI), { n: 900, cls: "s1 thin dash" });
+  PI_.hline(incoherent(N), { cls: "s3 thin dash" });
+  PI_.fn(x => intensity(N, x * PI), { n: 900, cls: "s2" });
+  const x = S.d / PI;
+  PI_.line(x, 0, x, PI_.ylim[1], { cls: "sm", layer: "top" });
+  PI_.dot(x, coherent(N, S.d), { r: 3.5, cls: "f1" });
+  PI_.dot(x, N, { r: 3.5, cls: "f3" });
+  PI_.dot(x, intensity(N, S.d), { r: 5.5, cls: "f2" });
+  handle.setAttribute("cx", PI_.X(x)); handle.setAttribute("cy", PI_.Y(0) - 10);
+}
+function drawBudget() {
+  PB.clear(); PB.clear("fill"); PB.clear("top");
+  const N = S.N, g = gammaOf(S.D), full = coherent(N, S.d), cross = full - N, I = intensity(N, S.d), hw = 0.32;
+  const bar = (x, a, b, cls, layer = "main") => PB.path([[x - hw, a], [x + hw, a], [x + hw, b], [x - hw, b]], { cls, close: true, layer });
+  PB.hline(0, { cls: "ax" });
+  for (const [v, lab] of [[N, "N"], [N * N, "N²"]]) { PB.hline(v, { cls: "gr" }); PB.text(0, v, `${lab} = ${v}`, { anchor: "end", dx: -4, dy: 4 }); }
+  bar(BX[0], 0, N, "f3");
+  PB.line(BX[0] + hw, N, BX[1] - hw, N, { cls: "sm dash" });
+  if (N > 1) {
+    bar(BX[1], N, N + cross, "sm dash", "top");
+    bar(BX[1], N, N + g * cross, "f1");
+  } else PB.text(BX[1], N, "no cross terms for one path", { dy: -8 });
+  PB.line(BX[1] + hw, N + g * cross, BX[2] - hw, I, { cls: "sm dash" });
+  bar(BX[2], 0, I, "f2");
+  PB.text(BX[0], N, f(N), { dy: -6 });
+  if (N > 1) PB.text(BX[1], Math.max(N, N + g * cross), (g * cross >= 0 ? "+" : "") + f(g * cross), { dy: -6 });
+  PB.text(BX[2], I, f(I), { dy: -6 });
+}
+function draw() {
+  DS.input.disabled = S.N === 1;
+  drawPhasors(); drawIntensity(); drawBudget();
+  rd.set(f(S.d / PI, 3) + "π");
+  rI.set(f(intensity(S.N, S.d)));
+  rG.set(f(gammaOf(S.D), 3));
+  rV.set(S.N > 1 ? f(visibility(S.N, S.D), 3) : "— (one path)");
+}
+rescale(); draw();
+
+/* ---- self-tests ---- */
+LX.check("phasor sum matches sin²(Nδ/2)/sin²(δ/2)", () => [2, 3, 5, 8].every(N => [0.3, 1.1, 2.9, 4.4].every(d => LX.near(coherent(N, d), closedForm(N, d), 1e-10))));
+LX.check("principal maximum I(0) = N² without which-path information", () => [1, 2, 4, 7].every(N => LX.near(intensity(N, 0, 0), N * N, 1e-12)));
+LX.check("zeros at δ = 2πm/N (chain closes)", () => [3, 4, 6].every(N => Array.from({ length: N - 1 }, (_, m) => C.abs(amplitude(N, 2 * PI * (m + 1) / N))).every(a => a < 1e-12)));
+LX.check("partial which-path: (1−γ)N + γ|Σa|² equals Σ_jk a_j a_k* ⟨d_k|d_j⟩ with pairwise overlap γ", () => {
+  for (const [N, d, D] of [[2, 0.7, 0.3], [5, 1.9, 0.8], [7, 4.1, 0.55]]) {
+    const a = phasors(N, d), g = gammaOf(D); let s = 0;
+    for (let j = 0; j < N; j++) for (let k = 0; k < N; k++) s += C.mul(a[j], C.conj(a[k])).re * (j === k ? 1 : g);
+    if (!LX.near(s, intensity(N, d, D), 1e-10)) return { pass: false, detail: [N, d, D, s].join(",") };
+  }
+  return true;
+});
+LX.check("full which-path information (D = 1) gives the flat sum I = N", () => [0, 1.3, PI].every(d => LX.near(intensity(6, d, 1), 6, 1e-12)));
+LX.check("period average of I equals N for every D", () => [2, 5, 8].every(N => [0, 0.4, 1].every(D => {
+  const M = 512, avg = LX.linspace(0, 2 * PI, M + 1).slice(0, M).reduce((s, d) => s + intensity(N, d, D), 0) / M;
+  return LX.near(avg, N, 1e-10);
+})));
+LX.check("two paths: fringe visibility V = γ, so D² + V² = 1", () => [0, 0.3, 0.8, 1].every(D => {
+  const xs = LX.linspace(0, 2 * PI, 2001), I = xs.map(d => intensity(2, d, D)), hi = Math.max(...I), lo = Math.min(...I);
+  const V = (hi - lo) / (hi + lo);
+  return LX.near(V, visibility(2, D), 1e-6) && LX.near(D * D + V * V, 1, 1e-6);
+}));
+</script>

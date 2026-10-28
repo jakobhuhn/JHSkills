@@ -23,12 +23,16 @@ Turn a piece of established physics into an interactive page: a **text** with ma
 | `references/widget-craft.md` | Before building. Badges, interaction rules, layouts, visual and code rules. |
 | `references/math-rendering.md` | When writing TeX (MathJax 3.2.2, SVG output) or putting math into figures. |
 | `references/knowledge-sources.md` | When the user provides notes or a knowledge base, or when citing sources. |
-| `assets/base.html` | Starting point for every page: theme, article layout, MathJax setup, the `LX` library. |
-| `assets/layouts.html` | When arranging a widget: five layout recipes with code. |
-| `patterns/NN-*.html` | The 1–4 patterns you selected. Each is one working widget for one concept shape; its header comment says how to adapt it and which questions fit around it. |
-| `patterns/00-question-formats.html` | When writing questions: the five `LX.ask` types and `LX.gate`. |
-| `examples/ssh-chapter.html` | When writing a Chapter. A full Chapter: text, math, four linked widgets, questions. Read the header comment and the `<article>`; skip the scripts, except the shared-state block at the top of the last script when you link widgets. |
-| `examples/bcs-gap-explainer.html` | When writing an Explainer. One confusion, one widget. Read the header comment and the `<article>`; skip the scripts. |
+| `slim/assets/base.html` | Starting point for every page: the skeleton (header comment, page CSS slot, `<main>`, `PATTERN` script) with the three shared blocks as one-line markers. |
+| `slim/assets/layouts.html` | When arranging a widget: five layout recipes with code. |
+| `slim/patterns/NN-*.html` | The 1–4 patterns you selected. Each is one working widget for one concept shape; its header comment says how to adapt it and which questions fit around it. |
+| `slim/patterns/00-question-formats.html` | When writing questions: the five `LX.ask` types and `LX.gate`. |
+| `slim/examples/ssh-chapter.html` | When writing a Chapter. A full Chapter: text, math, four linked widgets, questions. Read the header comment and the `<article>`; skip the scripts, except the shared-state block at the top of the last script when you link widgets. |
+| `slim/examples/bcs-gap-explainer.html` | When writing an Explainer. One confusion, one widget. Read the header comment and the `<article>`; skip the scripts. |
+| `references/lx-api.md` | Before building: the one-screen summary of the `LX` helper library (generated from `base.html`). |
+| `assets/base.html` | Only when you must paste the shared blocks by hand (no shell). Do not read it otherwise. |
+
+Read the `slim/` copies, never the full pages under `assets/`, `patterns/` and `examples/`: each of those carries the same 45 KB of shared blocks and is for opening in a browser. A slim page is the same file with the shared blocks replaced by the markers `<!-- LX:HEAD -->`, `/* LX:STYLE */` and `/* LX:LIB */`; `node scripts/lx.mjs expand page.html` (path relative to this skill folder) turns it back into a full page.
 
 ## Workflow
 
@@ -39,7 +43,7 @@ Turn a piece of established physics into an interactive page: a **text** with ma
 5. **Choose the hook.** Find the misconception or surprising consequence that opens the text (`writing.md`, part 1).
 6. **Select patterns.** Match each widget relationship to a concept shape using `references/widget-selection.md`. Read those pattern files' header comments and `PATTERN` scripts.
 7. **Outline the text.** Follow the arc in `writing.md`. For each part, note the prose, which widget appears (and in which state), and which question if any. Keep early questions sparse and put more at the end.
-8. **Build.** Copy `assets/base.html` and keep the `LX:` blocks unchanged.
+8. **Build.** Copy `slim/assets/base.html` and write the page in slim form, keeping the three marker lines exactly as they are.
    - Write the text in the `<article>`.
    - Adapt the selected patterns into widgets between the paragraphs. Each widget has an honest badge, a fitting layout and a "What you are looking at" guide.
    - Add questions with `LX.ask`, and gate only results that would give an answer away.
@@ -50,8 +54,8 @@ Turn a piece of established physics into an interactive page: a **text** with ma
    - every control changes something, and every gate opens;
    - every TeX string renders, and the page works at phone width.
 
-   If the repo's `tests/run.mjs` harness is available, run it on the file.
-10. **Deliver.** Publish the fragment as an Artifact when the session supports it. Otherwise give the user a standalone `.html` file: the fragment wrapped in a doctype skeleton (see the comment at the top of `base.html`). Keep the unwrapped fragment for testing. Give it a short name as title.
+   If the repo's `tests/run.mjs` harness is available, run it on the file (it accepts slim pages).
+10. **Deliver.** Expand the page: `node scripts/lx.mjs expand page.html page.full.html` (the script is in the skill folder; without a shell, paste the three blocks from `assets/base.html` over the markers). Publish the full page as an Artifact when the session supports it. Otherwise give the user a standalone `.html` file: the full page wrapped in a doctype skeleton (see the comment at the top of `base.html`). Keep the slim page as the source for later edits. Give it a short name as title.
 11. **Follow up in chat.** Ask the learner what they took away, correct any gap, and suggest the next concept.
 
 ## Modes

@@ -1,0 +1,301 @@
+<!-- GENERATED from patterns/02-dynamics.html by tests/sync-base.mjs; edit that file, then run the script. -->
+<title>Rabi Oscillations</title>
+<!--
+PATTERN 02 · DYNAMICS
+When to use     Something evolves in time and the insight lives in the time trace: an oscillation, a decay,
+                a revival, a period, or the duration a control must last. Rabi oscillations, pulses and
+                gates, Larmor precession, Ramsey/spin echo, quenches, tunnelling, damped/driven oscillators.
+Widget anatomy  (1) left: time trace P↑(t). In Pulse mode the drive is on only for 0 < t < τ (shaded
+                    orange band); the trace grows while "Apply pulse" runs and stays flat afterwards.
+                    In Free drive mode the drive never stops and the whole trace is drawn with a cursor.
+                (2) right: the same state as a Bloch vector, precessing about the drive axis (orange arrow);
+                    pulse mode draws the path the tip has taken and the target point (green); drag to rotate.
+                (3) controls below: mode switch; Pulse: target, pulse length τ, Apply pulse;
+                    Free drive: Ω, Δ, time t, Play. Controls of the other mode are hidden and disabled.
+                (4) one LX.ask (type "set") below the widget: the pulse-duration challenge. Its Check runs
+                    the pulse and grades it (too short / overshoot / right, with the fidelity). The ideal
+                    length τ* is marked on the trace only after a pulse has been applied.
+Layout          split: the trace and the Bloch sphere side by side (two views of one state), controls in a
+                full-width strip below. The ask sits below the widget because the question is the
+                interaction here.
+Teaching moments  Suggestions for the chapter around the widget:
+                - the challenge itself: τ for |↑⟩ (π-pulse) and for the equator state (π/2-pulse);
+                - choice: does P↑ saturate at 1/2 or oscillate fully under a coherent drive?
+                - choice: why does τ = 3π/2 give P↑ = 1/2 but fidelity 0 for the equator target? (phase);
+                - number: the peak P↑ at Δ = Ω (answer 1/2), in free-drive mode;
+                - explain: why full inversion needs Δ = 0, using the precession axis.
+How to adapt    Replace amp(t) with the closed-form (or integrated) state of your model, TARGETS with the
+                states a control should reach, and bloch() with the geometric picture that fits. Keep time
+                explicit; in pulse mode keep the evolution stopping exactly at τ.
+Physics         Rotating frame, RWA: H = (Δ/2)σz + (Ω/2)σx, ħ = 1, ψ(0) = |↓⟩.
+                ψ(t) = −i (Ω/Ω_R) sin(Ω_R t/2)|↑⟩ + [cos(Ω_R t/2) + i (Δ/Ω_R) sin(Ω_R t/2)]|↓⟩,
+                P↑(t) = (Ω²/Ω_R²) sin²(Ω_R t/2), Ω_R = √(Ω² + Δ²). Bloch vector: dr/dt = Ω⃗ × r, Ω⃗ = (Ω, 0, Δ).
+                Pulse mode: Ω = 1, Δ = 0 for t < τ, drive off after (state frozen in the rotating frame).
+                π-pulse τ = π/Ω → |↑⟩; π/2-pulse → (|↓⟩ − i|↑⟩)/√2, Bloch vector +y.
+                Fidelity with a pure target: |⟨χ|ψ⟩|² = (1 + r_χ·r_ψ)/2.
+-->
+<!-- LX:HEAD -->
+<style>
+/* LX:STYLE */
+</style>
+
+<main class="lx-page">
+  <header class="lx-head">
+    <p class="lx-eyebrow">Quantum optics · Driven two-level system</p>
+    <h1>How long must a pulse last to flip an atom?</h1>
+    <p class="lx-lede">A resonant drive turns the state of a two-level atom at a steady rate. Switch it on for a time \(\tau\), then off, and see where the state ends up.</p>
+    <div class="lx-meta">
+      <span>Rotating frame, RWA: \(H = \tfrac{\Delta}{2}\sigma_z + \tfrac{\Omega}{2}\sigma_x\), \(\hbar = 1\), start in \(\ket{\downarrow}\); times in units of \(1/\Omega\) (pulse mode: \(\Omega = 1\))</span>
+    </div>
+  </header>
+  <div class="lx-stage" id="stage"></div>
+  <footer class="lx-foot">
+    <span>Source: model knowledge. Standard treatment: Sakurai &amp; Napolitano, <i>Modern Quantum Mechanics</i>, ch. 5 (spin magnetic resonance); Foot, <i>Atomic Physics</i>, ch. 7.</span>
+  </footer>
+</main>
+
+<script>
+/* LX:LIB */
+</script>
+
+<script>
+/* PATTERN */
+const PI = Math.PI, TMAX = 8, TAUMAX = 6.5, SPEED = 1.2;   // time units per second of animation
+/* Target states of the challenge: Bloch vector and the resonant pulse lengths (Ω = 1) that reach them. */
+const TARGETS = {
+  up:  { r: [0, 0, 1], taus: [PI], name: "\\(\\ket{\\uparrow}\\)", tauTex: "\\pi/\\Omega", P: 1 },
+  eq:  { r: [0, 1, 0], taus: [PI / 2], name: "equator state \\((\\ket{\\downarrow} - i\\ket{\\uparrow})/\\sqrt2\\)", tauTex: "\\pi/2\\Omega", P: 0.5 }
+};
+let onRunEnd = null;   // called once when a running pulse ends or is interrupted
+const S = { mode: "pulse", target: "up", tau: 2, tc: 0, ran: false, anim: 0, W: 1, D: 0, t: 0 };
+const rabi = (W, D) => Math.hypot(W, D);
+
+/* Exact amplitudes (a on |↑⟩, b on |↓⟩) of ψ(t) = exp(−iHt)|↓⟩ for a constant drive. */
+function amp(t, W, D) {
+  const R = rabi(W, D);
+  if (R < 1e-12) return { a: LX.C.of(0), b: LX.C.of(1) };
+  const c = Math.cos(R * t / 2), s = Math.sin(R * t / 2);
+  return { a: LX.C.of(0, -s * W / R), b: LX.C.of(c, s * D / R) };
+}
+const Pup = (t, W, D) => LX.C.abs2(amp(t, W, D).a);
+/* Bloch vector r = (2 Re a*b, 2 Im a*b, |a|² − |b|²). */
+function bloch(t, W, D) {
+  const { a, b } = amp(t, W, D), ab = LX.C.mul(LX.C.conj(a), b);
+  return [2 * ab.re, 2 * ab.im, LX.C.abs2(a) - LX.C.abs2(b)];
+}
+/* Pulse mode: Ω = 1, Δ = 0 while 0 < t < τ, drive off afterwards. */
+const pulseT = t => Math.min(t, S.tau);
+const fidelity = (tau, key) => { const r = bloch(tau, 1, 0), q = TARGETS[key].r; return (1 + r[0] * q[0] + r[1] * q[1] + r[2] * q[2]) / 2; };
+function verdict(tau = S.tau, key = S.target) {
+  const Fd = fidelity(tau, key), T = TARGETS[key];
+  const best = T.taus.reduce((a, b) => (Math.abs(b - tau) < Math.abs(a - tau) ? b : a));
+  const kind = Fd >= 0.99 ? "right" : tau < best ? "short" : "over";
+  return { Fd, best, kind };
+}
+const f = (v, d = 3) => (Math.abs(v) < 0.5 * 10 ** -d ? 0 : v).toFixed(d).replace("-", "−");
+
+/* ---- widget ---- */
+const stage = document.getElementById("stage");
+const Wd = LX.widget(stage, { layout: "split", title: "Driving a two-level atom", badge: "exact" });
+const figT = LX.fig(Wd, "Population of \\(\\ket{\\uparrow}\\) against time");
+const PT = LX.plot(figT, { xlim: [0, TMAX], ylim: [0, 1.05], xlabel: "t", ylabel: "P_\\uparrow", width: 460, height: 340 });
+const lgT = LX.h("div", {}, figT);
+const figB = LX.fig(Wd, "Bloch vector (blue) and drive axis (orange). Drag to rotate.");
+const PB = LX.plot(figB, { xlim: [-1.35, 1.35], ylim: [-1.35, 1.35], ticks: false, frame: false, height: 340, width: 340, margin: { l: 8, r: 8, t: 8, b: 8 }, aria: "Bloch sphere" });
+const lgB = LX.h("div", {}, figB);
+const cam = LX.camera({ yaw: -2.3, pitch: 0.3, onChange: () => drawBloch() });
+cam.attach(PB.svg);
+
+const ctl = LX.controls(Wd, "lx-span2");
+const modeSeg = LX.segmented(ctl, { id: "mode", label: "Mode", value: "pulse",
+  options: [{ value: "pulse", label: "Pulse" }, { value: "free", label: "Free drive" }], onChange: v => setMode(v) });
+/* pulse-mode controls */
+const pulseBox = LX.h("div", { class: "lx-row", style: "gap:12px 20px;align-items:end;flex:1 1 420px" }, ctl);
+const tgtSeg = LX.segmented(pulseBox, { id: "target", label: "Target", value: "up",
+  options: [{ value: "up", label: "\\(\\ket{\\uparrow}\\)" }, { value: "eq", label: "equator" }], onChange: v => { S.target = v; resetRun(); } });
+const tauS = LX.slider(pulseBox, { id: "tau", label: "pulse length \\(\\tau\\)", min: 0, max: TAUMAX, step: 0.05, value: S.tau, onInput: v => { S.tau = v; resetRun(); } });
+const applyBtn = LX.button(pulseBox, "Apply pulse", () => applyPulse(), { id: "apply", cls: "lx-primary" });
+/* free-mode controls */
+const freeBox = LX.h("div", { class: "lx-row", style: "gap:12px 20px;align-items:end;flex:1 1 420px" }, ctl);
+const WS = LX.slider(freeBox, { id: "W", label: "drive \\(\\Omega\\)", min: 0, max: 2, step: 0.01, value: S.W, onInput: v => { S.W = v; drawAll(); } });
+const DS = LX.slider(freeBox, { id: "D", label: "detuning \\(\\Delta\\)", min: -3, max: 3, step: 0.01, value: S.D, onInput: v => { S.D = v; drawAll(); } });
+const tS = LX.slider(freeBox, { id: "t", label: "time \\(t\\)", min: 0, max: TMAX, step: 0.01, value: 0, onInput: v => { S.t = v; drawAll(); } });
+const player = LX.player(freeBox, { id: "play", onFrame: dt => { let t = S.t + SPEED * dt; if (t > TMAX) t = 0; tS.set(t); } });
+
+const ro = LX.h("div", { class: "lx-readouts lx-span2" }, Wd);
+const rRes = LX.readout(ro, "result:");
+const rFid = LX.readout(ro, "fidelity with target \\(|\\braket{\\chi}{\\psi}|^2\\) =");
+const rP = LX.readout(ro, "\\(P_\\uparrow\\) =");
+const rR = LX.readout(ro, "\\(\\Omega_R = \\sqrt{\\Omega^2+\\Delta^2}\\) =");
+const rM = LX.readout(ro, "max \\(P_\\uparrow = \\Omega^2/\\Omega_R^2\\) =");
+
+LX.guide(Wd, [
+  ["Left plot", "The probability to find the atom in \\(\\ket{\\uparrow}\\). In Pulse mode the orange band marks when the drive is on; after it ends nothing changes. In Free drive the drive never stops and the line oscillates."],
+  ["Right plot", "The same state as an arrow on the Bloch sphere: north pole \\(\\ket{\\uparrow}\\), south pole \\(\\ket{\\downarrow}\\), equator = equal superpositions with different phases. The arrow turns about the orange drive axis. Green point: the target; dashed blue line: the path the tip took."],
+  ["Target, \\(\\tau\\)", "Choose where the pulse should take the atom and how long the drive stays on (in units of \\(1/\\Omega\\))."],
+  ["Apply pulse", "Runs the evolution for exactly \\(\\tau\\) and stops. The result says whether the pulse was too short, overshot, or was right, and the green dashed line then shows the ideal length."],
+  ["Free drive", "Continuous drive with strength \\(\\Omega\\) and detuning \\(\\Delta\\) (drive frequency minus atom frequency). Play or scrub the time; detuning tilts the axis and the arrow no longer reaches the north pole."]
+]);
+
+/* ---- mode and pulse logic ---- */
+function show(el, on) { el.style.display = on ? "" : "none"; el.querySelectorAll("input, button").forEach(i => { i.disabled = !on; }); }
+function setMode(v) {
+  S.mode = v; stopAnim(); player.pause();
+  show(pulseBox, v === "pulse"); show(freeBox, v === "free");
+  for (const r of [rRes, rFid]) r.el.style.display = v === "pulse" ? "" : "none";
+  for (const r of [rR, rM]) r.el.style.display = v === "free" ? "" : "none";
+  lgT.replaceChildren(); lgB.replaceChildren();
+  if (v === "pulse") {
+    LX.legend(lgT, [["\\(P_\\uparrow\\)", "--accent", "line"], ["drive on", "--c2", "line"], ["target \\(P_\\uparrow\\)", "--c3", "dash"]]);
+    LX.legend(lgB, [["state", "--accent", "line"], ["path of the tip", "--accent", "dash"], ["target", "--c3", "dot"], ["drive axis", "--c2", "line"]]);
+  } else {
+    LX.legend(lgT, [["\\(P_\\uparrow\\)", "--accent", "line"], ["\\(P_\\downarrow\\)", "--c2", "line"], ["max \\(P_\\uparrow\\)", "--muted", "dash"]]);
+    LX.legend(lgB, [["state", "--accent", "line"], ["orbit", "--c3", "line"], ["drive axis", "--c2", "line"]]);
+  }
+  resetRun();
+}
+function stopAnim() { cancelAnimationFrame(S.anim); S.anim = 0; if (onRunEnd) { const f = onRunEnd; onRunEnd = null; f(); } }
+function resetRun() { stopAnim(); S.tc = 0; S.ran = false; applyBtn.textContent = "Apply pulse"; drawAll(); }
+function applyPulse() {
+  if (S.mode !== "pulse") modeSeg.set("pulse");
+  stopAnim(); S.tc = 0; S.ran = false;
+  const finish = () => { S.tc = S.tau; S.ran = true; S.anim = 0; drawAll(); if (onRunEnd) { onRunEnd(); onRunEnd = null; } };
+  if (LX.reduceMotion || S.tau === 0) return finish();
+  let last = 0;
+  const frame = ts => {
+    const dt = last ? Math.min(0.05, (ts - last) / 1000) : 0; last = ts;
+    S.tc = Math.min(S.tau, S.tc + SPEED * dt);
+    if (S.tc >= S.tau) return finish();
+    drawAll(); S.anim = requestAnimationFrame(frame);
+  };
+  drawAll(); S.anim = requestAnimationFrame(frame);
+}
+
+/* ---- drawing ---- */
+function drawTrace() {
+  PT.clearAll();
+  if (S.mode === "pulse") {
+    if (S.tau > 0) PT.area([[0, 1.05], [S.tau, 1.05]], { cls: "a2" });
+    PT.hline(TARGETS[S.target].P, { cls: "s3 thin dash" });
+    PT.path(LX.sample(t => Pup(t, 1, 0), 0, Math.min(S.tc, S.tau), 300), { cls: "s1" });
+    if (S.ran) {
+      PT.path([[S.tau, Pup(S.tau, 1, 0)], [TMAX, Pup(S.tau, 1, 0)]], { cls: "s1" });
+      const best = verdict().best;
+      PT.vline(best, { cls: "s3 dash" });
+      PT.tex(best, 0.04, "\\tau^* = " + TARGETS[S.target].tauTex, { anchor: "sw" }).style.paddingLeft = "4px";
+    }
+    PT.dot(S.tc, Pup(pulseT(S.tc), 1, 0), { r: 5.5, cls: "f1" });
+  } else {
+    const R = rabi(S.W, S.D);
+    PT.hline(R > 1e-12 ? S.W * S.W / (R * R) : 0, { cls: "sm thin dash" });
+    PT.fn(t => Pup(t, S.W, S.D), { n: 700, cls: "s1" });
+    PT.fn(t => 1 - Pup(t, S.W, S.D), { n: 700, cls: "s2 thin" });
+    PT.line(S.t, 0, S.t, 1.05, { cls: "sm", layer: "top" });
+    PT.dot(S.t, Pup(S.t, S.W, S.D), { r: 5.5, cls: "f1" });
+  }
+}
+const proj = v => cam.project(v);
+/* 3D polyline split into front (depth ≥ 0) and back (faded, dashed) runs. */
+function poly3(pts, cls, back = "sm thin dash") {
+  let run = [], front = null;
+  const flush = () => { if (run.length > 1) PB.path(run, { cls: front ? cls : back }); };
+  for (const p of pts) {
+    const [u, v, d] = proj(p), isF = d >= -1e-9;
+    if (front !== null && isF !== front) { run.push([u, v]); flush(); run = [run[run.length - 1]]; }
+    front = isF; run.push([u, v]);
+  }
+  flush();
+}
+const circle3 = (fn, n = 120) => LX.linspace(0, 2 * PI, n).map(fn);
+function drawBloch() {
+  PB.clear(); PB.clear("top");
+  PB.path(circle3(a => [Math.cos(a), Math.sin(a)]), { cls: "sm thin" });
+  poly3(circle3(a => [Math.cos(a), Math.sin(a), 0]), "sm thin");
+  poly3(circle3(a => [Math.cos(a), 0, Math.sin(a)]), "sm thin");
+  for (const [v, name] of [[[1, 0, 0], "x"], [[0, 1, 0], "y"], [[0, 0, 1], "|↑⟩"], [[0, 0, -1], "|↓⟩"]]) {
+    const [u, w] = proj(v.map(c => c * 1.18));
+    PB.text(u, w, name, { dy: 4 });
+  }
+  const [W, D] = S.mode === "pulse" ? [1, 0] : [S.W, S.D], R = rabi(W, D);
+  if (R > 1e-12) { const [u, w] = proj([W / R, 0, D / R].map(c => c * 1.12)); PB.arrow(0, 0, u, w, { cls: "s2 thin" }); }
+  let r;
+  if (S.mode === "pulse") {
+    const [u, w, d] = proj(TARGETS[S.target].r);
+    PB.dot(u, w, { r: 6.5, cls: "f3" + (d < 0 ? " faint" : "") });
+    if (S.tc > 0) poly3(LX.linspace(0, S.tc, 120).map(t => bloch(t, 1, 0)), "s1 thin dash", "s1 thin dash faint");
+    r = bloch(pulseT(S.tc), 1, 0);
+  } else {
+    if (R > 1e-12) poly3(LX.linspace(0, 2 * PI / R, 160).map(t => bloch(t, W, D)), "s3 thin", "s3 thin dash");
+    r = bloch(S.t, W, D);
+  }
+  const [u, w, d] = proj(r);
+  PB.arrow(0, 0, u, w, { cls: "s1" + (d < 0 ? " dash" : "") });
+  PB.dot(u, w, { r: 4.5, cls: "f1" });
+}
+const WORD = { right: "right", short: "too short", over: "overshoot" };
+function drawAll() {
+  drawTrace(); drawBloch();
+  if (S.mode === "pulse") {
+    rP.set(f(Pup(pulseT(S.tc), 1, 0)));
+    if (S.ran) { const v = verdict(); rRes.set(WORD[v.kind]); rFid.set(f(v.Fd)); }
+    else { rRes.set(S.anim ? "pulse running…" : "apply a pulse"); rFid.set("–"); }
+  } else {
+    const R = rabi(S.W, S.D);
+    rP.set(f(Pup(S.t, S.W, S.D))); rR.set(f(R, 2)); rM.set(R > 1e-12 ? f(S.W * S.W / (R * R)) : "0");
+  }
+}
+setMode("pulse");
+
+/* ---- the challenge: the question is the interaction ---- */
+const ask = LX.ask(stage, {
+  type: "set", kicker: "Try it",
+  prompt: "Pick a target, set the pulse length \\(\\tau\\) so that the pulse takes \\(\\ket{\\downarrow}\\) exactly there, then apply it. One try counts.",
+  checkLabel: "Apply pulse and check",
+  check: () => {
+    const fb = ask.el.querySelector(".lx-feedback");
+    applyPulse();
+    if (S.anim) { fb.style.visibility = "hidden"; onRunEnd = () => { fb.style.visibility = ""; }; }   // verdict appears when the pulse ends
+    const v = verdict(), T = TARGETS[S.target];
+    const msg = {
+      right: `The arrow stopped on the target: fidelity ${f(v.Fd)}. The ideal pulse is \\(\\tau^* = ${T.tauTex}\\): the vector turns by \\(\\Omega\\tau\\) about the drive axis.`,
+      short: `Too short: the pulse ended before the arrow reached the target (fidelity ${f(v.Fd)}). Lengthen \\(\\tau\\).`,
+      over: `Overshoot: the arrow passed the target before the drive stopped (fidelity ${f(v.Fd)}). ` +
+            (S.target === "eq" && v.Fd < 0.2 && Math.abs(Pup(S.tau, 1, 0) - 0.5) < 0.05 ? "\\(P_\\uparrow = 1/2\\) here, but the arrow is on the opposite side of the equator: the phase is wrong. " : "") + "Shorten \\(\\tau\\)."
+    }[v.kind];
+    return { pass: v.kind === "right", msg };
+  },
+  solve: () => { tauS.set(TARGETS[S.target].taus[0]); applyPulse(); },
+  right: "Try the other target next.",
+  wrong: ""
+});
+
+/* ---- self-tests ---- */
+/* RK4 integration of i dψ/dt = Hψ, independent of the closed form. */
+function integrate(W, D, T, n = 4000) {
+  const C = LX.C, h = T / n;
+  const rhs = ([a, b]) => [C.mul(C.of(0, -1), C.add(C.scale(a, D / 2), C.scale(b, W / 2))),
+                          C.mul(C.of(0, -1), C.sub(C.scale(a, W / 2), C.scale(b, D / 2)))];
+  const ax = (y, k, s) => y.map((z, i) => C.add(z, C.scale(k[i], s)));
+  let y = [C.of(0), C.of(1)];
+  for (let i = 0; i < n; i++) {
+    const k1 = rhs(y), k2 = rhs(ax(y, k1, h / 2)), k3 = rhs(ax(y, k2, h / 2)), k4 = rhs(ax(y, k3, h));
+    y = y.map((z, j) => C.add(z, C.scale(C.add(C.add(k1[j], C.scale(k2[j], 2)), C.add(C.scale(k3[j], 2), k4[j])), h / 6)));
+  }
+  return y;
+}
+LX.check("closed-form amplitudes match RK4 integration of the Schrödinger equation (Ω=1.3, Δ=0.7, t=7)", () => {
+  const [a, b] = integrate(1.3, 0.7, 7), ex = amp(7, 1.3, 0.7);
+  const err = Math.hypot(a.re - ex.a.re, a.im - ex.a.im, b.re - ex.b.re, b.im - ex.b.im);
+  return { pass: err < 1e-8, detail: err.toExponential(2) };
+});
+LX.check("norm conserved: |a|² + |b|² = 1", () => [0.3, 2.1, 9.7].every(t => { const { a, b } = amp(t, 0.8, -1.9); return LX.near(LX.C.abs2(a) + LX.C.abs2(b), 1, 1e-12); }));
+LX.check("π-pulse on resonance inverts: P↑(π/Ω) = 1", () => LX.near(Pup(PI / 0.7, 0.7, 0), 1, 1e-12));
+LX.check("π/2-pulse reaches the +y equator state: fidelity 1", () => LX.near(fidelity(PI / 2, "eq"), 1, 1e-12));
+LX.check("3π/2-pulse: P↑ = 1/2 but fidelity 0 with the +y target", () => LX.near(Pup(1.5 * PI, 1, 0), 0.5, 1e-12) && Math.abs(fidelity(1.5 * PI, "eq")) < 1e-12);
+LX.check("every target length lies within the slider range", () => Object.values(TARGETS).every(T => T.taus.every(t => t > 0 && t < TAUMAX)));
+LX.check("peak population Ω²/Ω_R² reached at t = π/Ω_R", () => { const W = 1, D = 2, R = rabi(W, D); return LX.near(Pup(PI / R, W, D), W * W / (R * R), 1e-12); });
+LX.check("Bloch vector keeps its angle to the drive axis: r·n = −Δ/Ω_R", () => {
+  const W = 0.9, D = 1.4, R = rabi(W, D);
+  return [0, 1.7, 5.2].every(t => { const r = bloch(t, W, D); return LX.near((r[0] * W + r[2] * D) / R, -D / R, 1e-12); });
+});
+</script>

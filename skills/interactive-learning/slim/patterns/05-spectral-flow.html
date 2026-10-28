@@ -1,0 +1,241 @@
+<!-- GENERATED from patterns/05-spectral-flow.html by tests/sync-base.mjs; edit that file, then run the script. -->
+<title>Avoided Crossings</title>
+<!--
+PATTERN 05 · SPECTRAL FLOW
+When to use     Eigenvalues move as a parameter is tuned; levels approach, repel or cross, and the
+                eigenvectors exchange character where they come close. Use it for avoided crossings,
+                Landau–Zener, adiabatic following, level repulsion and the von Neumann–Wigner
+                no-crossing rule, band anticrossings and hybridisation gaps, Zeeman/Stark maps,
+                quantum annealing gaps, spectral flow under flux insertion.
+Widget anatomy  (1) spectrum E_n(ε): dashed diabatic (uncoupled) levels, solid adiabatic levels coloured
+                    by their character, a pink cursor handle that sets ε (drag it or use arrow keys);
+                (2) eigenvector inspector: one stacked bar per eigenstate showing its composition at
+                    the cursor;
+                (3) sliders ε, Δ and (4-level model only) g; a model switch; "Keep a copy" ghosts the
+                    spectrum; jumps to the true crossing and to the cursor positions that matter;
+                (4) readouts: energies, spacing at the cursor, minimum spacing, mixing angle;
+                (5) a "What you are looking at" guide that names every mark.
+Layout          hero: the spectrum is the object of study and gets the big cell; the inspector, the
+                controls and the readouts are stacked in the narrow column next to it, so the bars and
+                the cursor are read together.
+Teaching moments  Suggestions for the chapter around the widget:
+                - choice: switch on a small Δ; do the levels shift, repel, or stick? (gap 2Δ at ε = 0)
+                - number: estimate the minimum gap for Δ = 0.4 before reading it (0.8).
+                - choice: following the lower level from ε = −3.5 to +3.5, what is it made of at the
+                  end? (it swaps character: adiabatic passage)
+                - choice: composition at ε = 0 for a tiny Δ (exactly 50/50; Δ sets only the window).
+                - set: in the 4-level model, find a crossing that survives at g = 0, then remove it.
+                - explain: why does one parameter generically fail to produce a degeneracy?
+Adapt by        Replace hamiltonian(ε) with any real-symmetric H(λ) (LX.eigSym) and charOf(vec) with
+                the projector whose weight you want to colour by (a basis state, a parity, a band).
+                Keep the per-segment colouring: it is what makes character exchange visible.
+Physics         2-level: H = (ε/2)σ_z + Δσ_x, E_± = ±√(ε²/4 + Δ²), minimum gap 2Δ at ε = 0;
+                mixing angle tan θ = 2Δ/ε, lower state (−sin θ/2, cos θ/2), |⟨1|−⟩|² = (1 − ε/2R)/2.
+                4-level: diabatic energies ε/2, −ε/2 (even), ε/4 + 1/2, −ε/4 − 1/2 (odd), coupling Δ
+                within each sector, g between sectors. For g = 0 parity is conserved and levels of
+                opposite parity cross exactly (e.g. at ε = 2 and ε = −2/3).
+-->
+<!-- LX:HEAD -->
+<style>
+/* LX:STYLE */
+/* page-specific styles go below */
+</style>
+
+<main class="lx-page">
+  <header class="lx-head">
+    <p class="lx-eyebrow">Quantum mechanics · Two-level systems</p>
+    <h1>Why do energy levels refuse to cross?</h1>
+    <p class="lx-lede">Tune the detuning \(\varepsilon\) of two states and watch their energies approach. A coupling \(\Delta\) turns the crossing into an avoided crossing, and the two eigenstates swap character as you pass it.</p>
+    <div class="lx-meta">
+      <span>\(H = \tfrac{\varepsilon}{2}\sigma_z + \Delta\,\sigma_x\) in the basis \(\ket{1}, \ket{2}\); energies in units of the coupling scale, \(\hbar = 1\)</span>
+    </div>
+  </header>
+  <div class="lx-stage" id="stage"></div>
+  <footer class="lx-foot">
+    <span>Source: model knowledge. Standard treatment: Cohen-Tannoudji, Diu &amp; Laloë, <i>Quantum Mechanics</i> vol. 1, ch. IV; Landau &amp; Lifshitz, <i>Quantum Mechanics</i>, ch. XI (intersection of terms).</span>
+  </footer>
+</main>
+
+<script>
+/* LX:LIB */
+</script>
+
+<script>
+/* PATTERN */
+const S = { model: "two", eps: -1.2, D: 0.4, g: 0 };
+const ELIM = [-4, 4];
+/* 4-level model: even sector (A, B), odd sector (C, D); g couples the sectors with generic weights. */
+function H4(eps, D = S.D, g = S.g) {
+  return [[eps / 2, D, g, 0.7 * g],
+          [D, -eps / 2, -0.5 * g, g],
+          [g, -0.5 * g, eps / 4 + 0.5, D],
+          [0.7 * g, g, D, -eps / 4 - 0.5]];
+}
+/* Spectrum at eps: ascending energies and the "character" weight of each eigenvector
+   (weight on |1> for the 2-level model, even-parity weight for the 4-level model). */
+function spectrum(eps, model = S.model, D = S.D, g = S.g) {
+  if (model === "two") {
+    const R = Math.sqrt(eps * eps / 4 + D * D), w1 = R > 0 ? (1 - eps / (2 * R)) / 2 : (eps < 0 ? 1 : 0);
+    /* at D = 0 the "lower" level is whichever diabatic level is lower; keep the character pure */
+    const wl = D === 0 ? (eps < 0 ? 1 : 0) : w1;
+    return { E: [-R, R], w: [wl, 1 - wl] };
+  }
+  const r = LX.eigSym(H4(eps, D, g));
+  return { E: r.values, w: r.vectors.map(v => v[0] ** 2 + v[1] ** 2) };
+}
+const diabats = () => S.model === "two"
+  ? [[e => e / 2, "s1"], [e => -e / 2, "s2"]]
+  : [[e => e / 2, "s1"], [e => -e / 2, "s1"], [e => e / 4 + 0.5, "s3"], [e => -e / 4 - 0.5, "s3"]];
+const cls = w => (w > 0.5 ? "s1" : S.model === "two" ? "s2" : "s3");
+const fmt = (v, d = 3) => v.toFixed(d).replace("-", "−");
+
+
+/* ---- layout: hero = spectrum big; inspector, controls and readouts in the side column ---- */
+const W0 = LX.widget(document.getElementById("stage"), { layout: "hero", title: "Energy levels as the detuning is tuned", badge: "exact" });
+const figS = LX.fig(W0, "Spectrum \\(E(\\varepsilon)\\): dashed = uncoupled levels, solid = true eigenvalues");
+const PS = LX.plot(figS, { xlim: ELIM, ylim: [-2.8, 2.8], xlabel: "\\varepsilon", ylabel: "E", height: 560 });
+const legBox = LX.h("div", {}, figS);
+const capI = LX.h("figcaption", {}, null);
+const figI = LX.fig(W0); figI.prepend(capI);
+const PI = LX.plot(figI, { xlim: [0.3, 2.7], ylim: [0, 1], ticks: false, height: 230, width: 340, margin: { b: 32, t: 12, l: 30 } });
+/* the handle lives in its own layer above the plot layers: it is never cleared, only moved */
+const handle = LX.s("circle", { r: 8, class: "f4", "aria-label": "detuning cursor; drag or use arrow keys" }, LX.s("g", {}, PS.svg));
+LX.drag(PS, handle, { get: () => [S.eps, 0], step: [0.05, 0], set: x => eS.set(Math.round(LX.clamp(x, ...ELIM) * 100) / 100) });
+
+const ctl = LX.controls(W0);
+const eS = LX.slider(ctl, { id: "eps", label: "detuning \\(\\varepsilon\\) (cursor)", min: ELIM[0], max: ELIM[1], step: 0.01, value: S.eps, onInput: v => { S.eps = v; update(); } });
+const dS = LX.slider(ctl, { id: "D", label: "coupling \\(\\Delta\\)", min: 0, max: 1.5, step: 0.01, value: S.D, onInput: v => { S.D = v; update(); } });
+const gS = LX.slider(ctl, { id: "g", label: "symmetry-breaking coupling \\(g\\)", min: 0, max: 0.6, step: 0.01, value: S.g, onInput: v => { S.g = v; update(); } });
+const modelSeg = LX.segmented(ctl, { id: "model", label: "Model", value: "two",
+  options: [{ value: "two", label: "2 levels" }, { value: "four", label: "4 levels, 2 symmetries" }], onChange: v => setModel(v) });
+const cmp = LX.h("div", { class: "lx-group" }, ctl);
+LX.h("span", { text: "Compare" }, cmp);
+const cmpRow = LX.h("div", { class: "lx-row" }, cmp);
+LX.button(cmpRow, "Keep a copy", () => PS.ghost(), { id: "ghost" });
+LX.button(cmpRow, "Clear copy", () => PS.clearGhost(), { id: "unghost" });
+LX.limits(ctl, [
+  { label: "True crossing", title: "Δ = 0, g = 0", apply: () => { dS.set(0); gS.set(0); } },
+  { label: "Far left", title: "ε = −4", apply: () => eS.set(-4) },
+  { label: "At ε = 0", title: "cursor on the crossing", apply: () => eS.set(0) },
+  { label: "Far right", title: "ε = +4", apply: () => eS.set(4) }
+]);
+const ro = LX.h("div", { class: "lx-readouts" }, ctl);
+const rE = LX.readout(ro, "energies:");
+const rGap = LX.readout(ro, "smallest spacing at cursor:");
+const rMin = LX.readout(ro, "smallest spacing over all \\(\\varepsilon\\):");
+const rTh = LX.readout(ro, "mixing angle \\(\\theta = \\arctan(2\\Delta/\\varepsilon)\\):");
+
+LX.guide(W0, [
+  ["Cursor", "The pink handle under the spectrum and the vertical line through it mark one value of the detuning \\(\\varepsilon\\). Drag it (or use the arrow keys, or the \\(\\varepsilon\\) slider). The dots on the line are the eigenvalues at that \\(\\varepsilon\\); everything in the inspector and the readouts refers to this point."],
+  ["Dashed lines", "The uncoupled (diabatic) levels: the energies of the basis states \\(\\ket{1}\\) at \\(+\\varepsilon/2\\) (blue) and \\(\\ket{2}\\) at \\(-\\varepsilon/2\\) (orange). Without coupling they simply cross at \\(\\varepsilon = 0\\)."],
+  ["Solid curves", "The true eigenvalues \\(E_\\pm = \\pm\\sqrt{\\varepsilon^2/4 + \\Delta^2}\\) of the coupled Hamiltonian (adiabatic levels). Each piece is coloured by the basis state that dominates it: blue where the eigenstate is mostly \\(\\ket{1}\\), orange where it is mostly \\(\\ket{2}\\)."],
+  ["Inspector (bars)", "One bar per eigenstate at the cursor, lower state \\(\\ket{-}\\) on the left. The blue part is its weight \\(|\\langle 1|\\cdot\\rangle|^2\\) on \\(\\ket{1}\\), the orange part the weight on \\(\\ket{2}\\); the dashed line marks one half. In the 4-level model the colours are even (blue) and odd (green) parity."],
+  ["\\(\\Delta\\)", "The matrix element that couples \\(\\ket{1}\\) and \\(\\ket{2}\\). At \\(\\Delta = 0\\) the solid curves lie on the dashed ones. The green bar at \\(\\varepsilon = 0\\) marks the minimum gap \\(2\\Delta\\)."],
+  ["Model, \\(g\\)", "The 4-level model has two even and two odd states; \\(\\Delta\\) couples states of the same parity, \\(g\\) couples even to odd (it breaks the symmetry). The \\(g\\) slider appears only in this model."],
+  ["Keep a copy", "Freezes a faded copy of the spectrum, for example at \\(\\Delta = 0\\), to compare with what follows."],
+  ["Readouts", "Energies at the cursor, the spacing between neighbouring levels there, the smallest spacing anywhere on the plot, and the mixing angle \\(\\theta\\) (2-level model)."],
+  ["What to look for", "<b>Repulsion:</b> with \\(\\Delta > 0\\) the solid curves bend away from each other near \\(\\varepsilon = 0\\) and never touch. <b>Gap equals coupling:</b> the smallest spacing is exactly \\(2\\Delta\\); raise \\(\\Delta\\) and watch the readout follow. <b>Character swap:</b> drag the cursor from left to right along the lower curve; its colour changes from blue to orange and its bar goes from all blue through 50/50 at \\(\\varepsilon = 0\\) to all orange. The width of the region where this happens is about \\(4\\Delta\\). <b>Symmetry:</b> in the 4-level model with \\(g = 0\\), blue and green curves cross freely; any \\(g > 0\\) opens a gap at every crossing."]
+]);
+
+function setModel(v) {
+  S.model = v; modelSeg.set(v, false); PS.clearGhost();
+  gS.el.style.display = v === "two" ? "none" : "";
+  gS.input.disabled = v === "two";
+  rTh.el.style.display = v === "two" ? "" : "none";
+  capI.innerHTML = v === "two"
+    ? "Eigenstates at the cursor: weight on \\(\\ket{1}\\) (blue) and \\(\\ket{2}\\) (orange)"
+    : "Eigenstates at the cursor: even-parity weight (blue) and odd-parity weight (green)";
+  LX.typeset(capI); update();
+}
+
+let lvlTex = null, gapTex = null;
+function update() {
+  const eps = LX.linspace(ELIM[0], ELIM[1], 401), specs = eps.map(e => spectrum(e));
+  const n = specs[0].E.length;
+  PS.clear(); PS.clear("top");
+  PS.vline(0, { cls: "gr" }); PS.hline(0, { cls: "gr" });
+  for (const [f, c] of diabats()) PS.fn(f, { cls: c + " thin dash" });
+  /* adiabatic levels, split into runs of constant character so the colour swap is visible */
+  let minGap = Infinity;
+  for (let k = 0; k < n; k++) {
+    let run = [], c = null;
+    specs.forEach((sp, i) => {
+      const ck = cls(sp.w[k]), p = [eps[i], sp.E[k]];
+      if (c !== null && ck !== c) { run.push(p); PS.path(run, { cls: c }); run = []; }
+      run.push(p); c = ck;
+      if (k < n - 1) minGap = Math.min(minGap, sp.E[k + 1] - sp.E[k]);
+    });
+    PS.path(run, { cls: c });
+  }
+  const sp = spectrum(S.eps);
+  PS.vline(S.eps, { cls: "sm", layer: "top" });
+  sp.E.forEach((e, k) => PS.dot(S.eps, e, { r: 4.5, cls: sp.w[k] > 0.5 ? "f1" : S.model === "two" ? "f2" : "f3" }));
+  handle.setAttribute("cx", PS.X(S.eps)); handle.setAttribute("cy", PS.Y(PS.ylim[0]) - 10);
+  /* basis-state labels: created once per model, not per redraw */
+  if (!lvlTex || lvlTex.model !== S.model) {
+    PS.clear("tex");
+    lvlTex = { model: S.model };
+    if (S.model === "two") { PS.tex(3.9, 1.95, "\\ket{1}", { anchor: "se" }); PS.tex(3.9, -1.95, "\\ket{2}", { anchor: "ne" }); }
+    gapTex = S.model === "two" ? PS.tex(0, 0, "2\\Delta", { anchor: "w", color: "var(--c3)" }) : null;
+    legBox.replaceChildren();
+    LX.legend(legBox, S.model === "two"
+      ? [["mostly \\(\\ket{1}\\)", "--accent", "line"], ["mostly \\(\\ket{2}\\)", "--c2", "line"], ["uncoupled level", "--muted", "dash"]]
+      : [["mostly even", "--accent", "line"], ["mostly odd", "--c3", "line"], ["uncoupled level", "--muted", "dash"]]);
+  }
+
+  /* the minimum gap 2Δ, marked at ε = 0 */
+  if (gapTex) {
+    const show = S.D > 0.06;
+    if (show) { PS.line(0, -S.D, 0, S.D, { cls: "s3", layer: "top" }); PS.line(-0.08, S.D, 0.08, S.D, { cls: "s3", layer: "top" }); PS.line(-0.08, -S.D, 0.08, -S.D, { cls: "s3", layer: "top" }); }
+    gapTex.style.display = show ? "" : "none"; if (show) PS.placeTex(gapTex, 0.12, 0, "w");
+  }
+  /* inspector: one stacked bar per eigenstate */
+  PI.setLim([0.3, n + 0.7], [0, 1]); PI.clearAll();
+  const other = S.model === "two" ? "f2" : "f3";
+  sp.w.forEach((w, k) => {
+    const x = k + 1, hw = 0.3;
+    PI.path([[x - hw, 0], [x + hw, 0], [x + hw, w], [x - hw, w]], { cls: "f1", close: true });
+    PI.path([[x - hw, w], [x + hw, w], [x + hw, 1], [x - hw, 1]], { cls: other, close: true });
+    PI.tex(x, 0, S.model === "two" ? (k ? "\\ket{+}" : "\\ket{-}") : `E_${k + 1}`, { anchor: "n" });
+  });
+  PI.hline(0.5, { cls: "sm dash", layer: "top" });
+  PI.tex(0.3, 0.5, "\\tfrac12", { anchor: "e" });
+
+  const gaps = sp.E.slice(1).map((e, k) => e - sp.E[k]);
+  rE.set(sp.E.map(e => fmt(e, 2)).join(", "));
+  rGap.set(fmt(Math.min(...gaps)));
+  rMin.set(fmt(minGap) + (S.model === "two" ? `  (2Δ = ${fmt(2 * S.D)})` : ""));
+  rTh.set(S.D === 0 && S.eps === 0 ? "undefined" : (Math.atan2(2 * S.D, S.eps) * 180 / Math.PI).toFixed(1) + "°");
+}
+setModel("two");
+
+/* ---- self-tests ---- */
+let seed = 7; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+LX.check("2-level: E± = ±√(ε²/4 + Δ²) matches eigSym", () => {
+  for (let k = 0; k < 20; k++) {
+    const e = 8 * rnd() - 4, D = 1.5 * rnd(), r = LX.eigSym([[e / 2, D], [D, -e / 2]]), sp = spectrum(e, "two", D);
+    const v = r.vectors[0];
+    if (!LX.near(r.values[0], sp.E[0], 1e-10) || !LX.near(r.values[1], sp.E[1], 1e-10) || !LX.near(v[0] ** 2, sp.w[0], 1e-9)) return { pass: false, detail: [e, D].join(",") };
+  }
+  return true;
+});
+LX.check("2-level: minimum gap is 2Δ, at ε = 0", () => {
+  const gaps = LX.linspace(-4, 4, 801).map(e => { const s = spectrum(e, "two", 0.37); return [e, s.E[1] - s.E[0]]; });
+  const m = gaps.reduce((a, b) => (b[1] < a[1] ? b : a));
+  return LX.near(m[1], 0.74, 1e-12) && Math.abs(m[0]) < 1e-9;
+});
+LX.check("2-level: 50/50 at ε = 0; character swaps from |1⟩ to |2⟩", () => {
+  const a = spectrum(0, "two", 0.2).w[0], l = spectrum(-40, "two", 0.2).w[0], r = spectrum(40, "two", 0.2).w[0];
+  return LX.near(a, 0.5, 1e-12) && l > 0.999 && r < 0.001;
+});
+LX.check("4-level, g = 0: opposite-parity levels cross exactly at ε = 2; parity is pure", () => {
+  const s = spectrum(2, "four", 0.4, 0);
+  const deg = Math.abs(s.E[1] - s.E[0]) < 1e-9 && Math.abs(s.E[3] - s.E[2]) < 1e-9;
+  const s2 = spectrum(1, "four", 0.4, 0);
+  return { pass: deg && s2.w.every(w => w < 1e-9 || w > 1 - 1e-9), detail: s.E.join(",") };
+});
+LX.check("4-level: g > 0 lifts every crossing (no-crossing rule)", () => {
+  const minGap = Math.min(...LX.linspace(-4, 4, 1601).map(e => { const E = spectrum(e, "four", 0.4, 0.3).E; return Math.min(E[1] - E[0], E[2] - E[1], E[3] - E[2]); }));
+  return { pass: minGap > 0.05, detail: minGap };
+});
+</script>

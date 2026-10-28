@@ -1,0 +1,209 @@
+<!-- GENERATED from patterns/03-geometry-3d.html by tests/sync-base.mjs; edit that file, then run the script. -->
+<title>The Bloch Sphere</title>
+<!--
+PATTERN 03 · 3D GEOMETRY
+When to use     The insight is a geometric picture in three dimensions: a state space, an orbit, a surface,
+                a direction. The learner needs to turn it around and see linked 2D views of it.
+                Bloch sphere (qubits, spin-1/2), Poincaré sphere (polarization), Brillouin zones and
+                Fermi surfaces, Berry curvature / solid angle, d-vector of H(k) = d(k)·σ.
+Widget anatomy  (1) orthographic 3D view (LX.camera), drag to rotate; great circles and axes drawn as
+                    projected polylines whose back halves are faded and dashed; the state arrow with its
+                    angle arcs and its shadow on the equatorial plane. Floating buttons on the figure
+                    (.lx-float): "Keep a copy" (primary) freezes the current state as a pink dashed
+                    arrow |χ⟩, "Clear copy" removes it; a legend under the figure names both arrows;
+                (2) the same state as two complex amplitudes (phasors);
+                (3) measurable consequences: Z- and X-basis probabilities;
+                (4) controls cell: θ, φ, global phase γ, named states, "Go to antipode", readouts
+                    including the overlap with the copy.
+Layout          grid2: sphere, phasors, probabilities and the controls in the fourth cell, so no quadrant
+                stays empty. Collapses to one column on phones.
+Teaching moments  Suggestions for the chapter around the widget:
+                - choice: where does |+⟩ sit (equator, not θ = π/4)?
+                - set: "find a state orthogonal to the copy" (answer: the antipode; overlap 0);
+                - choice: what does γ do to the arrow (nothing)?
+                - choice: what does sweeping φ do to the Z statistics (nothing) and to X (swings 1 → 0)?
+                - explain: why the sphere uses θ/2 in the amplitudes.
+How to adapt    Replace vec() with the 3D object of your model; keep poly3() for depth-aware drawing.
+                Put every coordinate the learner should feel on a slider and every named point on a button.
+Physics         |ψ⟩ = e^{iγ}[cos(θ/2)|0⟩ + e^{iφ} sin(θ/2)|1⟩], Bloch vector r = (⟨σx⟩, ⟨σy⟩, ⟨σz⟩)
+                = (sinθ cosφ, sinθ sinφ, cosθ); |⟨χ|ψ⟩|² = (1 + r_χ·r_ψ)/2; P(±x) = (1 ± ⟨σx⟩)/2.
+-->
+<!-- LX:HEAD -->
+<style>
+/* LX:STYLE */
+</style>
+
+<main class="lx-page">
+  <header class="lx-head">
+    <p class="lx-eyebrow">Quantum information · Single qubit</p>
+    <h1>Why is every qubit state a point on a sphere?</h1>
+    <p class="lx-lede">Set the two angles of a pure qubit state and watch the arrow on the Bloch sphere, its two complex amplitudes and its measurement probabilities move together. Drag the sphere to rotate it.</p>
+    <div class="lx-meta">
+      <span>\(\ket{\psi} = e^{i\gamma}\big[\cos\tfrac{\theta}{2}\ket{0} + e^{i\varphi}\sin\tfrac{\theta}{2}\ket{1}\big]\), \(\sigma_z\ket{0} = +\ket{0}\), \(\ket{\pm} = (\ket{0}\pm\ket{1})/\sqrt2\), \(\ket{\pm i} = (\ket{0}\pm i\ket{1})/\sqrt2\)</span>
+    </div>
+  </header>
+  <div class="lx-stage" id="stage"></div>
+  <footer class="lx-foot">
+    <span>Source: model knowledge. Standard treatment: Nielsen &amp; Chuang, <i>Quantum Computation and Quantum Information</i>, ch. 1 and ch. 4; Sakurai &amp; Napolitano, <i>Modern Quantum Mechanics</i>, ch. 3.</span>
+  </footer>
+</main>
+
+<script>
+/* LX:LIB */
+</script>
+
+<script>
+/* PATTERN */
+const { C } = LX, PI = Math.PI;
+const S = { th: PI / 3, ph: PI / 4, ga: 0, kept: null };
+
+/* Amplitudes and Bloch vector. Expectation values are computed from the amplitudes, not from θ, φ. */
+const amps = (th = S.th, ph = S.ph, ga = S.ga) => [C.scale(C.expi(ga), Math.cos(th / 2)), C.scale(C.expi(ga + ph), Math.sin(th / 2))];
+function vec([a, b]) { const ab = C.mul(C.conj(a), b); return [2 * ab.re, 2 * ab.im, C.abs2(a) - C.abs2(b)]; }
+const inner = ([a1, b1], [a2, b2]) => C.add(C.mul(C.conj(a1), a2), C.mul(C.conj(b1), b2));   // ⟨1|2⟩
+
+/* ---- widget ---- */
+const W = LX.widget(document.getElementById("stage"), { layout: "grid2", title: "One qubit, three views", badge: "exact" });
+const figB = LX.fig(W);
+/* extra headroom at the top keeps the floating buttons clear of the sphere */
+const PB = LX.plot(figB, { xlim: [-1.5, 1.5], ylim: [-1.4, 1.6], ticks: false, frame: false, width: 360, height: 360, margin: { l: 6, r: 6, t: 6, b: 6 }, aria: "Bloch sphere" });
+const cam = LX.camera({ yaw: -2.0, pitch: 0.32, onChange: () => drawSphere() });
+cam.attach(PB.svg);
+const flt = LX.h("div", { class: "lx-float" }, figB);
+LX.button(flt, "Keep a copy", () => { S.kept = amps(); draw(); }, { id: "keep", cls: "lx-primary", title: "Freeze the current state as the pink reference arrow" });
+const bClear = LX.button(flt, "Clear copy", () => { S.kept = null; draw(); }, { id: "clear-copy" });
+LX.legend(figB, [["state \\(\\ket\\psi\\)", "--accent", "line"], ["copy \\(\\ket\\chi\\)", "--c4", "dash"], ["\\(\\varphi\\)", "--c2", "line"], ["\\(\\theta\\)", "--c3", "line"]]);
+LX.h("figcaption", { text: "Bloch sphere: the arrow is (⟨σx⟩, ⟨σy⟩, ⟨σz⟩). Drag to rotate." }, figB);
+
+const PA = LX.plot(LX.fig(W, "Amplitudes in the complex plane: \\(\\alpha = \\braket{0}{\\psi}\\) (blue), \\(\\beta = \\braket{1}{\\psi}\\) (orange)"),
+  { xlim: [-1.15, 1.15], ylim: [-1.15, 1.15], width: 320, height: 328, xlabel: "\\mathrm{Re}", ylabel: "\\mathrm{Im}", xticks: 4, yticks: 4 });
+const PM = LX.plot(LX.fig(W, "Measurement probabilities in the \\(Z\\) basis (blue) and the \\(X\\) basis (orange)"),
+  { xlim: [0, 5], ylim: [0, 1.15], width: 360, height: 260, margin: { b: 44 }, yticks: 4 });
+/* category axis: drop the numeric x ticks and vertical grid lines */
+[...PM.g.axes.querySelectorAll("text")].filter(t => t.getAttribute("text-anchor") === "middle").forEach(t => t.remove());
+[...PM.g.grid.querySelectorAll("line")].filter(l => l.getAttribute("x1") === l.getAttribute("x2")).forEach(l => l.remove());
+
+const ctl = LX.controls(W);
+const pifmt = v => (v / PI).toFixed(3) + "π";
+const thS = LX.slider(ctl, { id: "th", label: "polar angle \\(\\theta\\)", min: 0, max: PI, step: 0.005, value: S.th, fmt: pifmt, onInput: v => { S.th = v; draw(); } });
+const phS = LX.slider(ctl, { id: "ph", label: "relative phase \\(\\varphi\\)", min: 0, max: 2 * PI, step: 0.005, value: S.ph, fmt: pifmt, onInput: v => { S.ph = v; draw(); } });
+const gaS = LX.slider(ctl, { id: "ga", label: "global phase \\(\\gamma\\)", min: 0, max: 2 * PI, step: 0.005, value: 0, fmt: pifmt, onInput: v => { S.ga = v; draw(); } });
+const grp = LX.h("div", { class: "lx-group", id: "states" }, ctl);
+LX.h("span", { text: "Named states" }, grp);
+const row = LX.h("div", { class: "lx-row" }, grp);
+const setState = (th, ph) => { thS.set(th, false); phS.set(ph, false); S.th = th; S.ph = ph; draw(); };
+for (const [lab, th, ph] of [["|0⟩", 0, 0], ["|1⟩", PI, 0], ["|+⟩", PI / 2, 0], ["|−⟩", PI / 2, PI], ["|+i⟩", PI / 2, PI / 2], ["|−i⟩", PI / 2, 3 * PI / 2]])
+  LX.button(row, lab, () => setState(th, ph));
+LX.button(LX.h("div", { class: "lx-row" }, ctl), "Go to antipode", () => setState(PI - S.th, (S.ph + PI) % (2 * PI)), { id: "anti" });
+const ro = LX.h("div", { class: "lx-readouts", style: "display:grid;gap:2px" }, ctl);
+const rA = LX.readout(ro, "\\(|\\alpha|^2 =\\)");
+const rB = LX.readout(ro, "\\(|\\beta|^2 =\\)");
+const rP = LX.readout(ro, "\\(\\arg\\beta - \\arg\\alpha =\\)");
+const rS = LX.readout(ro, "\\(\\vec r =\\)");
+const rO = LX.readout(ro, "overlap with copy \\(|\\braket{\\chi}{\\psi}|^2 =\\)");
+
+LX.guide(W, [
+  ["Sphere", "Every pure qubit state is one arrow of length 1. North pole \\(\\ket0\\), south pole \\(\\ket1\\), equator: equal superpositions. The orange arc is \\(\\varphi\\) (around the axis), the green arc \\(\\theta\\) (down from the north pole); the dashed lines drop the arrow onto the equatorial plane."],
+  ["Keep a copy", "Freezes the current state as the pink dashed arrow \\(\\ket\\chi\\); the overlap readout then compares the two. Clear copy removes it."],
+  ["Phasors", "The two complex amplitudes \\(\\alpha, \\beta\\) as arrows in the plane. Their lengths set the probabilities; only the angle between them matters physically."],
+  ["Bars", "Probabilities of the outcomes when measuring in the \\(Z\\) basis (\\(0, 1\\)) and in the \\(X\\) basis (\\(+, -\\))."],
+  ["\\(\\theta, \\varphi, \\gamma\\)", "Polar angle, relative phase, and a global phase that multiplies the whole state. Watch which views each one moves."],
+  ["Buttons", "Named states jump to the six axis points; Go to antipode jumps to the opposite point of the sphere."]
+]);
+
+const f = (v, d = 3) => (Math.abs(v) < 0.5 * 10 ** -d ? 0 : v).toFixed(d).replace("-", "−");
+
+/* ---- sphere ---- */
+const proj = v => cam.project(v);
+/* 3D polyline split into front runs (cls) and back runs (faded, dashed). */
+function poly3(pts, cls, back = "sm thin dash", layer = "main") {
+  let run = [], front = null;
+  const flush = () => { if (run.length > 1) PB.path(run, { cls: front ? cls : back, layer }); };
+  for (const p of pts) {
+    const [u, v, d] = proj(p), isF = d >= -1e-9;
+    if (front !== null && isF !== front) { run.push([u, v]); flush(); run = [run[run.length - 1]]; }
+    front = isF; run.push([u, v]);
+  }
+  flush();
+}
+const ring = fn => LX.linspace(0, 2 * PI, 121).map(fn);
+const at = (v, k = 1) => proj(v.map(c => c * k));
+function drawSphere() {
+  PB.clear(); PB.clear("top");
+  PB.path(ring(a => [Math.cos(a), Math.sin(a)]), { cls: "sm thin" });
+  poly3(ring(a => [Math.cos(a), Math.sin(a), 0]), "sm thin");
+  poly3(ring(a => [Math.cos(a), 0, Math.sin(a)]), "sm thin", "sm thin dash");
+  poly3(ring(a => [0, Math.cos(a), Math.sin(a)]), "sm thin", "sm thin dash");
+  for (const [v, name] of [[[0, 0, 1], "|0⟩"], [[0, 0, -1], "|1⟩"], [[1, 0, 0], "|+⟩"], [[-1, 0, 0], "|−⟩"], [[0, 1, 0], "|+i⟩"], [[0, -1, 0], "|−i⟩"]]) {
+    poly3([[0, 0, 0], v], "sm thin", "sm thin dash");
+    const [u, w] = at(v, 1.17); PB.text(u, w, name, { dy: 4 });
+  }
+  const r = vec(amps()), [rx, ry, rz] = r;
+  /* shadow on the equatorial plane, angle arcs */
+  poly3([[0, 0, 0], [rx, ry, 0], r], "sm dash", "sm thin dash");
+  poly3(LX.linspace(0, S.ph, 40).map(a => [0.32 * Math.cos(a), 0.32 * Math.sin(a), 0]), "s2", "s2 thin dash");
+  poly3(LX.linspace(0, S.th, 40).map(t => [0.38 * Math.sin(t) * Math.cos(S.ph), 0.38 * Math.sin(t) * Math.sin(S.ph), 0.38 * Math.cos(t)]), "s3", "s3 thin dash");
+  const pa = at([Math.cos(S.ph / 2), Math.sin(S.ph / 2), 0], 0.45); PB.text(pa[0], pa[1], "φ", { dy: 4, cls: "f2" });
+  const ta = at([Math.sin(S.th / 2) * Math.cos(S.ph), Math.sin(S.th / 2) * Math.sin(S.ph), Math.cos(S.th / 2)], 0.52); PB.text(ta[0], ta[1], "θ", { dy: 4, cls: "f3" });
+  if (S.kept) {
+    const [u, w] = at(vec(S.kept));
+    PB.arrow(0, 0, u, w, { cls: "s4 dash" });
+    PB.dot(u, w, { r: 4.5, cls: "f4" });
+    PB.text(u, w, "χ", { dy: -9, cls: "f4" });
+  }
+  const [u, w, d] = proj(r);
+  PB.arrow(0, 0, u, w, { cls: "s1" + (d < -1e-9 ? " dash" : "") });
+  PB.dot(u, w, { r: 4.5, cls: "f1" });
+}
+
+/* ---- phasors and probabilities ---- */
+function drawAmps(ab) {
+  PA.clear(); PA.clear("top");
+  PA.path(ring(a => [Math.cos(a), Math.sin(a)]), { cls: "sm thin dash" });
+  PA.hline(0, { cls: "sm thin" }); PA.vline(0, { cls: "sm thin" });
+  ab.forEach((z, i) => {
+    if (C.abs(z) > 1e-3) PA.arrow(0, 0, z.re, z.im, { cls: i ? "s2" : "s1" });
+    else PA.dot(0, 0, { r: 3, cls: i ? "f2" : "f1" });
+  });
+  /* labels sit beside the middle of each arrow, offset perpendicular to it */
+  ab.forEach((z, i) => {
+    const n = C.abs(z) > 1e-3 ? C.scale(C.mul(z, C.of(0, 1)), 0.13 / C.abs(z)) : C.of(0.1, i ? -0.12 : 0.12);
+    PA.text(z.re * 0.55 + n.re, z.im * 0.55 + n.im, i ? "β" : "α", { dy: 4, cls: i ? "f2" : "f1" });
+  });
+}
+function drawProbs(r) {
+  PM.clear(); PM.clear("fill"); PM.clear("top");
+  const bars = [[0.6, (1 + r[2]) / 2, "0", "a1", "s1"], [1.6, (1 - r[2]) / 2, "1", "a1", "s1"], [3.1, (1 + r[0]) / 2, "+", "a2", "s2"], [4.1, (1 - r[0]) / 2, "−", "a2", "s2"]];
+  for (const [x, p, lab, fill, line] of bars) {
+    const pts = [[x - 0.35, 0], [x - 0.35, p], [x + 0.35, p], [x + 0.35, 0]];
+    PM.path(pts, { cls: fill, layer: "fill", close: true }); PM.path(pts, { cls: line + " thin" });
+    PM.text(x, 0, lab, { dy: 15 }); PM.text(x, p, f(p, 2), { dy: -5 });
+  }
+  PM.text(1.1, 0, "Z basis", { dy: 32 }); PM.text(3.6, 0, "X basis", { dy: 32 });
+}
+function draw() {
+  const ab = amps(), r = vec(ab);
+  drawSphere(); drawAmps(ab); drawProbs(r);
+  bClear.disabled = !S.kept;
+  rA.set(f(C.abs2(ab[0]))); rB.set(f(C.abs2(ab[1])));
+  rP.set(C.abs(ab[1]) > 1e-6 && C.abs(ab[0]) > 1e-6 ? (((C.arg(ab[1]) - C.arg(ab[0]) + 4 * PI) % (2 * PI)) / PI).toFixed(3) + "π" : "undefined");
+  rS.set(`(${f(r[0], 2)}, ${f(r[1], 2)}, ${f(r[2], 2)})`);
+  rO.set(S.kept ? f(C.abs2(inner(S.kept, ab))) : "keep a copy first");
+}
+draw();
+
+/* ---- self-tests ---- */
+const rnd = LX.rng(7);
+LX.check("⟨σ⟩ from amplitudes equals (sinθ cosφ, sinθ sinφ, cosθ)", () => {
+  const th = 1.1, ph = 2.3, r = vec(amps(th, ph, 0.7));
+  return LX.near(r[0], Math.sin(th) * Math.cos(ph), 1e-12) && LX.near(r[1], Math.sin(th) * Math.sin(ph), 1e-12) && LX.near(r[2], Math.cos(th), 1e-12);
+});
+LX.check("antipodal Bloch vectors are orthogonal states", () => Math.abs(C.abs(inner(amps(0.8, 1.3, 0), amps(PI - 0.8, 1.3 + PI, 0)))) < 1e-12);
+LX.check("|⟨χ|ψ⟩|² = (1 + r_χ·r_ψ)/2 for random pairs", () => [0, 1, 2, 3, 4].every(() => {
+  const a = amps(PI * rnd(), 2 * PI * rnd(), 2 * PI * rnd()), b = amps(PI * rnd(), 2 * PI * rnd(), 2 * PI * rnd());
+  const ra = vec(a), rb = vec(b);
+  return LX.near(C.abs2(inner(a, b)), (1 + ra[0] * rb[0] + ra[1] * rb[1] + ra[2] * rb[2]) / 2, 1e-12);
+}));
+LX.check("global phase leaves the Bloch vector unchanged", () => { const r1 = vec(amps(2, 4, 0)), r2 = vec(amps(2, 4, 2.5)); return r1.every((v, i) => LX.near(v, r2[i], 1e-12)); });
+LX.check("P(+) = |⟨+|ψ⟩|² = (1 + ⟨σx⟩)/2", () => { const s = amps(1.9, 0.6, 0.3), plus = [C.of(Math.SQRT1_2), C.of(Math.SQRT1_2)]; return LX.near(C.abs2(inner(plus, s)), (1 + vec(s)[0]) / 2, 1e-12); });
+</script>

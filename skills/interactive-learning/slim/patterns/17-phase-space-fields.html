@@ -1,0 +1,286 @@
+<!-- GENERATED from patterns/17-phase-space-fields.html by tests/sync-base.mjs; edit that file, then run the script. -->
+<title>Cat-Qubit CNOT in Phase Space</title>
+<!--
+PATTERN 17 · FIELDS ON A PLANE
+Concept shape   The object is a function of two continuous variables, a field on a plane, and the insight
+                is in how its shape changes: blobs move, fringes appear and fade, a negative region opens.
+                Often two such fields (two subsystems, or two representations) change together.
+Use it for      Wigner and Husimi functions (coherent, squeezed and cat states, bosonic codes, entangling
+                gates between oscillators), decoherence of a superposition (fringes washing out), 2D
+                wavepackets and densities in a trap, vortices, |ψ(x, y)|² in a box or on a lattice,
+                order-parameter textures, any scalar field whose shape changes with time or a parameter.
+Widget anatomy  (1)+(2) two linked heatmaps, one per subsystem: the field, sign-coded (ink for > 0, pink
+                    for < 0, opacity ∝ |value|), with line markers on top for the features the text names
+                    (rings at the coherent components, coloured by branch; the path travelled; pump axes);
+                (3) controls under both figures: the logical state of each subsystem (segmented), time t/T
+                    as a scrub slider plus Play, which runs the evolution once to t = T; one physical
+                    parameter (cat size α); readouts (rotation angle, control purity, bit-flip distance).
+                The state selectors show the CURRENT logical state: the input while t < T, the output at
+                t = T, nothing lit (with a note) if the output is entangled. A run that ends in a new state
+                is seen in the controls as well as in the figures. Play at t = T applies the gate again.
+Layout          split: the two fields side by side at equal size, so one change can be compared across
+                both; controls span the full width below (lx-span2).
+Choosing the grid  The field is sampled on an n × n grid and drawn as a canvas image scaled into the plot
+                (an SVG <image>, smoothed by the browser). Choose n from the physics, not by eye:
+                  1. Find the smallest feature over the WHOLE slider range: here the interference fringes
+                     of a cat, period π/(2α) along Im β, smallest at α_max = 2.2 (0.71), versus the blob
+                     width 1/√2 · 2 = 1.4.
+                  2. Put at least 10 cells across that feature. The first version of this widget used
+                     46 cells over 7.2 units: 4.6 cells per fringe at α_max, visibly blocky. 120 cells
+                     give 11.8 per fringe at α_max and 16 at the default α, and look continuous.
+                  3. Do not go finer than about 2 screen pixels per cell (the plot area is ≈ 310 px wide,
+                     so n ≈ 150 is the useful maximum).
+                  4. Check the cost: n² × (terms per point) evaluations per frame for each field must fit
+                     the ~16 ms frame budget. Here 2 × 120² × ≤ 16 complex exponentials take ≈ 7 ms.
+                     If it does not fit, precompute what does not change, reduce terms, or drop to the
+                     smallest n that still satisfies step 2 — never below it.
+                Draw with a canvas, not one SVG <rect> per cell: 14 400 rects per figure are slow to
+                update and show hard cell edges; the scaled image is smooth and cheap. Colours are read
+                from the theme tokens (--fg, --c4) and redrawn when the theme changes. A self-test
+                (LX.check) asserts the cells-per-feature rule at the extreme of the slider range.
+Teaching moments  Suggestions for the chapter around the widget:
+                  - "Control |1⟩, target |0⟩: where does the target end?" (choice: −α, an X gate done by
+                    rotating phase space; the Target selector jumps to |1⟩);
+                  - "Control |+⟩, target |0⟩: what happens to the control's fringes?" (choice: they fade,
+                    purity → 1/2: the modes are entangled);
+                  - "Find inputs where the target ends where it started but the control changed" (set:
+                    control |±⟩, target |−⟩, run to t = T: phase kickback, the Control selector flips);
+                  - "Why does the target's bit-flip barrier never lower during the gate?" (explain: the
+                    two target components stay 2α apart; a rotation keeps distances);
+                  - transfer: a phase flip a_t during the gate commutes with the rotation up to a phase,
+                    so it stays a phase flip (a second widget, not an extra control here).
+Adapt by        Replace the field function. fieldPlot(P, {lim, n}) returns draw(f), where f(x, y) gives a
+                signed value scaled to [−1, 1]; everything else (canvas, colours, theme) is generic. For
+                one field use the aside layout; for a single field with a 1D cut, use hero with the cut
+                in the side column. Redo the grid choice above for the new smallest feature.
+Physics         Cat qubit: |0⟩ ≈ |α⟩, |1⟩ ≈ |−α⟩, |±⟩ ∝ |α⟩ ± |−α⟩, α real. Ideal adiabatic CNOT
+                (Guillaud & Mirrahimi 2019): U(t) = |0⟩⟨0|_c ⊗ 1 + |1⟩⟨1|_c ⊗ exp(iθ a_t†a_t), θ = πt/T, so
+                the target's coherent components rotate as |β⟩ → |β e^{iθ}⟩; at θ = π this is parity, an X.
+                The joint state is Σ_k c_k |b_k⟩_c|g_k⟩_t; each reduced state is ρ = Σ M_kl |x_k⟩⟨x_l| with
+                M_kl = c_k c_l* ⟨other_l|other_k⟩, and its Wigner function is the closed form
+                W[|x⟩⟨y|](β) = (2/π) ⟨y|x⟩ exp(−2(β* − y*)(β − x)). Exact, no truncation.
+-->
+<!-- LX:HEAD -->
+<style>
+/* LX:STYLE */
+/* page-specific styles go below */
+.ent-note { margin: 0; font-size: 12.5px; color: var(--c2); flex-basis: 100%; }
+</style>
+
+<main class="lx-page">
+  <header class="lx-head">
+    <p class="lx-eyebrow">Quantum information · Bosonic codes · Fields on a plane</p>
+    <h1>What does a CNOT between two cat qubits do in phase space?</h1>
+    <p class="lx-lede">Two oscillators, each storing a qubit in a pair of coherent states. The gate rotates the target's phase space by half a turn, but only in the branch where the control is \(\ket{1}\). Watch both Wigner functions while it runs.</p>
+    <div class="lx-meta">
+      <span>\(\ket{0} \approx \ket{\alpha}\), \(\ket{1} \approx \ket{-\alpha}\), \(\ket{\pm} \propto \ket{\alpha} \pm \ket{-\alpha}\), \(\alpha\) real; \(U(t) = \ket{0}\!\bra{0}_c \otimes 1 + \ket{1}\!\bra{1}_c \otimes \ee^{\ii\pi (t/T) a_t^\dagger a_t}\); ideal adiabatic gate</span>
+    </div>
+  </header>
+  <div class="lx-stage" id="stage"></div>
+  <footer class="lx-foot">
+    <span>Source: model knowledge. J. Guillaud and M. Mirrahimi, Phys. Rev. X <b>9</b>, 041053 (2019); S. Puri et al., Sci. Adv. <b>6</b>, eaay5901 (2020).</span>
+    <span>Widget: exact. Wigner functions of the reduced states in closed form, sampled on a 120 × 120 grid.</span>
+  </footer>
+</main>
+
+<script>
+/* LX:LIB */
+</script>
+
+<script>
+/* PATTERN */
+const C = LX.C, PI = Math.PI;
+/* Logical states as coherent-state superpositions: [coefficient, index] with index 0 → +α, 1 → −α. */
+const STATES = { "0": [[1, 0]], "1": [[1, 1]], "+": [[1, 0], [1, 1]], "-": [[1, 0], [-1, 1]] };
+/* ⟨a|b⟩ for coherent states */
+function ov(a, b) { return C.exp({ re: -(C.abs2(a) + C.abs2(b)) / 2 + a.re * b.re + a.im * b.im, im: a.re * b.im - a.im * b.re }); }
+/* Joint state after U(t): Σ_k c_k |b_k⟩_c |g_k⟩_t; the branch with control −α has its target rotated by θ. */
+function terms(ctl, tgt, alpha, t) {
+  const out = [];
+  for (const [cc, ci] of STATES[ctl]) for (const [ct, ti] of STATES[tgt]) {
+    let g = C.of(ti ? -alpha : alpha);
+    if (ci) g = C.mul(g, C.expi(PI * t));
+    out.push({ c: C.of(cc * ct), b: C.of(ci ? -alpha : alpha), g, ci });
+  }
+  return out;
+}
+/* Reduced state of one mode ("b" control, "g" target): ρ = Σ M_kl |x_k⟩⟨x_l|, normalised. */
+function reduced(T, m) {
+  const o = m === "b" ? "g" : "b", K = T.length, M = [];
+  let N = 0;
+  for (let k = 0; k < K; k++) { M[k] = []; for (let l = 0; l < K; l++) {
+    M[k][l] = C.mul(C.mul(T[k].c, C.conj(T[l].c)), ov(T[l][o], T[k][o]));
+    N += C.mul(M[k][l], ov(T[l][m], T[k][m])).re;
+  } }
+  for (const r of M) for (let l = 0; l < K; l++) r[l] = C.scale(r[l], 1 / N);
+  return { M, x: T.map(e => e[m]), K };
+}
+/* W(β) = Σ M_kl (2/π) ⟨x_l|x_k⟩ exp(−2 (β* − x_l*)(β − x_k)) */
+function wigner(R, bx, by) {
+  let w = 0;
+  for (let k = 0; k < R.K; k++) for (let l = 0; l < R.K; l++) {
+    const m = R.M[k][l]; if (C.abs2(m) < 1e-24) continue;
+    const u = C.conj(C.sub(C.of(bx, by), R.x[l])), v = C.sub(C.of(bx, by), R.x[k]);
+    w += C.mul(C.mul(m, ov(R.x[l], R.x[k])), C.exp(C.scale(C.mul(u, v), -2))).re;
+  }
+  return 2 / PI * w;
+}
+function purity(R) {
+  let p = 0;
+  for (let k = 0; k < R.K; k++) for (let l = 0; l < R.K; l++) for (let m = 0; m < R.K; m++) for (let n = 0; n < R.K; n++)
+    p += C.mul(C.mul(R.M[k][l], R.M[m][n]), C.mul(ov(R.x[l], R.x[m]), ov(R.x[n], R.x[k]))).re;
+  return p;
+}
+
+/* ---------- widget 1: the gate in phase space ---------- */
+const LIM = 3.6, NG = 120;
+const W1 = LX.widget(document.getElementById("stage"), { layout: "split", title: "The CNOT in phase space", badge: "exact" });
+/* Field on a plane: sample f(x, y) ∈ [−1, 1] on an n × n grid into a canvas and show it as an image
+   scaled into the plot area (the browser smooths it). Positive values in --fg, negative in --c4, opacity ∝ |f|.
+   Choose n from the smallest feature (see the header): ≥ 10 cells across it, ≤ ~2 screen px per cell. */
+function rgbOf(name) {
+  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim(), m = v.match(/^#([0-9a-f]{6})$/i);
+  return m ? [0, 2, 4].map(i => parseInt(m[1].slice(i, i + 2), 16)) : [128, 128, 128];
+}
+function fieldPlot(P, { lim, n }) {
+  const x0 = P.X(-lim), y0 = P.Y(lim);
+  const img = LX.s("image", { x: x0, y: y0, width: P.X(lim) - x0, height: P.Y(-lim) - y0, preserveAspectRatio: "none" });
+  P.svg.insertBefore(img, P.g.fill);
+  const cv = document.createElement("canvas"); cv.width = cv.height = n;
+  const cx = cv.getContext("2d"), data = cx.createImageData(n, n), grid = LX.linspace(-lim, lim, n);
+  return { n, cell: grid[1] - grid[0], draw(f) {
+    const pos = rgbOf("--fg"), neg = rgbOf("--c4"), d = data.data;
+    for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
+      const v = f(grid[i], grid[n - 1 - j]), c = v >= 0 ? pos : neg, o = 4 * (j * n + i);
+      d[o] = c[0]; d[o + 1] = c[1]; d[o + 2] = c[2]; d[o + 3] = Math.round(255 * 0.9 * Math.min(1, Math.abs(v)));
+    }
+    cx.putImageData(data, 0, 0);
+    img.setAttribute("href", cv.toDataURL());
+  } };
+}
+/* Wigner function of a reduced state as a fast closure: (x, y) → W·π/2 ∈ [−1, 1] (pairs precomputed). */
+function wignerField(R) {
+  const pairs = [];
+  for (let k = 0; k < R.K; k++) for (let l = 0; l < R.K; l++) {
+    if (C.abs2(R.M[k][l]) < 1e-24) continue;
+    const A = C.mul(R.M[k][l], ov(R.x[l], R.x[k]));
+    pairs.push([A.re, A.im, R.x[l].re, R.x[l].im, R.x[k].re, R.x[k].im]);
+  }
+  return (bx, by) => {
+    let w = 0;
+    for (const [ar, ai, lr, li, kr, ki] of pairs) {
+      const ur = bx - lr, ui = -(by - li), vr = bx - kr, vi = by - ki;
+      const m = Math.exp(-2 * (ur * vr - ui * vi)), e = -2 * (ur * vi + ui * vr);
+      w += m * (ar * Math.cos(e) - ai * Math.sin(e));
+    }
+    return w;   /* (2/π)·w is W; W·π/2 = w */
+  };
+}
+function phasePlot(caption) {
+  const P = LX.plot(LX.fig(W1, caption), { xlim: [-LIM, LIM], ylim: [-LIM, LIM], width: 380, height: 388, xlabel: "\\mathrm{Re}\\,\\beta", ylabel: "\\mathrm{Im}\\,\\beta" });
+  P.field = fieldPlot(P, { lim: LIM, n: NG });
+  P.heat = R => P.field.draw(wignerField(R));
+  return P;
+}
+const Pc = phasePlot("Control: Wigner function of its reduced state.");
+const Pt = phasePlot("Target: Wigner function of its reduced state.");
+const lab0 = Pc.tex(0, 0, "\\ket{0}", { keep: true, anchor: "n" }), lab1 = Pc.tex(0, 0, "\\ket{1}", { keep: true, anchor: "n" });
+
+/* State: the inputs `orig`, the number of completed gates k (mod 2, since CNOT² = 1), and the time t of the
+   current run. The target in the control-|1⟩ branch is rotated by π(k + t). The selection buttons show the
+   logical state: the start of the run while t < T, the output once t = T (none if the output is entangled). */
+const st = { orig: { c: "+", t: "0" }, k: 0 };
+function cnot(s) {
+  if (s.c === "0" || s.c === "1") return { c: s.c, t: s.c === "1" && (s.t === "0" || s.t === "1") ? (s.t === "0" ? "1" : "0") : s.t };
+  if (s.t === "+") return { ...s };
+  if (s.t === "-") return { c: s.c === "+" ? "-" : "+", t: "-" };
+  return null;   /* control in a superposition, target in |0⟩ or |1⟩: entangled output */
+}
+const label = n => (n % 2 ? cnot(st.orig) : st.orig);
+const runStart = () => label(st.k);
+function pick(which, v) {
+  const shown = label(st.k + (sT.get() >= 1 ? 1 : 0)) || { c: "0", t: "0" };
+  st.orig = { ...shown, [which]: v }; st.k = 0;
+  if (sT.get() >= 1) sT.set(0, false);
+  draw1();
+}
+const ctl = LX.controls(W1); ctl.classList.add("lx-span2");
+const opts = ["0", "1", "+", "-"].map(v => ({ value: v, label: `\\(\\ket{${v}}\\)` }));
+const sCtl = LX.segmented(ctl, { id: "ctl", label: "Control", value: "+", options: opts, onChange: v => pick("c", v) });
+const sTgt = LX.segmented(ctl, { id: "tgt", label: "Target", value: "0", options: opts, onChange: v => pick("t", v) });
+const sT = LX.slider(ctl, { id: "t", label: "time \\(t/T\\)", min: 0, max: 1, step: 0.01, value: 0.35, onInput: draw1 });
+const sA = LX.slider(ctl, { id: "alpha", label: "cat size \\(\\alpha\\)", min: 1, max: 2.2, step: 0.05, value: 1.6, onInput: draw1 });
+const play = LX.player(ctl, { id: "play", onFrame: dt => {
+  if (sT.get() >= 1 && dt === 0) { st.k = (st.k + 1) % 2; sT.set(0, false); }   /* run another CNOT on the output */
+  const t = Math.min(1, sT.get() + dt / 2.5); sT.set(t, false); draw1();
+  if (t >= 1) play.pause();
+} });
+const roTheta = LX.readout(ctl, "rotation \\(\\theta = \\pi t/T\\):");
+const roPur = LX.readout(roTheta.el.parentNode, "control purity \\(\\Tr\\rho_c^2\\):");
+const roSep = LX.readout(roTheta.el.parentNode, "target \\(\\ket{0}\\)–\\(\\ket{1}\\) distance:");
+const entNote = LX.h("p", { class: "ent-note", html: "Output entangled: neither cat has a state of its own, so no button is lit." }, ctl);
+LX.typeset(entNote);
+LX.legend(ctl, [["target, control-\\(\\ket{0}\\) branch", "--accent", "line"], ["target, control-\\(\\ket{1}\\) branch", "--c2", "line"], ["\\(W \\gt 0\\)", "--fg", "dot"], ["\\(W \\lt 0\\) (interference)", "--c4", "dot"]]);
+LX.guide(W1, [
+  ["Left panel", "The control's Wigner function. Blobs at \\(\\pm\\alpha\\) are \\(\\ket{0}\\) and \\(\\ket{1}\\); the pink-and-grey fringes between them are the coherence of a cat superposition."],
+  ["Right panel", "The target. Rings mark its coherent components: blue where the control is \\(\\ket{0}\\) (they stay put), orange where it is \\(\\ket{1}\\) (they rotate by \\(\\theta\\) along the orange arc). Dashed lines are the pump axes."],
+  ["Control, Target", "The logical state of each cat. During the gate they show the input; when the gate reaches \\(t = T\\) they jump to the output. If the output is entangled, no button is lit."],
+  ["Time", "Scrub \\(t/T\\), or press Play to run the gate to \\(t = T\\). Pressing Play again applies a second CNOT to the output."],
+  ["Readouts", "Control purity drops below 1 when the modes are entangled. The target's \\(\\ket{0}\\) and \\(\\ket{1}\\) stay \\(2\\alpha\\) apart throughout: the bit-flip barrier never lowers."]
+]);
+function ring(P, z, cls) { return LX.s("circle", { cx: P.X(z.re), cy: P.Y(z.im), r: Math.abs(P.X(Math.SQRT1_2) - P.X(0)), class: cls + " thin" }, P.g.top); }
+function draw1() {
+  const a = sA.get(), t = sT.get(), th = PI * (st.k + t), s0 = st.orig;
+  const T = terms(s0.c, s0.t, a, st.k + t);
+  const Rc = reduced(T, "b"), Rt = reduced(T, "g");
+  const shown = label(st.k + (t >= 1 ? 1 : 0));
+  sCtl.set(shown ? shown.c : null, false); sTgt.set(shown ? shown.t : null, false);
+  entNote.hidden = !!shown;
+  Pc.clearAll(); Pt.clearAll();
+  Pc.heat(Rc); Pt.heat(Rt);
+  ring(Pc, C.of(a), "s1"); ring(Pc, C.of(-a), "s2");
+  Pc.placeTex(lab0, a, -0.85, "n"); Pc.placeTex(lab1, -a, -0.85, "n");
+  Pt.fn(x => Math.sqrt(Math.max(0, a * a - x * x)), { a: -a, b: a, cls: "sm dash faint" });
+  Pt.fn(x => -Math.sqrt(Math.max(0, a * a - x * x)), { a: -a, b: a, cls: "sm dash faint" });
+  const hasB1 = T.some(e => e.ci), hasB0 = T.some(e => !e.ci);
+  if (hasB0) Pt.line(-LIM, 0, LIM, 0, { cls: "s1 thin dash" });
+  const drawn = [];
+  if (hasB1) Pt.line(-LIM * Math.cos(th), -LIM * Math.sin(th), LIM * Math.cos(th), LIM * Math.sin(th), { cls: "s2 thin dash" });
+  for (const e of T) {
+    if (drawn.some(d => C.abs2(C.sub(d, e.g)) < 1e-9)) continue; drawn.push(e.g);
+    if (e.ci && t > 0) {   /* arc travelled during this run */
+      const end = Math.atan2(e.g.im, e.g.re);
+      Pt.path(LX.linspace(end - PI * t, end, 60).map(p => [a * Math.cos(p), a * Math.sin(p)]), { cls: "s2" });
+    }
+    ring(Pt, e.g, e.ci ? "s2" : "s1");
+  }
+  roTheta.set((180 * t).toFixed(0) + "°");
+  roPur.set(purity(Rc).toFixed(3));
+  roSep.set("2α = " + (2 * a).toFixed(2) + " at every t");
+}
+draw1();
+/* redraw the heatmaps with the new colours when the theme changes */
+if (window.matchMedia) matchMedia("(prefers-color-scheme: dark)").addEventListener("change", draw1);
+new MutationObserver(draw1).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
+/* ---------- self-tests ---------- */
+LX.check("coherent overlap |⟨α|−α⟩|² = e^{−4α²}", () => LX.near(C.abs2(ov(C.of(1.3), C.of(-1.3))), Math.exp(-4 * 1.69), 1e-12));
+LX.check("odd cat: W(0) = −2/π", () => LX.near(wigner(reduced(terms("0", "-", 1.5, 0), "g"), 0, 0), -2 / PI, 1e-9));
+LX.check("even cat: W(0) = +2/π", () => LX.near(wigner(reduced(terms("0", "+", 1.5, 0), "g"), 0, 0), 2 / PI, 1e-9));
+LX.check("Wigner integrates to 1 (entangled mid-gate state)", () => {
+  const R = reduced(terms("+", "-", 1.4, 0.5), "g"), n = 160, xs = LX.linspace(-6, 6, n), d = xs[1] - xs[0];
+  let s = 0; for (const x of xs) for (const y of xs) s += wigner(R, x, y) * d * d;
+  return { pass: Math.abs(s - 1) < 1e-3, detail: s.toFixed(5) };
+});
+LX.check("truth table: control 1, target 0 → target at −α", () => { const e = terms("1", "0", 1.6, 1)[0]; return LX.near(e.g.re, -1.6, 1e-12) && Math.abs(e.g.im) < 1e-12; });
+LX.check("product input stays pure", () => LX.near(purity(reduced(terms("1", "+", 1.6, 0.4), "b")), 1, 1e-9));
+LX.check("control |+⟩, target |0⟩, t = T: purity ≈ 1/2", () => Math.abs(purity(reduced(terms("+", "0", 2, 1), "b")) - 0.5) < 1e-3);
+LX.check("phase kickback: control |+⟩ → |−⟩ (W_c(0) = −2/π)", () => LX.near(wigner(reduced(terms("+", "-", 1.8, 1), "b"), 0, 0), -2 / PI, 1e-6));LX.check("fast Wigner closure matches the reference formula", () => {
+  const R = reduced(terms("+", "-", 1.7, 0.3), "g"), f = wignerField(R);
+  return [[0, 0], [0.4, -1.1], [1.7, 0.2], [-2, 1]].every(([x, y]) => LX.near(f(x, y) * 2 / PI, wigner(R, x, y), 1e-9));
+});
+LX.check("grid resolves the finest fringe: ≥ 10 cells per period π/(2α) at the largest α", () => {
+  const per = PI / (2 * +sA.input.max), cells = per / Pc.field.cell;
+  return { pass: cells >= 10, detail: cells.toFixed(1) + " cells per fringe" };
+});
+</script>

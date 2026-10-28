@@ -1,0 +1,313 @@
+<!-- GENERATED from patterns/19-thermal-occupation.html by tests/sync-base.mjs; edit that file, then run the script. -->
+<title>Tunnelling and Transmission</title>
+<!--
+PATTERN 21 · SCATTERING / TUNNELLING / TRANSPORT
+When to use     A wave hits a structure and splits into a reflected and a transmitted part; flux is
+                conserved (R + T = 1) and what matters is the transmission T(E). Use it for tunnelling
+                through a barrier, the WKB exponential e^{−2κa}, above-barrier resonances, resonant
+                tunnelling through a double barrier, Fabry–Pérot cavities, Landauer conductance
+                G = (e²/h) Σ T, scattering phase shifts, intuition for Josephson / SIS junctions.
+Widget anatomy  (1) the potential V(x) (grey) with the scattering state at energy E drawn on top of it,
+                    at height E as in textbook figures: Re ψ (blue) and |ψ|² (green, filled from the
+                    energy line). Incident + reflected on the left, decay or oscillation inside,
+                    transmitted on the right. The pink energy line is draggable (anywhere on the line or
+                    its pink handle): E is set by direct manipulation, there is no E slider;
+                (2) T(E) (orange) and R(E) (faint pink) against E/V₀, with the current E as a draggable
+                    pink dot on the T curve, linked to (1). Linear / log₁₀ toggle so the exponential
+                    suppression below the barrier is visible. Single barrier: the WKB estimate e^{−2κa}
+                    dashed (an approximation, labelled as such). "Keep a copy" freezes the T curve to
+                    compare a with 2a, or one barrier with two;
+                (3) controls: barrier mode (single / double), width a, well width d (double mode only;
+                    hidden in single mode), T axis scale, limit buttons named by physics ("Deep
+                    tunnelling", "Barrier top", "First resonance": jumps E to the first T = 1 peak,
+                    analytic k′a = π for one barrier, a root search in double mode);
+                (4) readouts: E/V₀, T, R, R + T, κa (or k′a above the barrier).
+Layout          hero: the scattering state over the potential is the object of study and gets the big
+                cell; T(E) is its one-number summary and sits in the narrow column with the controls,
+                so dragging E in either view and reading T, R in the readouts happen side by side.
+                Collapses to one column (state, T(E), controls) on a phone.
+Teaching moments  Suggestions for the chapter around the widget:
+                  - choice: "E < V₀. Is any of the wave found to the right of the barrier?" (yes: T > 0;
+                    ψ decays inside but does not vanish at the far edge);
+                  - choice: "Double the width a. What happens to T deep below the barrier?" (it is
+                    roughly squared, not halved: T ∼ e^{−2κa}; on the log scale the curve's depth doubles;
+                    use Keep a copy);
+                  - choice: "E > V₀. Is T = 1?" (no: the step reflects; T = 1 only at k′a = nπ, where the
+                    two reflections from the barrier edges cancel; try First resonance);
+                  - set: "Switch to two barriers. Find an energy below V₀ where the wave passes
+                    completely." (the surprise: two barriers each with T ≪ 1 give T = 1; check: T > 0.99
+                    with E < V₀);
+                  - explain: why the peaks sit near the levels of a particle in the well between the
+                    barriers, and why they get narrower as a grows (quasi-bound states; Lorentzian peaks,
+                    width ↔ lifetime: link to pattern 18);
+                  - number: "κa = 3, E = V₀/2. Estimate T." (WKB 16E(V₀−E)/V₀² · e^{−2κa} ≈ 1.0e−2).
+Adapt by        Change structure(): any list of interfaces and region potentials works with the same
+                transfer-matrix code (a step, a well, a superlattice of N barriers, a tilted barrier
+                cut into steps for Fowler–Nordheim). For Landauer conductance plot G = (e²/h)·T(E_F)
+                against a gate voltage that shifts V. For phase shifts, plot arg t or arg r instead
+                of |t|². Keep the energy line draggable in the main view.
+Physics         −ψ″ + V(x)ψ = Eψ with ħ²/2m = 1, V₀ = 10 (lengths in a unit ℓ, energies in ħ²/2mℓ²),
+                so k = √E outside, κ = √(V₀ − E) or k′ = √(E − V₀) inside. Piecewise-constant V:
+                ψ = A e^{iq(x−x_j)} + B e^{−iq(x−x_j)} in region j; matching ψ and ψ′ at each interface
+                is a 2×2 transfer matrix, multiplied from the right (A = t, B = 0) to the left
+                (A = 1, B = r). Exact for the stated model. One barrier:
+                T = [1 + V₀² sinh²(κa) / (4E(V₀ − E))]⁻¹ below, sinh → sin(k′a), E(V₀−E) → E(E−V₀) above,
+                T = [1 + V₀a²/4]⁻¹ at E = V₀ (the code nudges E by 10⁻⁷V₀ there to avoid q = 0).
+                κa ≫ 1: T → 16E(V₀−E)/V₀² · e^{−2κa}. Two identical barriers, well d:
+                T = T₁² / |1 − r₁² e^{2ikd}|², so T = 1 wherever arg r₁ + kd = nπ (resonances, found by
+                bisection on that smooth condition; T is evaluated exactly there).
+-->
+<!-- LX:HEAD -->
+<style>
+/* LX:STYLE */
+.cell { fill: var(--surface); stroke: var(--line); stroke-width: 1; }
+.occ-fd { fill: var(--accent); fill-opacity: .78; }
+.occ-be { fill: var(--c2); fill-opacity: .78; }
+.occ-mb { fill: var(--c3); fill-opacity: .78; }
+.lx-plot text.gn { font-size: calc(10px * var(--lx-k, 1)); }
+.lx-plot text.over { font: calc(11px * var(--lx-k, 1)) var(--f-ui); fill: var(--fg); }
+.lx-group > .lx-seg { justify-self: start; }
+.lx-seg mjx-container, .lx-btn mjx-container { vertical-align: baseline; }
+</style>
+
+<main class="lx-page">
+  <header class="lx-head">
+    <p class="lx-eyebrow">Statistical mechanics · Quantum statistics</p>
+    <h1>Where do twenty particles sit at temperature \(T\)?</h1>
+    <p class="lx-lede">Put the same twenty particles in a harmonic trap as fermions, bosons or classical particles. Drag the temperature and watch Pauli blocking, condensation and the classical limit appear on the level ladder.</p>
+    <div class="lx-meta">
+      <span>3D isotropic harmonic trap, \(\hbar\omega = k_B = 1\), \(\varepsilon_n = n\), \(g_n = (n+1)(n+2)/2\), \(N = 20\) spinless particles, no interactions</span>
+    </div>
+  </header>
+  <div class="lx-stage" id="stage"></div>
+  <footer class="lx-foot">
+    <span>Source: model knowledge. Standard treatment: Pethick &amp; Smith, <i>Bose–Einstein Condensation in Dilute Gases</i>, ch. 2; Ashcroft &amp; Mermin, <i>Solid State Physics</i>, ch. 2; Pathria &amp; Beale, <i>Statistical Mechanics</i>, chs. 6–8.</span>
+  </footer>
+</main>
+
+<script>
+/* LX:LIB */
+</script>
+
+<script>
+/* PATTERN */
+/* Units: ħω = k_B = 1, ground level shifted to ε_0 = 0. */
+const N = 20, NL = 16, TMIN = 0.02, TMAX = 6, ZETA3 = 1.2020569031595942;
+const TC = Math.cbrt(N / ZETA3);                    // continuum BEC estimate, ≈ 2.55
+const EY = [-1.6, NL + 1.5];                        // energy window shared by the ladder and f(ε)
+const gdeg = n => (n + 1) * (n + 2) / 2;            // 3D isotropic oscillator degeneracy
+const STATS = { fd: { a: 1, c: 1, name: "Fermi–Dirac" }, be: { a: -1, c: 2, name: "Bose–Einstein" }, mb: { a: 0, c: 3, name: "Boltzmann" } };
+const KEYS = ["fd", "be", "mb"];
+const fmt = (v, d = 3) => v.toFixed(d).replace("-", "−");
+
+/* occupation of one state, x = (ε − μ)/T, written so that exp never overflows into NaN */
+function occ(a, x) {
+  if (a === 0) return Math.exp(-x);
+  if (a === 1) return x > 0 ? Math.exp(-x) / (1 + Math.exp(-x)) : 1 / (1 + Math.exp(x));
+  return x > 0 ? 1 / Math.expm1(x) : Infinity;      // BE is only defined for ε > μ
+}
+const nmaxOf = T => Math.ceil(40 + 40 * T);          // tail beyond n_max is < e^{-40}
+/* Σ_n g_n f(ε_n); stops early once terms are negligible (full = true sums every level up to nmax) */
+function count(a, mu, T, nmax = nmaxOf(T), full = false) {
+  let s = 0;
+  for (let n = 0; n <= nmax; n++) {
+    const t = gdeg(n) * occ(a, (n - mu) / T); s += t;
+    if (!full && n > mu + 3 * T + 3 && t < 1e-17) break;
+  }
+  return s;
+}
+/* fixed N: bisection for μ. The BE bracket ends at ε_0 = 0 and the midpoint never reaches it. */
+function solveMu(key, T) {
+  const a = STATS[key].a;
+  let lo = -2000, hi = a === -1 ? 0 : nmaxOf(T);
+  for (let it = 0; it < 200; it++) {
+    const m = (lo + hi) / 2;
+    if (m === lo || m === hi || hi - lo < 1e-13 * (1 + Math.abs(m))) break;
+    if (count(a, m, T) > N) hi = m; else lo = m;
+  }
+  return (lo + hi) / 2;
+}
+function ensemble(key, T) {
+  const a = STATS[key].a, mu = solveMu(key, T), levels = [];
+  let E = 0, above = 0;
+  for (let n = 0; n <= nmaxOf(T); n++) {
+    const Nn = gdeg(n) * occ(a, (n - mu) / T);
+    if (n <= NL) levels.push(Nn); else above += Nn;
+    E += n * Nn;
+    if (n > NL && n > mu + 3 * T + 3 && Nn < 1e-17) break;
+  }
+  return { key, T, mu, levels, N0: levels[0], E: E / N, above };
+}
+
+/* the T curves of the lower plot do not depend on any control: compute once */
+const TG = LX.linspace(TMIN, TMAX, 120);
+const CURVES = Object.fromEntries(KEYS.map(k => [k, TG.map(T => { const mu = solveMu(k, T); return { T, mu, n0: occ(STATS[k].a, -mu / T) / N }; })]));
+
+const S = { stat: "be", T: 1.2, flog: false, ty: "n0" };
+let cur = null;
+
+/* ---- layout: aside (figure column + controls column) ---- */
+const W = LX.widget(document.getElementById("stage"), { layout: "aside", title: "Twenty particles on the levels of a harmonic trap", badge: "computed" });
+const col = LX.h("div", { class: "lx-col" }, W);
+LX.legend(col, [["Fermi–Dirac", "--accent", "line"], ["Bose–Einstein", "--c2", "line"], ["Boltzmann", "--c3", "line"], ["continuum BEC estimate", "--c2", "dash"]]);
+const figs = LX.h("div", { class: "lx-figs" }, col);
+const PL = LX.plot(LX.fig(figs, "Level ladder for the selected statistics: boxes are the \\(g_n\\) states of level \\(n\\), the bar is the number of particles on it. \\(\\mu\\) is computed from \\(\\sum_n g_n f(\\varepsilon_n) = N\\) by bisection."),
+  { xlim: [0, N + 0.6], ylim: EY, xlabel: "N_n = g_n f(\\varepsilon_n)", ylabel: "\\varepsilon_n", width: 460, height: 480, margin: { r: 36 } });
+const PF = LX.plot(LX.fig(figs, "Occupation of one state, \\(f(\\varepsilon)\\), on the same energy axis: selected statistics bold, the other two faint; the shaded band \\(\\mu \\pm 2k_BT\\) marks the thermal window."),
+  { xlim: [0, 1.25], ylim: EY, xlabel: "f(\\varepsilon)", ylabel: "\\varepsilon", width: 460, height: 480 });
+const PT = LX.plot(LX.fig(col, "Ground-state fraction (or \\(\\mu\\)) against \\(T\\) for all three statistics at fixed \\(N = 20\\). Drag the point or click the plot to set \\(T\\)."),
+  { xlim: [0, TMAX + 0.5], ylim: [0, 1.05], xlabel: "T", ylabel: "N_0/N", width: 720, height: 300 });
+
+/* ladder: the boxes (states) never change, so draw them once in their own layer under the bars */
+const cellG = LX.s("g", {}, PL.svg); PL.svg.insertBefore(cellG, PL.g.fill);
+const BH = 0.32;
+for (let n = 0; n <= NL; n++) {
+  for (let k = 0; k < Math.min(gdeg(n), N); k++)
+    LX.s("rect", { x: PL.X(k) + 1, y: PL.Y(n + BH), width: PL.X(1) - PL.X(0) - 2, height: PL.Y(n - BH) - PL.Y(n + BH), rx: 1.5, class: "cell" }, cellG);
+  LX.s("text", { x: PL.W - PL.margin.r + 6, y: PL.Y(n), dy: "0.35em", "text-anchor": "start", class: "gn", text: String(gdeg(n)) }, cellG);
+}
+PL.tex(PL.W - PL.margin.r + 4, PL.margin.t - 6, "g_n", { anchor: "sw", px: true, keep: true });
+/* μ is labelled in the left margin, left of the tick numbers, so it never covers bars or curves */
+const muL = PL.tex(0, 0, "\\mu", { anchor: "e", keep: true });
+const muF = PF.tex(0, 0, "\\mu", { anchor: "e", keep: true });
+const tcLab = PT.tex(TC, 1, "T_c", { anchor: "sw", keep: true });
+const e0Lab = PT.tex(TMAX + 0.5, 0, "\\varepsilon_0", { anchor: "se", keep: true });
+
+/* lower plot: T handle, created once in the handles layer */
+const handle = LX.s("circle", { r: 7, class: "f2", "aria-label": "temperature T; drag sideways or use arrow keys" }, PT.g.handles);
+LX.drag(PT, handle, { get: () => [S.T, 0], step: [0.05, 0], set: x => setT(x) });
+let scrub = false;
+PT.svg.addEventListener("pointerdown", e => { if (e.target === handle) return; scrub = true; PT.svg.setPointerCapture(e.pointerId); setT(PT.toData(e)[0]); });
+PT.svg.addEventListener("pointermove", e => { if (scrub) setT(PT.toData(e)[0]); });
+PT.svg.addEventListener("pointerup", () => { scrub = false; });
+
+/* ---- controls ---- */
+const ctl = LX.controls(W);
+LX.segmented(ctl, { id: "stats", label: "Statistics", value: S.stat,
+  options: KEYS.map(k => ({ value: k, label: STATS[k].name })), onChange: v => { S.stat = v; update(); } });
+LX.segmented(ctl, { id: "faxis", label: "Occupation axis", value: "lin",
+  options: [{ value: "lin", label: "linear" }, { value: "log", label: "log" }],
+  onChange: v => { S.flog = v === "log"; PF.setLim(S.flog ? [-3, 1.6] : [0, 1.25], null); PF.setLabels(S.flog ? "\\log_{10} f(\\varepsilon)" : "f(\\varepsilon)", null); update(); } });
+LX.segmented(ctl, { id: "tplot", label: "Lower plot", value: "n0",
+  options: [{ value: "n0", label: "\\(N_0/N\\)" }, { value: "mu", label: "\\(\\mu\\)" }],
+  onChange: v => { S.ty = v; PT.setLim(null, v === "mu" ? [-17, 5] : [0, 1.05]); PT.setLabels(null, v === "mu" ? "\\mu" : "N_0/N"); update(); } });
+LX.limits(ctl, [
+  { label: "Zero temperature", title: "T = 0.02: ground state of N = 20 particles", apply: () => setT(TMIN), id: "lim-zero" },
+  { label: "Near \\(T_c\\)", title: "continuum estimate T_c = (N/ζ(3))^{1/3} ≈ 2.55", apply: () => setT(TC), id: "lim-tc" },
+  { label: "Classical limit", title: "T = 6: every level sparsely occupied", apply: () => setT(TMAX), id: "lim-classical" }
+], "Jump to", { id: "limits" });
+const rT = LX.readout(ctl, "\\(T\\) =");
+const box = rT.el.parentNode; box.classList.add("lx-vert");
+const rMu = LX.readout(box, "\\(\\mu\\) =");
+const rN0 = LX.readout(box, "\\(N_0/N\\) =");
+const rE = LX.readout(box, "\\(E/N\\) =");
+
+LX.guide(W, [
+  ["Ladder", "Each rung is a level \\(\\varepsilon_n = n\\) with its \\(g_n\\) states drawn as boxes (the number on the right is \\(g_n\\); rows longer than 20 are cut). The bar is the number of particles on the rung, \\(N_n = g_n f(\\varepsilon_n)\\). For fermions a bar never outgrows its row of boxes; for bosons the ground-state bar can hold all 20 particles in one box. The dashed line is \\(\\mu\\)."],
+  ["\\(f(\\varepsilon)\\) plot", "The mean occupation of a single state, turned sideways so it shares the energy axis with the ladder. Bold with dots: the selected statistics at the levels; faint: the other two at the same \\(N\\) and \\(T\\). The shaded band \\(\\mu \\pm 2k_BT\\) is where a Fermi function drops from 0.88 to 0.12."],
+  ["Lower plot", "\\(N_0/N\\) (or \\(\\mu\\)) against \\(T\\) for all three statistics; the selected one is bold. The dashed line and curve are the continuum estimates \\(T_c = (N/\\zeta(3))^{1/3}\\) and \\(N_0/N = 1 - (T/T_c)^3\\); at \\(N = 20\\) condensation is a smooth crossover that sets in at lower \\(T\\)."],
+  ["Drag \\(T\\)", "Drag the point on the lower plot, click anywhere on that plot, or use the arrow keys on the point. This is the only temperature control."],
+  ["Statistics", "Chooses what the ladder, the bold curves and the readouts show. Particle number and temperature stay the same."],
+  ["Axis switches", "Occupation axis: on \\(\\log_{10} f\\) the Boltzmann curve is a straight line, and the quantum curves bend away from it where \\(f\\) is not small. Lower plot: ground-state fraction or chemical potential."],
+  ["Jump to", "Zero temperature (shells fill vs condensate), the continuum \\(T_c\\), and the classical limit where the three statistics agree."],
+  ["Readouts", "\\(\\mu\\) from the bisection, the ground-state fraction, and the mean energy per particle above the ground level."]
+]);
+
+function setT(v) { S.T = LX.clamp(v, TMIN, TMAX); update(); }
+
+/* ---- drawing ---- */
+function drawLadder() {
+  const e = cur[S.stat], c = STATS[S.stat].c;
+  PL.clearAll();
+  e.levels.forEach((Nn, n) => {
+    const w = PL.X(Math.min(Nn, N + 0.6)) - PL.X(0);
+    if (w > 0.3) LX.s("rect", { x: PL.X(0), y: PL.Y(n + BH), width: w, height: PL.Y(n - BH) - PL.Y(n + BH), rx: 1.5, class: "occ-" + S.stat }, PL.g.main);
+  });
+  const muIn = LX.clamp(e.mu, EY[0] + 0.25, EY[1] - 0.25);
+  PL.hline(muIn, { cls: `s${c} dash thin` });
+  PL.placeTex(muL, PL.margin.l - 28, PL.Y(muIn), "e", true);
+  muL.style.color = `var(--${c === 1 ? "accent" : "c" + c})`;
+  if (e.mu < EY[0]) PL.text(N + 0.5, EY[0] + 0.25, `μ = ${fmt(e.mu, 1)}, below the window`, { anchor: "end", dy: -6, cls: "over" });
+  if (e.above > 0.05) PL.text(N + 0.5, NL + 0.95, `+${fmt(e.above, 1)} particles above ε = ${NL}`, { anchor: "end", cls: "over" });
+}
+function drawF() {
+  const T = S.T, [x0, x1] = PF.xlim, xv = f => LX.clamp(S.flog ? Math.log10(f) : f, x0 - 0.5, x1 + 0.5);
+  PF.clearAll();
+  const e = cur[S.stat], c = STATS[S.stat].c;
+  const lo = Math.max(EY[0], e.mu - 2 * T), hi = Math.min(EY[1], e.mu + 2 * T);
+  if (hi > lo) PF.path([[x0, lo], [x1, lo], [x1, hi], [x0, hi]], { cls: "a" + c, layer: "fill", close: true });
+  for (const k of [...KEYS.filter(k => k !== S.stat), S.stat]) {
+    const a = STATS[k].a, mu = cur[k].mu, start = a === -1 ? Math.max(EY[0], mu + 1e-6) : EY[0];
+    const pts = LX.linspace(start, EY[1], 400).map(eps => [xv(occ(a, (eps - mu) / T)), eps]);
+    PF.path(pts, { cls: `s${STATS[k].c}` + (k === S.stat ? "" : " thin faint") });
+  }
+  const muIn = LX.clamp(e.mu, EY[0] + 0.25, EY[1] - 0.25);
+  PF.hline(muIn, { cls: `s${c} dash thin` });
+  PF.placeTex(muF, PF.margin.l - 34, PF.Y(muIn), "e", true);
+  muF.style.color = `var(--${c === 1 ? "accent" : "c" + c})`;
+  for (let n = 0; n <= NL; n++) {
+    const fv = occ(STATS[S.stat].a, (n - e.mu) / T), v = S.flog ? Math.log10(fv) : fv;
+    if (!(v >= x0)) continue;
+    PF.dot(Math.min(v, x1), n, { r: 3.6, cls: "f" + c });
+    if (v > x1) PF.text(x1, n, fmt(fv, 1), { anchor: "end", dx: -8, dy: 4, cls: "f" + c });
+  }
+}
+function drawT() {
+  PT.clearAll();
+  const mode = S.ty, yv = p => mode === "mu" ? p.mu : p.n0;
+  PT.vline(TC);
+  if (mode === "n0") PT.fn(T => T < TC ? 1 - (T / TC) ** 3 : 0, { cls: "s2 dash thin", a: 0, b: TMAX + 0.5 });
+  else PT.hline(0, { cls: "sm thin" });
+  for (const k of [...KEYS.filter(k => k !== S.stat), S.stat])
+    PT.path(CURVES[k].map(p => [p.T, yv(p)]), { cls: `s${STATS[k].c}` + (k === S.stat ? "" : " thin") });
+  const e = cur[S.stat], y = mode === "mu" ? e.mu : e.N0 / N;
+  PT.vline(S.T, { cls: "sm thin" });
+  handle.setAttribute("class", "f" + STATS[S.stat].c);
+  handle.setAttribute("cx", PT.X(S.T)); handle.setAttribute("cy", PT.Y(LX.clamp(y, PT.ylim[0], PT.ylim[1])));
+  PT.placeTex(tcLab, TC + 0.05, PT.ylim[1] - 0.03 * (PT.ylim[1] - PT.ylim[0]), "nw");
+  e0Lab.style.display = mode === "mu" ? "" : "none";
+  if (mode === "mu") PT.placeTex(e0Lab, TMAX + 0.45, 0, "se");
+}
+function update() {
+  cur = Object.fromEntries(KEYS.map(k => [k, ensemble(k, S.T)]));
+  drawLadder(); drawF(); drawT();
+  const e = cur[S.stat];
+  rT.set(fmt(S.T, 2) + (S.T <= TMIN ? " (≈ 0)" : ""));
+  rMu.set(fmt(e.mu, 3) + (S.stat === "fd" && S.T < 0.1 ? " = E_F, midway between shells 3 and 4" : S.stat === "be" ? " (below ε₀ = 0)" : ""));
+  rN0.set(fmt(e.N0 / N, 3));
+  rE.set(fmt(e.E, 3));
+}
+update();
+
+/* ---- self-tests ---- */
+const TS = [0.02, 0.5, 1.2, TC, 4, 6];
+LX.check("fixed N: Σ g_n f(ε_n) = N at the solved μ (all statistics, several T)", () => {
+  let worst = 0; for (const k of KEYS) for (const T of TS) worst = Math.max(worst, Math.abs(count(STATS[k].a, solveMu(k, T), T) - N));
+  return { pass: worst < 1e-9, detail: worst };
+});
+LX.check("BE: μ < ε₀ = 0 at every T (and N₀ finite)", () => CURVES.be.every(p => p.mu < 0 && isFinite(p.n0)) && TS.every(T => solveMu("be", T) < 0));
+LX.check("FD at T → 0: shells n ≤ 3 full, n ≥ 4 empty, exactly N = 1+3+6+10", () => {
+  const e = ensemble("fd", TMIN), full = [0, 1, 2, 3].every(n => Math.abs(e.levels[n] - gdeg(n)) < 1e-9);
+  const empty = e.levels.slice(4).every(v => v < 1e-9), sum = [0, 1, 2, 3].reduce((s, n) => s + gdeg(n), 0);
+  return { pass: full && empty && sum === N && e.mu > 3 && e.mu < 4, detail: `μ = ${e.mu}` };
+});
+LX.check("FD: N₀/N ≤ 1/N (Pauli) at every T", () => CURVES.fd.every(p => p.n0 <= 1 / N + 1e-12));
+LX.check("BE: N₀/N → 1 as T → 0", () => { const e = ensemble("be", TMIN); return { pass: e.N0 / N > 0.999, detail: e.N0 / N }; });
+LX.check("Boltzmann: bisection gives μ = T ln(N/Z₁), Z₁ = (1 − e^{−1/T})^{−3}", () =>
+  TS.every(T => Math.abs(solveMu("mb", T) - T * Math.log(N * (1 - Math.exp(-1 / T)) ** 3)) < 1e-9));
+LX.check("Boltzmann: E/N = 3/(e^{1/T} − 1) exactly", () => [0.5, 2, 6].every(T => Math.abs(ensemble("mb", T).E - 3 / Math.expm1(1 / T)) < 1e-9));
+LX.check("BE excited-state capacity at μ → 0 equals Σ_k [(1 − e^{−k/T})^{−3} − 1]", () => {
+  const T = 2; let direct = 0; for (let n = 1; n <= nmaxOf(T); n++) direct += gdeg(n) * occ(-1, n / T);
+  let series = 0; for (let k = 1; k < 4000; k++) series += (1 - Math.exp(-k / T)) ** -3 - 1;
+  return { pass: Math.abs(direct - series) < 1e-3 * series, detail: `${direct} vs ${series}` };
+});
+LX.check("classical limit: three statistics agree at T = 6, and twice as well and more at T = 12", () => {
+  const diff = T => { const es = KEYS.map(k => ensemble(k, T)); let d = 0; for (let n = 0; n <= NL; n++) d = Math.max(d, Math.abs(es[0].levels[n] - es[1].levels[n]), Math.abs(es[0].levels[n] - es[2].levels[n])); return d; };
+  const d6 = diff(6), d12 = diff(12);
+  return { pass: d6 < 0.05 && d12 < d6 / 4, detail: `${d6} → ${d12}` };
+});
+LX.check("truncation: doubling n_max changes Σ g f by < 1e-10", () => {
+  let worst = 0; for (const k of KEYS) for (const T of [1, TMAX]) { const mu = solveMu(k, T), a = STATS[k].a; worst = Math.max(worst, Math.abs(count(a, mu, T, 2 * nmaxOf(T), true) - count(a, mu, T, nmaxOf(T), true))); }
+  return { pass: worst < 1e-10, detail: worst };
+});
+</script>

@@ -3,7 +3,8 @@
 //   node tests/run.mjs [name-substring | path/to/widget.html ...] [--shots]
 //
 // For every widget (skills/interactive-learning/{assets,patterns,examples}/*.html):
-//   - wraps the Artifact-style fragment in the publish skeleton (doctype, meta)
+//   - wraps the Artifact-style fragment in the publish skeleton (doctype, meta); a slim page
+//     (one-line LX:HEAD / LX:STYLE / LX:LIB markers, see scripts/lx.mjs) is expanded in memory first
 //   - serves MathJax 3.2.2 from tests/node_modules (CDNs are often blocked in CI/sandboxes)
 //   - fails on console errors / page errors / failing LX.check self-tests
 //   - requires MathJax SVG output, no horizontal overflow at 400 px
@@ -16,6 +17,7 @@ import { execSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { expand, isSlim } from "../skills/interactive-learning/scripts/lx.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "..");
@@ -47,7 +49,8 @@ let failed = 0;
 for (const file of files) {
   const name = path.relative(skill, file);
   const problems = [];
-  const html = wrap(fs.readFileSync(file, "utf8"));
+  const src = fs.readFileSync(file, "utf8");
+  const html = wrap(isSlim(src) ? expand(src) : src);
   for (const scheme of shots ? ["light", "dark"] : ["light"]) {
     for (const width of [1180, 400]) {
       const page = await browser.newPage({ viewport: { width, height: 900 }, colorScheme: scheme });

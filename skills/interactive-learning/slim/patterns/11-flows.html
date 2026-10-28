@@ -1,0 +1,252 @@
+<!-- GENERATED from patterns/11-flows.html by tests/sync-base.mjs; edit that file, then run the script. -->
+<title>Kosterlitz–Thouless RG Flow</title>
+<!--
+PATTERN 11 · FLOWS
+Concept shape   A vector field moves a state through a parameter space; what matters is where trajectories
+                end up (fixed points), and which curve divides the different fates.
+Use it for      RG flows (KT, ε-expansion, Kondo poor-man's scaling, BKT in superfluid films), dynamical
+                systems and phase portraits, semiclassical equations of motion, gradient flows, any
+                "dX/dl = β(X)" picture with two couplings.
+Widget anatomy  (1) one big flow field: arrows of the β-function, the fixed line, the separatrix (toggle), and the
+                    dashed curve of a film's bare couplings as its temperature changes;
+                (2) "drop a ball": clicking anywhere drops a ball that rolls along the flow (RK4 in RG time l,
+                    animated) and leaves its track; the track takes the colour of its fate when the ball stops
+                    (blue: ordered, orange: disordered); up to 12 balls, then the oldest is recycled. A visible
+                    hint on the plot says so, and one ball is dropped on load so the idea is obvious;
+                (3) temperature slider T/T_KT: moves the marker along the bare-coupling curve and drops the
+                    "temperature ball" from there (replacing the previous one), so the slider always does
+                    something visible; "Clear balls"; "Separatrix" toggle (line y = x plus phase labels);
+                (4) readouts for the latest ball: start, x² − y² (conserved), fate, end point.
+Layout          hero: the flow field is the whole point, so it takes two thirds of the width; the slider, the
+                two buttons and the readouts are stacked in the narrow column beside it.
+Teaching moments  (suggestions for the surrounding chapter)
+                  choice: the fate of a stiff film with few vortices (y → 0 on the fixed line);
+                  choice: the fate of a soft film (x driven negative, then y grows: disordered);
+                  choice / sketch: the phase boundary from the invariant x² − y² (the separatrix y = x; hide it
+                       with the toggle first and let the reader predict it);
+                  set: find the temperature at which the temperature ball ends exactly at the KT point
+                       (T = T_KT; the endpoint x∞ → 0 gives the universal jump K_R = 2/π);
+                  explain: why different films share the same stiffness jump (universality).
+Adapt by        Replace field(x, y), the overlays (separatrix, fixed set) and bare(τ) with your β-functions and
+                your model's bare couplings; keep integrate() (RK4, adaptive storage with RG time per point) and
+                the ball animation. Keep ticks off unless the couplings have meaningful units.
+Physics         KT: dx/dl = −y², dy/dl = −x y, with x = πK − 2 (K: stiffness), y: vortex fugacity, both to
+                leading order (constants absorbed). x² − y² is conserved, so trajectories are hyperbolas;
+                separatrices y = ±x; fixed line y = 0, x > 0 (quasi-long-range order). Ordered starts end at
+                x∞ = √(x² − y²). Escape time on the disordered side l* ≈ π/√(y² − x²), giving ξ ~ exp(b/√(T − T_KT)).
+                Schematic bare couplings of one film: K = J/T, y = e^{−μ/T} with μ = 1.94 J, i.e.
+                x₀(τ) = π/τ − 2, y₀(τ) = e^{−1.94/τ}, τ = T/J; they cross the separatrix at τ_KT ≈ 1.40.
+-->
+<!-- LX:HEAD -->
+<style>
+/* LX:STYLE */
+#flowfig .lx-plot > svg { cursor: crosshair; }
+.lx-tex.lbl { background: var(--surface); padding: 2px 4px; border-radius: 4px; }
+.fixed-line { stroke: var(--c3); stroke-width: 5; stroke-linecap: round; fill: none; opacity: .8; }
+.ball { fill: var(--fg); stroke: var(--surface); stroke-width: 1.5; }
+.ball.tball { fill: var(--c2); }
+.trk { fill: none; stroke: var(--fg); stroke-width: 1.6; stroke-linejoin: round; opacity: .75; }
+.lx-hint { position: absolute; left: 7%; top: 7%; pointer-events: none; background: var(--surface); color: var(--fg);
+  border: 1px solid var(--accent); border-radius: 999px; padding: 2px 10px; font-size: 12.5px; font-weight: 500; }
+.lx-group > .lx-seg { justify-self: start; }
+@container (max-width: 480px) { .lx-hint { font-size: 11px; padding: 1px 7px; left: 9%; top: 4%; } }
+</style>
+
+<main class="lx-page">
+  <header class="lx-head">
+    <p class="lx-eyebrow">Statistical field theory · Renormalisation group</p>
+    <h1>Where does a system flow when you zoom out?</h1>
+    <p class="lx-lede">Each point is a pair of couplings: the stiffness of a 2D superfluid film and the fugacity of its vortices. Zooming out changes both. Drop a ball anywhere and watch where the flow carries it.</p>
+    <div class="lx-meta">
+      <span>\(\dd x/\dd l = -y^2,\ \dd y/\dd l = -xy\); \(x = \pi K - 2\), \(y\) = vortex fugacity, \(l = \ln(\text{length scale})\); leading order, constants absorbed</span>
+    </div>
+  </header>
+  <div class="lx-stage" id="stage"></div>
+  <footer class="lx-foot">
+    <span>Source: model knowledge. Standard treatment: Chaikin &amp; Lubensky, <i>Principles of Condensed Matter Physics</i>, ch. 9; Kardar, <i>Statistical Physics of Fields</i>, ch. 8.</span>
+  </footer>
+</main>
+
+<script>
+/* LX:LIB */
+</script>
+
+<script>
+/* PATTERN */
+const XB = [-0.8, 0.8], YB = [0, 0.8], MAXBALLS = 12, MU = 1.94;
+const field = (x, y) => [-y * y, -x * y];
+
+/* RK4 in RG time l. Stops on leaving the box (escape), settling (|v| tiny), or l > LMAX.
+   Points are stored as [x, y, l] whenever the ball has moved a visible distance. */
+function integrate(x0, y0, dl = 0.02, LMAX = 400) {
+  const pts = [[x0, y0, 0]]; let x = x0, y = y0, l = 0, fate = "settles";
+  const out = () => x < XB[0] - 0.02 || x > XB[1] + 0.02 || y > YB[1] + 0.02 || y < YB[0] - 0.02;
+  while (l < LMAX) {
+    const k1 = field(x, y), k2 = field(x + dl / 2 * k1[0], y + dl / 2 * k1[1]);
+    const k3 = field(x + dl / 2 * k2[0], y + dl / 2 * k2[1]), k4 = field(x + dl * k3[0], y + dl * k3[1]);
+    x += dl / 6 * (k1[0] + 2 * k2[0] + 2 * k3[0] + k4[0]); y += dl / 6 * (k1[1] + 2 * k2[1] + 2 * k3[1] + k4[1]); l += dl;
+    const last = pts[pts.length - 1];
+    if (Math.hypot(x - last[0], y - last[1]) > 0.003) pts.push([x, y, l]);
+    if (out()) { fate = "escapes"; break; }
+    if (Math.hypot(...field(x, y)) < 1e-7) break;
+  }
+  pts.push([x, y, l]);
+  return { pts, x, y, l, fate, x0, y0 };
+}
+function describe(t) {
+  const inv = t.x0 * t.x0 - t.y0 * t.y0;
+  if (t.fate === "escapes") return { kind: "dis", fate: "\\(y\\) grows: vortices proliferate (disordered)", end: `leaves the plot at \\(l^* \\approx ${t.l.toFixed(1)}\\)` };
+  if (t.y < 1e-3 && t.x > 0.02) return { kind: "ord", fate: "\\(y \\to 0\\): quasi-long-range order", end: `\\(x_\\infty = ${t.x.toFixed(3)} = \\sqrt{x_0^2 - y_0^2}\\)` };
+  return { kind: "crit", fate: "creeps into the KT point (critical)", end: `\\(x \\approx y \\approx ${t.x.toFixed(3)}\\) after \\(l = ${t.l.toFixed(0)}\\)` };
+}
+/* Schematic bare couplings of one film at temperature τ = T/J: K = J/T, y = e^{−μ/T}. */
+const bare = tau => [Math.PI / tau - 2, Math.exp(-MU / tau)];
+const TAU_KT = (() => { let a = 1.2, b = 2; for (let k = 0; k < 60; k++) { const c = (a + b) / 2, [x, y] = bare(c); if (x > y) a = c; else b = c; } return (a + b) / 2; })();
+
+/* ---- layout: hero (big flow field, narrow column of controls) ---- */
+const W = LX.widget(document.getElementById("stage"), { layout: "hero", title: "Kosterlitz–Thouless flow: drop a ball", badge: "schematic" });
+const fg = LX.fig(W, "Click anywhere in the plane to drop a ball. It rolls along the RG flow toward long length scales and leaves its track.");
+fg.id = "flowfig";
+const P = LX.plot(fg, { xlim: XB, ylim: YB, ticks: false, xlabel: "x = \\pi K - 2", ylabel: "y", width: 640, height: 380, aria: "RG flow field; click to drop a ball" });
+const hint = LX.h("div", { class: "lx-hint", text: "Click anywhere to drop a ball" }, P.svg.parentNode);
+LX.legend(fg, [["ordered: ends on the fixed line", "--accent", "line"], ["disordered: \\(y\\) runs away", "--c2", "line"],
+  ["bare couplings of one film as \\(T\\) rises", "--muted", "dash"], ["separatrix \\(y = x\\)", "--c4", "line"], ["fixed line", "--c3", "line"]]);
+
+const ctl = LX.controls(W);
+const TS = LX.slider(ctl, { id: "T", label: "temperature \\(T/T_{KT}\\)", min: 0.82, max: 1.8, step: 0.005, value: 0.9, onInput: v => dropT(v) });
+const grp = LX.h("div", { class: "lx-group" }, ctl);
+LX.h("span", { text: "Balls" }, grp);
+const row = LX.h("div", { class: "lx-row" }, grp);
+const clearBtn = LX.button(row, "Clear balls", () => clearBalls(), { id: "clear" });
+const sepBtn = LX.button(row, "Separatrix", () => setSep(!S.sep), { id: "sep" });
+const ro = LX.controls(W);
+LX.h("div", { class: "lx-group", html: "<span>Latest ball</span>" }, ro);
+const rS = LX.readout(ro, "start \\((x_0, y_0)\\) =");
+const box = rS.el.parentNode; box.style.flexDirection = "column"; box.style.gap = "4px";
+const rI = LX.readout(box, "\\(x^2 - y^2\\) (conserved) =");
+const rF = LX.readout(box, "fate:");
+const rE = LX.readout(box, "end:");
+
+LX.guide(W, [
+  ["Plane", "Each point is a pair of couplings at some length scale: \\(x = \\pi K - 2\\) (stiffness above the critical value) and the vortex fugacity \\(y\\). Grey arrows show which way the couplings move when you zoom out."],
+  ["Balls", "Click to drop one. It follows the arrows (RG time \\(l\\) runs as it rolls) and its track turns blue if it ends on the teal fixed line \\(y = 0\\) (vortices bound, power-law correlations) or orange if \\(y\\) runs away (free vortices, disordered). Balls near the separatrix slow down: the flow is weak close to the KT point."],
+  ["Dashed curve", "Where one real film starts its flow: its bare couplings \\(K = J/T\\), \\(y = \\ee^{-\\mu/T}\\) move along this curve as \\(T\\) rises. The orange marker is the current temperature."],
+  ["Temperature", "Moves the marker and drops the orange ball from there. Below \\(T_{KT}\\) it ends on the fixed line; above, it escapes. At \\(T_{KT}\\) the curve crosses the separatrix and the ball creeps into the KT point."],
+  ["Separatrix", "Shows or hides the line \\(y = x\\) and the phase labels. Since \\(x^2 - y^2\\) is conserved, tracks are hyperbolas, and \\(y = x\\) divides the two fates: it is the phase boundary."],
+  ["Clear balls", "Removes all balls and tracks."]
+]);
+
+/* ---- static drawing (once) ---- */
+(function drawStatic() {
+  const [xa, xb] = XB, [ya, yb] = YB, nx = 15, ny = 8, hx = (xb - xa) / nx, hy = (yb - ya) / ny;
+  for (let i = 0; i < nx; i++) for (let j = 0; j < ny; j++) {
+    const x = xa + (i + 0.5) * hx, y = ya + (j + 0.5) * hy, [u, v] = field(x, y);
+    const sx = u / (xb - xa), sy = v / (yb - ya), n = Math.hypot(sx, sy);
+    if (n < 1e-9) continue;
+    const k = 0.8 * Math.min(hx / (xb - xa), hy / (yb - ya)) / n * Math.min(1, 0.5 + 4 * n);
+    P.arrow(x - sx * k * (xb - xa) / 2, y - sy * k * (yb - ya) / 2, x + sx * k * (xb - xa) / 2, y + sy * k * (yb - ya) / 2, { cls: "sm thin", layer: "fill" });
+  }
+  P.line(0, 0, 0.8, 0, { cls: "fixed-line", layer: "fill" });
+  P.vline(0, { cls: "gr", layer: "fill" });
+  const taus = LX.linspace(Math.PI / 2.8, Math.PI / 1.2, 120);
+  P.path(taus.map(bare), { cls: "sm dash", layer: "fill" });
+  P.dot(0, 0, { r: 5, cls: "f4", layer: "fill" });
+  P.tex(0.58, 0.03, "\\text{fixed line}", { anchor: "s", cls: "lbl" });
+  P.tex(0, 0, "\\text{KT}", { anchor: "n" });
+})();
+const sepG = LX.s("g", {}, P.g.fill);
+LX.s("line", { x1: P.X(0), y1: P.Y(0), x2: P.X(0.8), y2: P.Y(0.8), class: "s4" }, sepG);
+LX.s("line", { x1: P.X(0), y1: P.Y(0), x2: P.X(-0.8), y2: P.Y(0.8), class: "s4 dash thin" }, sepG);
+const sepTex = [P.tex(0.74, 0.7, "y = x", { anchor: "nw", cls: "lbl" }), P.tex(-0.5, 0.62, "\\text{disordered}", { cls: "lbl" }), P.tex(0.6, 0.3, "\\text{ordered (QLRO)}", { cls: "lbl" })];
+const ballG = LX.s("g", {}, P.g.main);
+const tMark = LX.s("circle", { r: 6, class: "f2", stroke: "var(--surface)", "stroke-width": 1.5 }, P.g.top);
+
+/* ---- balls ---- */
+const S = { balls: [], tball: null, sep: true, last: null, raf: 0, t0: 0 };
+function makeBall(x, y, isT) {
+  const t = integrate(x, y);
+  const b = { t, isT, i: 1, l: 0, done: false, rate: Math.max(2.5, t.l / 3.5),
+    path: LX.s("path", { class: "trk", d: `M${P.X(x).toFixed(1)},${P.Y(y).toFixed(1)}` }, ballG),
+    dot: LX.s("circle", { r: 6, class: "ball" + (isT ? " tball" : ""), cx: P.X(x), cy: P.Y(y) }, ballG) };
+  b.d = b.path.getAttribute("d");
+  if (LX.reduceMotion) advance(b, Infinity);
+  return b;
+}
+function removeBall(b) { b.path.remove(); b.dot.remove(); }
+function advance(b, dt) {
+  b.l = Math.min(b.t.l, b.l + b.rate * dt);
+  const p = b.t.pts;
+  while (b.i < p.length && p[b.i][2] <= b.l) { b.d += `L${P.X(p[b.i][0]).toFixed(1)},${P.Y(p[b.i][1]).toFixed(1)}`; b.i++; }
+  let cx, cy;
+  if (b.i >= p.length) { b.done = true; [cx, cy] = p[p.length - 1]; }
+  else { const a = p[b.i - 1], c = p[b.i], s = (b.l - a[2]) / ((c[2] - a[2]) || 1); cx = a[0] + s * (c[0] - a[0]); cy = a[1] + s * (c[1] - a[1]); }
+  const X = LX.clamp(cx, XB[0], XB[1]), Y = LX.clamp(cy, YB[0], YB[1]);
+  b.path.setAttribute("d", b.d + `L${P.X(X).toFixed(1)},${P.Y(Y).toFixed(1)}`);
+  b.dot.setAttribute("cx", P.X(X)); b.dot.setAttribute("cy", P.Y(Y));
+  if (b.done) {
+    const k = describe(b.t).kind;
+    b.path.setAttribute("class", k === "dis" ? "s2" : k === "ord" ? "s1" : "s4");
+    if (b.t.fate === "escapes") b.dot.style.display = "none";   /* it left the plot; the track ends at the edge */
+    if (b === S.last) showReadouts();
+  }
+}
+function tick(now) {
+  const dt = S.t0 ? Math.min(0.05, (now - S.t0) / 1000) : 0; S.t0 = now;
+  const all = S.tball ? [...S.balls, S.tball] : S.balls;
+  all.filter(b => !b.done).forEach(b => advance(b, dt));
+  S.raf = all.some(b => !b.done) ? requestAnimationFrame(tick) : 0;
+  if (!S.raf) S.t0 = 0;
+}
+const animate = () => { if (!S.raf) S.raf = requestAnimationFrame(tick); };
+function drop(x, y) {
+  const b = makeBall(x, y, false); S.balls.push(b);
+  if (S.balls.length > MAXBALLS) removeBall(S.balls.shift());
+  S.last = b; showReadouts(); animate();
+}
+function dropT(r) {
+  const [x, y] = bare(r * TAU_KT);
+  tMark.setAttribute("cx", P.X(x)); tMark.setAttribute("cy", P.Y(y));
+  if (S.tball) removeBall(S.tball);
+  S.tball = makeBall(x, y, true); S.last = S.tball; showReadouts(); animate();
+}
+function clearBalls() {
+  S.balls.forEach(removeBall); S.balls = [];
+  if (S.tball) { removeBall(S.tball); S.tball = null; }
+  S.last = null; showReadouts();
+}
+function setSep(on) {
+  S.sep = on; sepG.style.display = on ? "" : "none"; sepTex.forEach(e => e.style.visibility = on ? "" : "hidden");
+  sepBtn.setAttribute("aria-pressed", String(on));
+}
+const fx = v => v.toFixed(2).replace("-", "−");
+function showReadouts() {
+  const b = S.last;
+  if (!b) { rS.set("—"); rI.set("—"); rF.el.lastChild.textContent = "click the plane"; rE.el.lastChild.textContent = "—"; return; }
+  const t = b.t;
+  rS.set(`(${fx(t.x0)}, ${fx(t.y0)})`);
+  rI.set((t.x0 * t.x0 - t.y0 * t.y0).toFixed(3).replace("-", "−"));
+  const d = describe(t);
+  setTexB(rF, b.done ? d.fate : "rolling…"); setTexB(rE, b.done ? d.end : "…");
+}
+function setTexB(r, html) { const el = r.el.lastChild; if (el.dataset.src === html) return; el.dataset.src = html; el.innerHTML = html; LX.typeset(el); }
+
+P.svg.addEventListener("pointerdown", e => {
+  const [x, y] = P.toData(e);
+  if (x < XB[0] || x > XB[1] || y < YB[0] - 0.01 || y > YB[1]) return;
+  hint.textContent = "Click again to drop another ball";
+  drop(x, Math.max(y, 0.002));
+});
+setSep(true);
+dropT(TS.get());
+
+/* ---- self-tests ---- */
+LX.check("KT: x² − y² conserved along an RK4 trajectory", () => { const t = integrate(0.45, 0.15, 0.02, 60); return { pass: Math.abs(t.x * t.x - t.y * t.y - (0.45 ** 2 - 0.15 ** 2)) < 1e-6, detail: t.x * t.x - t.y * t.y }; });
+LX.check("KT: ordered start ends on fixed line at x∞ = √(x² − y²)", () => { const t = integrate(0.45, 0.15); return { pass: t.y < 1e-4 && Math.abs(t.x - Math.sqrt(0.18)) < 1e-4, detail: `${t.x}, ${t.y}` }; });
+LX.check("KT: start above separatrix escapes (y grows)", () => integrate(0.1, 0.35).fate === "escapes");
+LX.check("KT: separatrix y = x flows into the origin along itself", () => { const t = integrate(0.4, 0.4, 0.02, 60); return t.x < 0.04 && Math.abs(t.x - t.y) < 1e-9; });
+LX.check("bare couplings cross y = x at τ_KT ≈ 1.40; just below T_KT ordered, just above disordered", () => {
+  const [x, y] = bare(TAU_KT), lo = integrate(...bare(0.98 * TAU_KT)), hi = integrate(...bare(1.02 * TAU_KT));
+  return { pass: Math.abs(x - y) < 1e-9 && Math.abs(TAU_KT - 1.40) < 0.01 && lo.fate !== "escapes" && lo.y < 1e-3 && hi.fate === "escapes", detail: `τ=${TAU_KT}, ${lo.fate}/${hi.fate}` };
+});
+LX.check("x₀ = πK − 2 with K = J/T: x₀ = 0 at T = πJ/2", () => LX.near(bare(Math.PI / 2)[0], 0, 1e-12));
+</script>

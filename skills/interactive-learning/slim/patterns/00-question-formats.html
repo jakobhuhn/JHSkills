@@ -1,0 +1,198 @@
+<!-- GENERATED from patterns/00-question-formats.html by tests/sync-base.mjs; edit that file, then run the script. -->
+<title>Question Formats</title>
+<!--
+PATTERN 00 · QUESTION FORMATS
+When to use     Reference for the five inline question types (LX.ask) and the gate (LX.gate), all built around
+                one small exact widget. Copy the format that fits the learning goal; questions live in the
+                text of a chapter, between paragraphs, not inside the widget.
+                - choice   confront one specific misconception; every wrong option is a belief someone holds.
+                - number   estimate a scale; the answer is a number with a tolerance (relative, default 10%).
+                - set      the learner puts the widget into the predicted state, then presses Check; check()
+                           reads the widget state; solve() offers "Show me" after a wrong attempt.
+                - sketch   predict a whole functional shape: drag handles on an empty plot, then compare with
+                           the true curve (drawn by the ask); pair it with LX.gate on the widget's own figure.
+                - explain  articulate the mechanism in words; a model answer appears after writing.
+                LX.gate(el, msg) blurs a result until a question that lists it in `reveal` is answered; it only
+                ever opens. Do not gate a control the learner has already used.
+Widget anatomy  (1) the box: walls at 0 and L, the three lowest levels as faint lines, the current state ψ_n(x)
+                    drawn on its level;
+                (2) energy vs box width: E_n(L) for n = 1…3 with the current state as a dot (gated until the
+                    sketch question is answered);
+                (3) sliders n and L; readouts E_n, wavelength λ = 2L/n; a "What you are looking at" guide.
+Layout          aside: the two figures side by side in the wide column, the two sliders and readouts in the
+                narrow column. The widget sits in an lx-article (a chapter page), with .lx-wide.
+Teaching moments  This page is itself the list: choice (which level is higher, n = 2 in 2L or n = 1 in L?),
+                number (E_1 of an electron in a 1 nm box), set (make E = 4 E_1), sketch (E_1 against L),
+                explain (why confinement costs energy). Gate messages are CSS content: plain text, no TeX.
+Adapt by        Swap the widget for the one in your chapter and keep the prose before each question short:
+                say what the learner should do and why this format, not the answer.
+Physics         Infinite square well of width L (ħ = m = 1 in the widget): ψ_n(x) = √(2/L) sin(nπx/L),
+                E_n = n²π²/(2L²); plotted in units of E_1(L = 1) = π²/2, so E_n = n²/L². λ_n = 2L/n.
+                SI: E_1 = h²/(8 m_e L²) = 0.376 eV for L = 1 nm.
+-->
+<!-- LX:HEAD -->
+<style>
+/* LX:STYLE */
+/* page-specific styles go below */
+</style>
+
+<main class="lx-page">
+  <header class="lx-head">
+    <p class="lx-eyebrow">Pattern reference · Inline questions</p>
+    <h1>Five ways to ask a question about one widget</h1>
+    <p class="lx-lede">A particle in a box, and the five question formats a chapter can use around it. Each section says when the format is the right tool, then shows it working.</p>
+    <div class="lx-meta">
+      <span>Infinite square well of width \(L\); in the widget \(\hbar = m = 1\) and energies in units of \(E_1(L{=}1) = \pi^2/2\)</span>
+    </div>
+  </header>
+  <article class="lx-article" id="article">
+    <p>A particle confined between two hard walls can only have standing waves that fit the box: \(\psi_n(x) = \sqrt{2/L}\,\sin(n\pi x/L)\), with \(n\) half wavelengths across the width \(L\). The widget shows these states and their energies.</p>
+    <div class="lx-wide" id="w1"></div>
+
+    <h2>Choice: confront a misconception</h2>
+    <p>Use a multiple-choice question when there is a specific wrong belief to bring into the open. Each wrong option should be something a reasonable learner thinks, so the feedback can address it. Here the belief is that a higher quantum number always means a higher energy.</p>
+    <div id="q-choice"></div>
+
+    <h2>Number: estimate a scale</h2>
+    <p>Use a numerical estimate when the point is the size of something: does the effect matter at this scale? The tolerance should be generous; an estimate within a factor of a few is often the real goal. The widget works in natural units, so this one asks for a real number in electronvolts.</p>
+    <div id="q-number"></div>
+
+    <h2>Set: put the widget into the predicted state</h2>
+    <p>Use a set question when the learner can express the prediction by operating the widget. It turns the widget into the answer box, and the check reads the widget state, so any correct configuration counts.</p>
+    <div id="q-set"></div>
+
+    <h2>Sketch: predict a whole shape</h2>
+    <p>Use a sketch when the shape of a dependence is the insight: a power law, a maximum, a divergence. Drawing forces a commitment over the whole range, which a single number does not. The matching curve in the widget stays hidden until the sketch is compared.</p>
+    <div id="q-sketch"></div>
+
+    <h2>Explain: articulate the mechanism</h2>
+    <p>Use an explanation at the end of a section, when the learner has seen the effect and should now say why it happens. There is no automatic grading: the model answer is for self-comparison.</p>
+    <div id="q-explain"></div>
+  </article>
+  <footer class="lx-foot">
+    <span>Source: model knowledge. Standard treatment: Griffiths &amp; Schroeter, <i>Introduction to Quantum Mechanics</i>, sec. 2.2 (the infinite square well).</span>
+  </footer>
+</main>
+
+<script>
+/* LX:LIB */
+</script>
+
+<script>
+/* PATTERN */
+const PI = Math.PI, NMAX = 3, LL = [1, 3], EMAX = 10;
+const S = { n: 2, L: 1.5 };
+/* energies in units of E_1(L = 1) = π²/2 (ħ = m = 1): E_n(L) = n²/L² */
+const E = (n, L) => n * n / (L * L);
+const psi = (n, L, x) => Math.sqrt(2 / L) * Math.sin(n * PI * x / L);
+const f = (v, d = 3) => v.toFixed(d);
+
+/* ---- widget: aside = two figures in the wide column, sliders + readouts in the narrow one ---- */
+const W0 = LX.widget(document.getElementById("w1"), { layout: "aside", title: "Particle in a box", badge: "exact" });
+const figs = LX.h("div", { class: "lx-figs" }, W0);
+const PB = LX.plot(LX.fig(figs, "The box: levels and the current state \\(\\psi_n(x)\\)"),
+  { xlim: [-0.2, 3.2], ylim: [0, EMAX], xlabel: "x", ylabel: "E", width: 420, height: 360, xticks: 4, yticks: 4 });
+const figE = LX.fig(figs, "Energy against box width, \\(E_n(L)\\)");
+const PE = LX.plot(figE, { xlim: LL, ylim: [0, EMAX], xlabel: "L", ylabel: "E", width: 420, height: 360, xticks: 4, yticks: 4 });
+const ctl = LX.controls(W0);
+const nS = LX.slider(ctl, { id: "n", label: "quantum number \\(n\\)", min: 1, max: NMAX, step: 1, value: S.n, fmt: v => String(v), onInput: v => { S.n = v; draw(); } });
+const LS = LX.slider(ctl, { id: "L", label: "box width \\(L\\)", min: LL[0], max: LL[1], step: 0.01, value: S.L, onInput: v => { S.L = v; draw(); } });
+const ro = LX.h("div", { class: "lx-readouts" }, ctl);
+const rE = LX.readout(ro, "\\(E_n =\\)");
+const rW = LX.readout(ro, "wavelength \\(\\lambda = 2L/n =\\)");
+LX.guide(W0, [
+  ["Left plot", "The box, from \\(x = 0\\) to the grey wall at \\(x = L\\). Faint lines are the three lowest energy levels. The blue curve is the wavefunction of the current state, drawn on its own level: it has \\(n\\) half wavelengths across the box."],
+  ["Right plot", "The energies \\(E_n = n^2/L^2\\) of the three lowest states as the box width changes; the dot is the current state. Hidden until you answer the sketch question below."],
+  ["\\(n,\\ L\\)", "Pick the state and the width of the box. Energies are in units of the ground-state energy of a box of width 1."],
+  ["What to look for", "Squeezing the box shortens every wavelength and raises every level; the levels spread apart as \\(n^2\\)."]
+]);
+LX.gate(figE, "Sketch E₁(L) below to reveal");   /* gate messages are CSS content: plain text only */
+
+const wall = LX.s("rect", { class: "fm", opacity: 0.25 }, PB.g.fill);   // the right wall: created once, moved
+function draw() {
+  const { n, L } = S;
+  PB.clear("main"); PB.clear("top");
+  PB.line(0, 0, 0, EMAX, { cls: "ax" });
+  wall.setAttribute("x", PB.X(L)); wall.setAttribute("y", PB.Y(EMAX)); wall.setAttribute("width", PB.X(3.2) - PB.X(L)); wall.setAttribute("height", PB.Y(0) - PB.Y(EMAX));
+  PB.line(L, 0, L, EMAX, { cls: "ax" });
+  for (let m = 1; m <= NMAX; m++) if (E(m, L) < EMAX) PB.line(0, E(m, L), L, E(m, L), { cls: m === n ? "sm" : "sm thin dash faint" });
+  const amp = 0.9 * Math.sqrt(L / 2);
+  PB.fn(x => E(n, L) + amp * psi(n, L, x), { a: 0, b: L, cls: "s1" });
+  PE.clear("main"); PE.clear("top");
+  for (let m = 1; m <= NMAX; m++) PE.fn(L => E(m, L), { cls: m === n ? "s1" : "s1 thin faint" });
+  PE.dot(L, E(n, L), { r: 6, cls: "f2" });
+  rE.set(f(E(n, L))); rW.set(f(2 * L / n, 2));
+}
+draw();
+
+/* ---- 1. choice ---- */
+LX.ask(document.getElementById("q-choice"), {
+  type: "choice",
+  prompt: "Which state has the higher energy: \\(n = 2\\) in a box of width \\(L = 2\\), or \\(n = 1\\) in a box of width \\(L = 1\\)?",
+  options: ["\\(n = 2\\): a higher quantum number always means a higher energy", "They are equal", "\\(n = 1\\): the smaller box always wins"],
+  answer: 1,
+  right: "Both have wavelength \\(\\lambda = 2L/n = 2\\), and the energy depends only on the wavelength: \\(E = n^2/L^2 = 1\\) in both cases. Check it in the widget.",
+  wrong: "The energy depends on \\(n/L\\) only, through the wavelength \\(\\lambda = 2L/n\\). Both states have \\(\\lambda = 2\\), so \\(E = 1\\) for both. Set them in the widget and compare the readouts."
+});
+
+/* ---- 2. number ---- */
+const hP = 6.62607015e-34, me = 9.1093837e-31, eV = 1.602176634e-19;
+const E1SI = (L) => hP * hP / (8 * me * L * L) / eV;
+LX.ask(document.getElementById("q-number"), {
+  type: "number",
+  prompt: "An electron is confined to a box of width 1 nm (roughly a small molecule or a quantum dot). Estimate its ground-state energy \\(E_1 = h^2/(8 m_e L^2)\\).",
+  answer: E1SI(1e-9), tol: 0.3, unit: "eV",
+  right: "\\(E_1 \\approx 0.38\\) eV: comparable to chemical bond energies and much larger than \\(k_BT \\approx 0.025\\) eV at room temperature, so the quantisation is not washed out.",
+  wrong: "\\(E_1 = h^2/(8 m_e L^2) \\approx 0.38\\) eV. With \\(h^2/(8m_e) \\approx 6.0\\times10^{-38}\\,\\mathrm{J\\,m^2}\\) and \\(L^2 = 10^{-18}\\,\\mathrm{m^2}\\), \\(E_1 \\approx 6.0\\times 10^{-20}\\) J."
+});
+
+/* ---- 3. set ---- */
+LX.ask(document.getElementById("q-set"), {
+  type: "set",
+  prompt: "Use the widget: find a state whose energy is exactly 4 (four times the ground state of the \\(L = 1\\) box) with the box <i>wider</i> than 1. Then press Check.",
+  check: () => {
+    const e = E(S.n, S.L), ok = Math.abs(e - 4) < 0.08 && S.L > 1.05;
+    return { pass: ok, msg: ok ? `\\(n = ${S.n}\\), \\(L = ${f(S.L, 2)}\\) gives \\(E = ${f(e, 2)}\\).` : `Now \\(E = ${f(e, 2)}\\) at \\(L = ${f(S.L, 2)}\\).` };
+  },
+  solve: () => { nS.set(3); LS.set(1.5); },
+  right: "You need \\(n/L = 2\\) with \\(L > 1\\): within the widget's range that is \\(n = 3\\), \\(L = 1.5\\). Any state with the same wavelength \\(\\lambda = 1\\) has the same energy.",
+  wrong: "You need \\(n^2/L^2 = 4\\), so \\(n/L = 2\\) with \\(L > 1\\): try \\(n = 3\\) and \\(L = 1.5\\)."
+});
+
+/* ---- 4. sketch (the widget's E(L) plot is gated until compare) ---- */
+const qs = document.getElementById("q-sketch");
+const sketchHost = LX.h("div", {}, null);
+const PS = LX.plot(sketchHost, { xlim: LL, ylim: [0, 1.1], xlabel: "L", ylabel: "E_1", width: 520, height: 260, xticks: 4, yticks: 4 });
+const askS = LX.ask(qs, {
+  type: "sketch",
+  prompt: "Sketch the ground-state energy \\(E_1\\) as the box widens from \\(L = 1\\) to \\(L = 3\\) (the value at \\(L = 1\\) is 1).",
+  plot: PS, xs: [1, 1.4, 1.8, 2.2, 2.6, 3], y0: 0.5, truth: L => 1 / (L * L), tol: 0.12,
+  right: "\\(E_1 = 1/L^2\\): it falls fast at first and then flattens. Doubling the width costs a factor of 4.",
+  wrong: "\\(E_1 = 1/L^2\\), not a straight line: doubling the width divides the energy by 4, tripling it by 9. The curve in the widget is now visible.",
+  reveal: [figE]
+});
+askS.el.insertBefore(sketchHost, askS.el.querySelector(".lx-ask-body"));
+
+/* ---- 5. explain ---- */
+LX.ask(document.getElementById("q-explain"), {
+  type: "explain",
+  prompt: "Why does squeezing the box raise the energy of every state?",
+  model: "<p>The walls force the wavefunction to vanish at both ends, so only standing waves with \\(n\\) half wavelengths fit: \\(\\lambda = 2L/n\\). A narrower box means a shorter wavelength, hence a larger momentum \\(p = h/\\lambda\\) and a larger kinetic energy \\(p^2/2m \\propto 1/L^2\\). There is no potential energy inside the box, so this confinement cost is the whole energy. The same scale follows from the uncertainty relation: \\(\\Delta x \\sim L\\) forces \\(\\Delta p \\gtrsim \\hbar/L\\).</p>"
+});
+
+/* ---- self-tests ---- */
+LX.check("E_n = n²π²/(2L²) from a finite-difference solution of −ψ''/2 = Eψ (ratios n² and 1/L²)", () => {
+  const solve = L => { const N = 80, h = L / (N + 1), A = Array.from({ length: N }, (_, i) => Array.from({ length: N }, (_, j) => i === j ? 1 / (h * h) : Math.abs(i - j) === 1 ? -0.5 / (h * h) : 0)); return LX.eigSym(A).values.slice(0, 3); };
+  const e1 = solve(1), e2 = solve(2), u = PI * PI / 2;
+  const ok = [0, 1, 2].every(k => Math.abs(e1[k] / u - E(k + 1, 1)) < 2e-3 * E(k + 1, 1) && Math.abs(e2[k] / u - E(k + 1, 2)) < 2e-3 * E(k + 1, 2));
+  return { pass: ok, detail: e1.map(v => (v / u).toFixed(4)).join(",") };
+});
+LX.check("ψ_n normalised and orthogonal on [0, L]", () => {
+  const L = 1.7, xs = LX.linspace(0, L, 4001), h = xs[1] - xs[0];
+  const ip = (a, b) => xs.reduce((s, x) => s + psi(a, L, x) * psi(b, L, x), 0) * h;
+  return LX.near(ip(2, 2), 1, 1e-6) && Math.abs(ip(1, 3)) < 1e-6;
+});
+LX.check("equal n/L gives equal energy (choice answer)", () => LX.near(E(2, 2), E(1, 1), 1e-12));
+LX.check("electron in a 1 nm box: E_1 ≈ 0.376 eV (number answer)", () => ({ pass: Math.abs(E1SI(1e-9) - 0.376) < 0.002, detail: E1SI(1e-9) }));
+LX.check("E = 4 with L > 1 is reachable with n ≤ 3 (set answer): n = 3, L = 1.5", () => LX.near(E(3, 1.5), 4, 1e-12));
+</script>

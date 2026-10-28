@@ -1,0 +1,611 @@
+<!-- GENERATED from examples/ssh-chapter.html by tests/sync-base.mjs; edit that file, then run the script. -->
+<title>SSH Chain Chapter</title>
+<!--
+  EXAMPLE · CHAPTER · The Su–Schrieffer–Heeger chain
+  A full Chapter (references/writing.md): a textbook section with display math, four embedded
+  widgets and inline questions. Use it as the model for "teach me <topic>" requests.
+
+  Arc and where the questions sit
+    1 Hook       "Can the ends host states the bulk does not?"  choice; its answer reveals the
+                 results of the first widget (LX.gate) and is echoed back in the Resolve section.
+    2 Orient     Hamiltonian (1), conventions, "by the end you can" callout. No question.
+    3 Explore    Widget 1 (open chain: chain + |psi|^2 of the two states nearest zero, spectral
+                 flow vs v). Ungated controls, four "try this" bullets with contrasting cases.
+    4 Build      3 segments, one idea each:
+                   bulk bands (widget 2, exact) + light check (choice: swap v and w);
+                   winding of d(k) (widget 3, exact) + light check (choice: what happens at the jump);
+                   end-state localisation (widget 4, computed), pointer only.
+    5 Formalise  chiral symmetry, winding number via the argument principle, bulk-boundary
+                 statement, zero-mode ansatz and xi = 1/ln(w/v) (derivation in <details>).
+    6 Resolve    answers the hook explicitly; refutes the two plausible wrong answers.
+    7 Practise   number (xi for v/w = 0.8) · sketch (smallest |E| of the open chain vs v/w) ·
+                 set (widget 4: density down by 100 over two cells) · choice (misconception: every
+                 gap closing is topological) · transfer number (odd chain: how many zero modes) ·
+                 explain (why pinned at zero; what a staggered potential does).
+    8 Close      five bullets; sources in the footer.
+
+  Linking       One shared state S = {v, w, N} for the whole chapter: every widget's v/w/N slider is bound
+                to it (sharedSlider → setS), so moving one moves the others and redraws every view. The
+                cursor k of the winding widget is view-only state and stays local. See widget-craft.md,
+                "Linking widgets".
+
+  Physics       H = v sum_n (c†_{n,A} c_{n,B} + h.c.) + w sum_n (c†_{n+1,A} c_{n,B} + h.c.), v, w >= 0,
+                lattice constant 1, spinless, zero on-site energies. Chain starts on A, ends on B.
+                d(k) = (v + w cos k, w sin k), E = ±|v + w e^{ik}|, gap 2|v - w| at k = pi.
+                W = 1 (v < w), 0 (v > w). Zero mode psi_{n,A} = (-v/w)^{n-1} psi_{1,A}, xi = 1/ln(w/v).
+                Widgets 1 and 4 diagonalise the open chain (LX.eigSym, <= 60 x 60); the spectral flow
+                and the sketch truth use Sturm-sequence bisection on the tridiagonal matrix.
+-->
+<!-- LX:HEAD -->
+<style>
+/* LX:STYLE */
+/* page-specific styles go below */
+.lx-hook p { margin: 0 0 .5em; } .lx-hook p:last-child { margin: 0; }
+.lx-callout ul { margin: 4px 0 0; padding-left: 1.2em; }
+.lx-article details { border: 1px solid var(--line); border-radius: 8px; background: var(--surface); padding: 8px 14px; font: 16px/1.6 var(--f-prose); }
+.lx-article details > summary { cursor: pointer; font: 500 14px/1.4 var(--f-ui); color: var(--accent); }
+.lx-article details[open] > summary { margin-bottom: 8px; }
+.lx-article details p { margin: 0 0 .6em; }
+.lx-article ol li, .lx-article ul li { margin-bottom: 4px; }
+.ssh-echo { border-left: 3px solid var(--c2); padding: 2px 0 2px 12px; color: var(--muted); }
+.ssh-echo:empty { display: none; }
+.ask-fig { background: var(--surface); border-radius: 6px; padding: 6px; }
+.lx-ask textarea { width: 100%; box-sizing: border-box; }
+.lx-page a { color: var(--accent); }
+mjx-container[jax="SVG"] > svg a { fill: var(--accent); stroke: var(--accent); }
+</style>
+
+<main class="lx-page">
+  <header class="lx-head">
+    <p class="lx-eyebrow">Condensed matter · Topological band theory · Chapter</p>
+    <h1>The SSH chain: end states from a bulk winding number</h1>
+    <p class="lx-lede">A chain of identical atoms with alternating bonds has two insulating phases with the same bands. Only one of them has states at its ends. This chapter shows why, and what protects them.</p>
+    <div class="lx-meta">
+      <span>Conventions: lattice constant 1; spinless electrons, one orbital per site, on-site energies 0; hoppings \(v, w \ge 0\); energies in the units of \(v, w\)</span>
+      <span>Reading time about 20 minutes</span>
+    </div>
+  </header>
+
+  <article class="lx-article" id="article">
+    <h2 id="hook">An end that should not be special</h2>
+    <div class="lx-hook">
+      <p>Take a long chain of identical atoms, one orbital per atom, and let an electron hop between nearest neighbours. With equal bonds you get a single cosine band, and nothing interesting happens at the ends.</p>
+      <p>Now let the bonds alternate: strong, weak, strong, weak. Every atom is still the same, with the same on-site energy. The alternation opens a gap in the middle of the band. Then cut the chain.</p>
+    </div>
+    <div id="q-hook"></div>
+
+    <h2 id="model">The model</h2>
+    <p>This is the Su–Schrieffer–Heeger (SSH) model. It was introduced for polyacetylene and is now the standard first example of a topological band structure. Group the atoms into unit cells of two sites, A and B. An electron hops inside a cell with amplitude \(v\) and between neighbouring cells with amplitude \(w\):</p>
+    <p>\begin{equation}
+      \begin{aligned}
+        H &= v \sum_{n=1}^{N} \big( c^\dagger_{n,A} c_{n,B} + \text{h.c.} \big) \\
+          &+ w \sum_{n=1}^{N-1} \big( c^\dagger_{n+1,A} c_{n,B} + \text{h.c.} \big).
+      \end{aligned}
+      \label{eq:H}
+    \end{equation}</p>
+    <p>The chain has \(N\) cells and \(2N\) sites. It starts with site \(A_1\) and ends with site \(B_N\), so both outermost bonds are intracell \(v\) bonds. When only the ratio matters, we set \(w = 1\). The model has no on-site energies at all: whatever happens at the ends cannot come from the end atoms being different.</p>
+    <div class="lx-callout"><b>By the end you can</b>
+      <ul>
+        <li>compute the bulk bands and the gap of the SSH chain;</li>
+        <li>compute its winding number and predict from it, without diagonalising anything, whether an open chain has zero-energy end states;</li>
+        <li>derive how far such a state reaches into the chain;</li>
+        <li>name the symmetry that protects it, and say what destroys it.</li>
+      </ul>
+    </div>
+
+    <h2 id="explore">First look: an open chain</h2>
+    <p>The widget below diagonalises \eqref{eq:H} numerically for an open chain. The large panel shows the chain and, below it, where the two eigenstates closest to \(E = 0\) live. The spectrum panel shows all energies as a function of \(v\), with a cursor at the current value. All four widgets in this chapter show this same chain: change \(v\) or \(w\) in any of them and the others follow. Spend a few minutes with it before reading on.</p>
+    <div class="lx-wide" id="w-explore"></div>
+    <ul>
+      <li>Set \(v = 0.2\), \(w = 1\). Look at the two pink levels nearest zero in the spectrum, and at where those states sit on the chain.</li>
+      <li>Press <b>Swap v and w</b>. The atoms, the two hopping values and the chain length are the same. Compare the states nearest zero.</li>
+      <li>Move \(v\) slowly from 0 up to \(w\). Watch the width of the end peaks, and the value of \(v\) at which the pink levels leave zero.</li>
+      <li>Set \(v = 0\) exactly. Which sites are not bonded to anything?</li>
+    </ul>
+    <p>Three questions should now be on your mind. Why do the end states sit at exactly zero energy, not just somewhere in the gap? Why do they exist for \(v \lt w\) but not for \(v \gt w\), when the ends look the same? And why do they spread out as \(v \to w\)? The rest of the chapter answers them, starting from the bulk.</p>
+
+    <h2 id="bulk">The bulk: bands and a gap</h2>
+    <p>In an infinite chain, translation by one cell is a symmetry. The Fourier transform \(c_{n,\alpha} = N^{-1/2} \sum_k e^{ikn} c_{k,\alpha}\) turns \eqref{eq:H} into independent \(2\times2\) blocks, one per wavenumber \(k\), with the Bloch Hamiltonian</p>
+    <p>\begin{equation}
+      \begin{aligned}
+        h(k) &= \begin{pmatrix} 0 & v + w e^{-ik} \\ v + w e^{ik} & 0 \end{pmatrix} \\
+             &= d_x(k)\,\sigma_x + d_y(k)\,\sigma_y ,
+      \end{aligned}
+      \label{eq:hk}
+    \end{equation}</p>
+    <p>in the basis \((A, B)\). The vector \(\mathbf d(k)\) and the band energies are</p>
+    <p>\begin{align}
+      \mathbf d(k) &= \big(v + w\cos k,\ w \sin k,\ 0\big), \label{eq:d} \\
+      E_\pm(k) &= \pm|\mathbf d(k)| \nonumber \\
+                &= \pm\sqrt{v^2 + w^2 + 2vw\cos k}. \label{eq:E}
+    \end{align}</p>
+    <p>The two terms of \(v + w e^{ik}\) partly cancel at the zone boundary \(k = \pi\), so the gap is \(2|v - w|\). It closes only at \(v = w\), where the chain is uniform and the spectrum is the gapless cosine band folded into the smaller zone.</p>
+    <div id="w-bands"></div>
+    <div id="q-swap"></div>
+
+    <h2 id="winding">What the bands do not show: winding</h2>
+    <p>The energies forget something that the eigenstates remember. Because \(h(k)\) has no \(\sigma_z\) term, \(\mathbf d(k)\) lies in the \(d_x\)–\(d_y\) plane, and the eigenstates are fixed by the angle \(\varphi(k)\) of \(\mathbf d(k)\) in that plane: the lower band is \(\ket{u_-(k)} = \tfrac{1}{\sqrt2}\,(e^{-i\varphi(k)}, -1)^T\).</p>
+    <p>As \(k\) runs once through the Brillouin zone, \(\mathbf d(k)\) traces a closed loop. By \eqref{eq:d} it is a circle of radius \(w\) centred at \((v, 0)\). The <i>winding number</i> \(W\) counts how many times this loop goes around the origin, which is the same as the total change of \(\varphi\) divided by \(2\pi\).</p>
+    <div class="lx-wide" id="w-wind"></div>
+    <div id="q-wind"></div>
+    <p>So the bulk carries an integer that tells \((v, w)\) apart from \((w, v)\) and can change only where the gap closes. It also matches what the open chain did: \(W = 1\) with end states, \(W = 0\) without. The section <a href="#formal">The general statement</a> makes this connection precise. First, a closer look at the end states.</p>
+
+    <h2 id="edge">Where the end states live</h2>
+    <p>For a finite chain, the two states nearest zero are, up to an exponentially small mixing, even and odd combinations of a left end state and a right end state. The first panel averages their densities, which does not depend on how the pair mixes. The log panel shows the left end state alone, on a logarithmic axis, where exponential decay is a straight line.</p>
+    <div class="lx-wide" id="w-edge"></div>
+    <p>Two things are visible. Near the left end the weight sits only on A sites, near the right end only on B sites. And on the log plot the computed points fall on a straight line, so the decay is exponential, with a length that grows as \(v \to w\). Close to \(v = w\) the points leave the line at the far end: the state now reaches the other end of the chain and mixes with the right end state.</p>
+
+    <h2 id="formal">The general statement</h2>
+    <h3>Chiral symmetry</h3>
+    <p>Every term of \eqref{eq:H} moves an electron from A to B or back. Let \(\Gamma = \sum_n \big(\ket{n,A}\!\bra{n,A} - \ket{n,B}\!\bra{n,B}\big)\) be the sublattice operator, \(\sigma_z\) in every cell. Then</p>
+    <p>\begin{equation}
+      \Gamma H \Gamma = -H, \qquad \Gamma^2 = 1 .
+      \label{eq:chiral}
+    \end{equation}</p>
+    <ol>
+      <li>If \(H\psi = E\psi\), then \(H(\Gamma\psi) = -E\,\Gamma\psi\): the spectrum is symmetric about zero. The flow plot in the first widget is mirror symmetric.</li>
+      <li>The zero-energy eigenspace is mapped to itself by \(\Gamma\), so zero modes can be chosen to live on one sublattice only.</li>
+      <li>A state on one sublattice is its own chiral partner (\(\Gamma\psi = \pm\psi\)). It cannot move away from \(E = 0\) on its own: that needs a partner at \(-E\), so it must mix with a state on the other sublattice.</li>
+    </ol>
+    <p>In \(k\)-space, \eqref{eq:chiral} reads \(\sigma_z h(k) \sigma_z = -h(k)\), which forces \(d_z = 0\). That is why \(\mathbf d(k)\) lies in a plane and why its winding around the origin is defined at all.</p>
+
+    <h3>The winding number</h3>
+    <p>Write \(q(k) = d_x + i d_y\). The winding number is the number of turns of \(q(k)\) around zero:</p>
+    <p>\begin{equation}
+      \begin{aligned}
+        W &= \frac{1}{2\pi i} \oint_{-\pi}^{\pi} \dd k\ \partial_k \ln q(k), \\
+        q(k) &= v + w\, e^{ik}.
+      \end{aligned}
+      \label{eq:W}
+    \end{equation}</p>
+    <p>With \(z = e^{ik}\) the integral runs around the unit circle, and by the argument principle it counts the zeros of \(v + wz\) inside it. The only zero, \(z = -v/w\), is inside if and only if \(v \lt w\). Hence \(W = 1\) for \(v \lt w\) and \(W = 0\) for \(v \gt w\). At \(v = w\) the zero sits on the circle, \(q(\pi) = 0\), and \(W\) is undefined: the gap is closed.</p>
+
+    <h3>Bulk–boundary correspondence</h3>
+    <div class="lx-callout"><b>Statement</b>
+      Take a chain with chiral symmetry \eqref{eq:chiral}, short-range hopping and a gapped bulk with winding number \(W\). At an edge far from the other edge, the number of zero-energy states on sublattice A minus the number on sublattice B equals \(W\) (the sign convention flips at the opposite end).
+    </div>
+    <p>The argument fits in three steps. By point 3 above, zero modes at one edge can leave \(E = 0\) only in A–B pairs, so \(N_A - N_B\) cannot change under any deformation that keeps chiral symmetry and a bulk gap. It therefore depends only on the bulk phase. Finally, evaluate it in the two dimer limits: at \(v = 0\), site \(A_1\) is isolated (\(N_A - N_B = 1 = W\)); at \(w = 0\), every site is paired (\(0 = W\)).</p>
+
+    <h3>The zero mode and its length</h3>
+    <p>On a semi-infinite chain \(n = 1, 2, \dots\), the zero mode is exact. Its amplitudes are</p>
+    <p>\begin{equation}
+      \psi_{n,A} = \Big(-\frac{v}{w}\Big)^{n-1} \psi_{1,A}, \qquad \psi_{n,B} = 0,
+      \label{eq:zm}
+    \end{equation}</p>
+    <p>so its density decays as</p>
+    <p>\begin{equation}
+      |\psi_{n,A}|^2 \propto e^{-2(n-1)/\xi}, \qquad \xi = \frac{1}{\ln(w/v)} .
+      \label{eq:xi}
+    \end{equation}</p>
+    <details>
+      <summary>Derivation of \eqref{eq:zm}</summary>
+      <p>Write \(\psi = \sum_n \big(a_n \ket{n,A} + b_n \ket{n,B}\big)\) and project \(H\psi = 0\) onto each site. On \(B_n\): \(v\,a_n + w\,a_{n+1} = 0\). On \(A_n\): \(v\,b_n + w\,b_{n-1} = 0\), with \(b_0 = 0\) because there is no site \(B_0\).</p>
+      <p>The second equation at \(n = 1\) gives \(b_1 = 0\), and then \(b_n = 0\) for all \(n\). The first gives \(a_{n+1} = -(v/w)\,a_n\), which is \eqref{eq:zm}. The norm \(\sum_n |a_n|^2 = |a_1|^2 / (1 - v^2/w^2)\) is finite only for \(v \lt w\), so \(a_1 = \sqrt{1 - v^2/w^2}\). For \(v \gt w\) there is no normalisable zero mode at the left end.</p>
+      <p>This exact envelope is the dashed line in the first widget and in the end-state widget.</p>
+    </details>
+    <p>The mode is normalisable only for \(v \lt w\), which is exactly the condition \(W = 1\) found from the bulk. Near the transition \(\xi \approx w/(w - v)\) diverges, as it must where the gap closes. In a chain of \(N\) cells the two end modes overlap by about \(e^{-N/\xi} = (v/w)^N\). That overlap splits their energies to \(\pm\varepsilon\) with \(\varepsilon \propto (v/w)^N\): the tiny number in the readout of the first widget.</p>
+
+    <h2 id="resolve">Back to the opening question</h2>
+    <p class="ssh-echo" id="echo"></p>
+    <p>It depends on where the chain is cut. Our chain ends with an intracell \(v\) bond at both ends. If that end bond is the weak one (\(v \lt w\)), each end carries one state at exactly \(E = 0\), in the middle of the gap. If it is the strong one (\(v \gt w\)), there is none. Nothing about the end atoms differs between the two cases: same atoms, same missing bond, opposite result.</p>
+    <p>The reason is in the bulk. The two phases have identical bands, but their eigenstates wind differently: \(W = 1\) or \(0\), and \(W\) can change only where the gap closes. Chiral symmetry makes zero modes sublattice-polarised and holds them at \(E = 0\), so the count of zero modes at an edge is protected and must equal \(W\).</p>
+    <p>“No, the atoms are all identical” is a reasonable answer: it is correct about the atoms and wrong about what decides the question, which is the topology of the bulk eigenstates. “Any end binds a state” fails too: the \(v \gt w\) chain has ends and no end states. Ordinary surface states do occur in many systems, but they need something at the surface to bind them, and their energy is not pinned to the middle of the gap.</p>
+
+    <h2 id="practise">Practice</h2>
+    <p>These questions are harder than the ones above. Some need a widget, some need the equations, and one needs neither.</p>
+    <div id="q-num"></div>
+    <div id="q-sketch"></div>
+    <div id="q-set"></div>
+    <div id="q-mis"></div>
+    <div id="q-odd"></div>
+    <div id="q-explain"></div>
+
+    <h2 id="close">Summary</h2>
+    <ul>
+      <li>The SSH chain has two gapped phases with identical bulk bands \(E_\pm = \pm|v + w e^{ik}|\). They differ by the winding number of \(\mathbf d(k)\) around the origin: \(W = 1\) for \(v \lt w\), \(W = 0\) for \(v \gt w\).</li>
+      <li>\(W\) is defined because chiral symmetry keeps \(d_z = 0\). It can change only where the gap closes; a gap closing is necessary for a change of \(W\), not sufficient.</li>
+      <li>Bulk–boundary correspondence: at an edge, (zero modes on A) − (zero modes on B) \(= W\). For SSH this is one end state per edge at \(E = 0\), on one sublattice, decaying over \(\xi = 1/\ln(w/v)\).</li>
+      <li>Pitfall: the protection relies on chiral symmetry. A staggered potential or hopping within one sublattice moves the end states away from zero, although they may stay inside the gap for a while.</li>
+      <li>Next: the Rice–Mele model (SSH plus a staggered potential) and adiabatic charge pumping; then two-dimensional Chern insulators, where the winding becomes a Chern number and the end states become edge channels.</li>
+    </ul>
+  </article>
+
+  <footer class="lx-foot">
+    <span>Source: model knowledge, checked against standard references: J. K. Asbóth, L. Oroszlány, A. Pályi, <i>A Short Course on Topological Insulators</i>, Lecture Notes in Physics 919 (Springer, 2016), ch. 1; W. P. Su, J. R. Schrieffer, A. J. Heeger, Phys. Rev. Lett. <b>42</b>, 1698 (1979); S. Ryu, Y. Hatsugai, Phys. Rev. Lett. <b>89</b>, 077002 (2002).</span>
+    <span>Widgets: bands and winding are exact (closed form); the open-chain spectra and states are computed by exact diagonalisation of at most 60 × 60 matrices, checked by self-tests against the formulas above.</span>
+  </footer>
+</main>
+
+<script>
+/* LX:LIB */
+</script>
+
+<script>
+/* CHAPTER — SSH chain. Shared physics first, then one block per widget, then the questions, then self-tests. */
+const TAU = 2 * Math.PI, PI = Math.PI;
+const $ = id => document.getElementById(id);
+const fmt = (x, d = 2) => x.toFixed(d).replace("-", "−");
+
+/* ---------- physics ---------- */
+const dvec = (k, v, w) => [v + w * Math.cos(k), w * Math.sin(k)];
+const band = (k, v, w) => Math.hypot(v + w * Math.cos(k), w * Math.sin(k));        // E₊(k) = |v + w e^{ik}|
+/* Winding number of d(k) around the origin; NaN when the loop touches it (gap closed). */
+function winding(v, w, n = 2000) {
+  let tot = 0, prev = Math.atan2(0, v + w);
+  for (let i = 1; i <= n; i++) {
+    const d = dvec(TAU * i / n, v, w);
+    if (Math.hypot(d[0], d[1]) < 1e-9) return NaN;
+    const a = Math.atan2(d[1], d[0]); let da = a - prev;
+    da -= TAU * Math.round(da / TAU); tot += da; prev = a;
+  }
+  return Math.round(tot / TAU);
+}
+/* Unwrapped angle φ(k) of d(k), continuous from φ(0) = 0, sampled on (−π, π). */
+function phase(v, w, n = 401) {
+  const ks = LX.linspace(-PI + 1e-6, PI - 1e-6, n), mid = (n - 1) / 2, phi = new Array(n);
+  const ang = k => Math.atan2(w * Math.sin(k), v + w * Math.cos(k));
+  phi[mid] = ang(ks[mid]);
+  for (let i = mid + 1; i < n; i++) { let d = ang(ks[i]) - ang(ks[i - 1]); d -= TAU * Math.round(d / TAU); phi[i] = phi[i - 1] + d; }
+  for (let i = mid - 1; i >= 0; i--) { let d = ang(ks[i]) - ang(ks[i + 1]); d -= TAU * Math.round(d / TAU); phi[i] = phi[i + 1] + d; }
+  return ks.map((k, i) => [k, phi[i]]);
+}
+/* Open chain, sites ordered A1 B1 A2 B2 …: off-diagonals alternate v (intracell), w (intercell).
+   sites = 2N (ends on B_N) or 2N + 1 (ends on A_{N+1}); m = staggered potential (+m on A, −m on B). */
+const offdiag = (v, w, sites) => Array.from({ length: sites - 1 }, (_, i) => (i % 2 ? w : v));
+function hamiltonian(v, w, sites, m = 0) {
+  const H = Array.from({ length: sites }, (_, i) => { const r = new Array(sites).fill(0); r[i] = i % 2 ? -m : m; return r; });
+  offdiag(v, w, sites).forEach((b, i) => { H[i][i + 1] = H[i + 1][i] = b; });
+  return H;
+}
+/* Eigenvalues of a zero-diagonal symmetric tridiagonal matrix by Sturm-sequence bisection (fast: spectral flow). */
+function sturmEig(b) {
+  const M = b.length + 1, R = Math.max(0, ...b) * 2 + 1e-9;
+  const below = x => { let q = -x, c = q < 0; for (let i = 1; i < M; i++) { q = -x - b[i - 1] * b[i - 1] / (q || 1e-300); c += q < 0; } return c; };
+  return Array.from({ length: M }, (_, j) => {
+    let lo = -R, hi = R;
+    for (let it = 0; it < 46; it++) { const mid = (lo + hi) / 2; below(mid) > j ? (hi = mid) : (lo = mid); }
+    return (lo + hi) / 2;
+  });
+}
+/* Spectrum, eigenvectors, and the density of the two states nearest E = 0 (their average). */
+function chain(v, w, N) {
+  const { values, vectors } = LX.eigSym(hamiltonian(v, w, 2 * N));
+  const rho = new Array(2 * N).fill(0);
+  for (const j of [N - 1, N]) vectors[j].forEach((c, i) => { rho[i] += c * c / 2; });
+  return { E: values, V: vectors, rho, pairE: [values[N - 1], values[N]] };
+}
+const xi = r => (r < 1 ? (r <= 0 ? 0 : 1 / Math.log(1 / r)) : Infinity);       // r = v/w
+const minAbsE = (v, w, N) => Math.min(...sturmEig(offdiag(v, w, 2 * N)).map(Math.abs));
+
+/* Chain drawing shared by widgets 1 and 4: bond width ∝ hopping, A sites accent, B sites orange. */
+function drawChain(P, v, w, N) {
+  P.clear("main"); P.clear("top");
+  const tmax = Math.max(v, w, 1e-9), r = Math.min(4.5, 48 / N);
+  const bond = (xa, xb, t) => { if (t <= 1e-9) return; const l = P.line(xa, 0, xb, 0, { cls: "sm" }); l.style.strokeWidth = (0.6 + 4.4 * t / tmax).toFixed(2); };
+  for (let n = 1; n <= N; n++) { bond(n - 0.25, n + 0.25, v); if (n < N) bond(n + 0.25, n + 0.75, w); }
+  for (let n = 1; n <= N; n++) { P.dot(n - 0.25, 0, { r, cls: "f1" }); P.dot(n + 0.25, 0, { r, cls: "f2" }); }
+}
+/* Site-resolved density as bars: A at n − 0.25, B at n + 0.25. */
+function drawBars(P, rhoA, rhoB, N) {
+  const wpx = Math.max(1.5, Math.min(7, 110 / N)).toFixed(1);
+  for (let n = 1; n <= N; n++) {
+    [[n - 0.25, rhoA[n - 1], "s1"], [n + 0.25, rhoB[n - 1], "s2"]].forEach(([x, y, cls]) => {
+      if (y <= 0) return; const l = P.line(x, 0, x, y, { cls }); l.style.strokeWidth = wpx; l.style.strokeLinecap = "butt";
+    });
+  }
+}
+
+/* ================= Shared state: one chain, four views =================
+   S holds the physics every widget shows: hoppings v, w and the chain length N. A slider in any
+   widget writes to S through setS(), which moves every other slider bound to the same key and
+   redraws every view, so the four widgets always show the same chain. View-only state (the
+   cursor k in the winding widget) stays local to its widget. */
+const S = { v: 0.4, w: 1, N: 16 }, VM = 1.5, EM = 3.2;
+const bound = { v: [], w: [], N: [] }, views = [];
+function bind(key, slider) { bound[key].push(slider); return slider; }
+function setS(patch, from) {
+  Object.assign(S, patch);
+  for (const key in patch) bound[key].forEach(s => { if (s !== from) s.set(S[key], false); });
+  views.forEach(redraw => redraw(patch));
+}
+/* A slider for one key of S: it writes through setS and follows changes made elsewhere. */
+function sharedSlider(parent, key, o) {
+  const s = LX.slider(parent, { ...o, value: S[key], onInput: x => setS({ [key]: x }, s) });
+  return bind(key, s);
+}
+
+/* ================= Widget 1: explore the open chain ================= */
+const wX = LX.widget($("w-explore"), { layout: "hero", title: "An open SSH chain", badge: "computed" });
+const xCol = LX.h("div", { class: "lx-col" }, wX);
+const xFig = LX.fig(xCol, "Top: the chain; bond thickness is proportional to the hopping. Bottom: \\(|\\psi|^2\\) on each site, averaged over the two eigenstates closest to \\(E = 0\\).");
+const PC = LX.plot(xFig, { xlim: [0.4, S.N + 0.6], ylim: [-1, 1], ticks: false, frame: false, height: 64, margin: { l: 56, r: 16, t: 4, b: 4 } });
+const lv = PC.tex(1, 0.45, "v", { anchor: "s" }), lw = PC.tex(2.5, 0.45, "w", { anchor: "s" });
+const PD = LX.plot(xFig, { xlim: [0.4, S.N + 0.6], ylim: [0, 0.5], xlabel: "\\text{cell } n", ylabel: "|\\psi|^2", height: 250 });
+LX.legend(xFig, [["A sites", "--accent", "line"], ["B sites", "--c2", "line"], ["exact semi-infinite end state", "--muted", "dash"]]);
+const fFig = LX.fig(wX, "All \\(2N\\) energies of the open chain against \\(v\\), at the current \\(w\\) and \\(N\\). Pink: the two levels nearest zero. Orange line: the current \\(v\\).");
+const PF = LX.plot(fFig, { xlim: [0, VM], ylim: [-EM, EM], xlabel: "v", ylabel: "E", width: 400, height: 340 });
+const xc = LX.controls(wX);
+sharedSlider(xc, "v", { id: "x-v", label: "intracell hopping \\(v\\)", min: 0, max: VM, step: 0.01 });
+sharedSlider(xc, "w", { id: "x-w", label: "intercell hopping \\(w\\)", min: 0.05, max: VM, step: 0.01 });
+sharedSlider(xc, "N", { id: "x-N", label: "cells \\(N\\)", min: 4, max: 30, step: 1, fmt: x => String(x) });
+LX.button(LX.h("div", { class: "lx-row" }, xc), "Swap \\(v\\) and \\(w\\)", () => setS({ v: S.w, w: S.v }), { id: "x-swap" });
+const xr = LX.h("div", { class: "lx-readouts" }, xc);
+const rPair = LX.readout(xr, "levels nearest 0: \\(\\pm\\)");
+const rGap = LX.readout(xr, "bulk gap \\(2|v-w|\\) =");
+LX.guide(wX, [
+  ["Chain", "Blue dots are A sites, orange dots B sites. Each cell is an A–B pair joined by a \\(v\\) bond; neighbouring cells are joined by \\(w\\) bonds. Thicker line, larger hopping."],
+  ["\\(|\\psi|^2\\) panel", "Where the two states closest to zero energy live, site by site. Peaks at the ends mean end states; a spread-out pattern means bulk states. Dashed: the exact end-state envelope \\eqref{eq:xi}, drawn when \\(v \\lt w\\)."],
+  ["Spectrum", "Each line is one eigenvalue of the open chain as \\(v\\) varies. Bulk states form the two bands; a level that stays near \\(E = 0\\) inside the gap is not a bulk state."],
+  ["Sliders", "\\(v\\) moves the cursor only; \\(w\\) and \\(N\\) recompute the whole spectrum. <b>Swap</b> exchanges \\(v\\) and \\(w\\), which leaves the bulk bands unchanged. All four widgets in this chapter show the same chain: \\(v\\), \\(w\\) and \\(N\\) set here are the values used below, and moving them below changes them here."],
+  ["Readouts", "The energy of the two levels nearest zero, and the bulk gap from \\eqref{eq:E}."]
+]);
+let flow = null;
+function xUpdate(patch) {
+  const { v, w, N } = S, recompute = !flow || "w" in patch || "N" in patch;
+  if ("N" in patch) { PC.setLim([0.4, N + 0.6], null); PD.setLim([0.4, N + 0.6], null); }
+  PC.placeTex(lv, 1, 0.45, "s"); PC.placeTex(lw, 2.5, 0.45, "s");
+  drawChain(PC, v, w, N);
+  const C = chain(v, w, N);
+  const top = Math.max(...C.rho) * 1.15 || 1;
+  PD.setLim(null, [0, top]); PD.clearAll();
+  drawBars(PD, C.rho.filter((_, i) => i % 2 === 0), C.rho.filter((_, i) => i % 2 === 1), N);
+  if (v < w) {   // exact semi-infinite end states, each carrying half of the pair's weight
+    const q = (v / w) ** 2, a = (1 - q) / 2;
+    PD.path(Array.from({ length: N }, (_, i) => [i + 1 - 0.25, a * q ** i]), { cls: "sm dash", layer: "top" });
+    PD.path(Array.from({ length: N }, (_, i) => [N - i + 0.25, a * q ** i]), { cls: "sm dash", layer: "top" });
+  }
+  if (recompute) flow = LX.linspace(0, VM, 76).map(vv => [vv, sturmEig(offdiag(vv, w, 2 * N))]);
+  PF.clearAll();
+  PF.hline(0, { cls: "gr" });
+  for (let j = 0; j < 2 * N; j++) {
+    const mid = j === N - 1 || j === N;
+    PF.path(flow.map(([vv, E]) => [vv, E[j]]), { cls: mid ? "s4" : "s1 thin" });
+  }
+  if (w > 0.02 && w < VM) { PF.vline(w); PF.tex(w, EM - 0.1, "v=w", { anchor: "nw" }); }
+  PF.vline(v, { cls: "s2 thin", layer: "top" });
+  C.E.forEach((E, j) => { const mid = j === N - 1 || j === N; PF.dot(v, E, { r: mid ? 4.5 : 2.5, cls: mid ? "f4" : "f2" }); });
+  const e = Math.abs(C.pairE[1]);
+  rPair.set(e < 1e-12 ? "0 (to machine precision)" : e.toExponential(1).replace("-", "−"));
+  rGap.set(fmt(2 * Math.abs(v - w)));
+}
+views.push(xUpdate);
+LX.gate(PD.svg.parentNode, "Answer the opening question to see the states");
+LX.gate(PF.svg.parentNode, "Answer the opening question to see the spectrum");
+LX.gate(xr, "Hidden until you answer");
+
+/* ================= Widget 2: bulk bands ================= */
+const wB = LX.widget($("w-bands"), { layout: "aside", title: "Bulk bands", badge: "exact" });
+const PB = LX.plot(LX.fig(wB, "\\(E_\\pm(k) = \\pm|v + w\\,e^{ik}|\\) over the Brillouin zone. Shaded: the gap."), { xlim: [-PI, PI], ylim: [-EM, EM], xlabel: "k", ylabel: "E", height: 330 });
+const gapLab = PB.tex(0, 0, "2|v-w|", { anchor: "c" });
+const bc = LX.controls(wB);
+sharedSlider(bc, "v", { id: "b-v", label: "\\(v\\)", min: 0, max: VM, step: 0.01 });
+sharedSlider(bc, "w", { id: "b-w", label: "\\(w\\)", min: 0.05, max: VM, step: 0.01 });
+LX.button(LX.h("div", { class: "lx-row" }, bc), "Keep a copy of these bands", () => PB.ghost(), { id: "b-ghost" });
+const rBG = LX.readout(bc, "gap \\(2|v-w|\\) =");
+LX.guide(wB, [
+  ["Blue curves", "The two bands \\(E_\\pm(k)\\) of the infinite chain, \\eqref{eq:E}."],
+  ["Green band", "The gap between them, smallest at the zone edge \\(k = \\pm\\pi\\); the dots mark the band edges there."],
+  ["Sliders", "The same \\(v\\) and \\(w\\) as in the open-chain widget above: they move together."],
+  ["Copy", "<b>Keep a copy</b> freezes the current bands as a faint dashed curve, so you can compare two parameter sets."]
+]);
+function bDraw() {
+  const { v, w } = S, g = Math.abs(v - w);
+  PB.clear("main"); PB.clear("fill"); PB.clear("top");
+  PB.path([[-PI, -g], [PI, -g], [PI, g], [-PI, g]], { cls: "a3", layer: "fill", close: true });
+  PB.fn(k => band(k, v, w), { cls: "s1" }); PB.fn(k => -band(k, v, w), { cls: "s1" });
+  [-PI, PI].forEach(k => { PB.dot(k, g, { r: 4, cls: "f3" }); PB.dot(k, -g, { r: 4, cls: "f3" }); });
+  gapLab.style.display = g > 0.15 ? "" : "none";
+  rBG.set(fmt(2 * g));
+}
+views.push(patch => { if ("v" in patch || "w" in patch) bDraw(); });
+
+/* ================= Widget 3: winding of d(k) ================= */
+const Wd = { k: 2.2 };                                   // view-only: the cursor on the loop
+const wW = LX.widget($("w-wind"), { layout: "split", title: "The loop traced by \\(\\mathbf d(k)\\)", badge: "exact" });
+const PL = LX.plot(LX.fig(wW, "\\(\\mathbf d(k)\\) in the plane as \\(k\\) runs from \\(-\\pi\\) to \\(\\pi\\). Grey dot: the origin. Orange arrow: \\(\\mathbf d\\) at the current \\(k\\)."),
+  { xlim: [-1.5, 3.3], ylim: [-1.507, 1.507], xlabel: "d_x", ylabel: "d_y", width: 420, height: 300, margin: { l: 44, r: 16, t: 30, b: 44 } });
+const PP = LX.plot(LX.fig(wW, "The angle \\(\\varphi(k)\\) of \\(\\mathbf d(k)\\), followed continuously from \\(\\varphi(0) = 0\\). Its total change over the zone is \\(2\\pi W\\)."),
+  { xlim: [-PI, PI], ylim: [-1.3, 1.3], xlabel: "k", ylabel: "\\varphi/\\pi", width: 420, height: 300 });
+const wc = LX.controls(wW); wc.classList.add("lx-span2");
+sharedSlider(wc, "v", { id: "w-v", label: "intracell hopping \\(v\\)", min: 0, max: VM, step: 0.01 });
+LX.slider(wc, { id: "w-k", label: "wavenumber \\(k\\)", min: -PI, max: PI, step: 0.01, value: Wd.k, onInput: x => { Wd.k = x; wDraw(); } });
+const wr = LX.h("div", { class: "lx-readouts" }, wc);
+const rWw = LX.readout(wr, "\\(w\\) =");
+const rW = LX.readout(wr, "winding \\(W\\) =");
+LX.guide(wW, [
+  ["Loop", "The circle of radius \\(w\\) centred at \\((v, 0)\\) traced by \\(\\mathbf d(k)\\); the small arrow on it shows the direction of increasing \\(k\\). Does it enclose the grey origin?"],
+  ["Angle", "The same information as one number per \\(k\\): the angle of the orange arrow. It ends at \\(\\pm\\pi\\) when the loop encloses the origin, and returns to 0 when it does not."],
+  ["Sliders", "\\(v\\) moves the circle sideways; it is the same \\(v\\) as in the widgets above, and \\(w\\) (the radius) is the value set there. \\(k\\) moves the orange arrow and the dot in the angle plot; it belongs to this widget only."]
+]);
+function wDraw() {
+  const { v, w } = S, k = Wd.k;
+  PL.clearAll();
+  PL.hline(0, { cls: "gr" }); PL.vline(0, { cls: "gr" });
+  PL.path(LX.linspace(0, TAU, 300).map(q => dvec(q, v, w)), { cls: "s1" });
+  const a = dvec(PI / 2 - 0.3, v, w), b = dvec(PI / 2 + 0.05, v, w);
+  PL.arrow(a[0], a[1], b[0], b[1], { cls: "s1", layer: "main" });
+  PL.dot(0, 0, { r: 5, cls: "fm", layer: "main" });
+  const d = dvec(k, v, w);
+  if (Math.hypot(d[0], d[1]) > 1e-3) PL.arrow(0, 0, d[0], d[1], { cls: "s2" });
+  PL.dot(d[0], d[1], { r: 5, cls: "f2" });
+  PP.clearAll();
+  PP.hline(0, { cls: "gr" }); PP.hline(1, { cls: "sm dash" }); PP.hline(-1, { cls: "sm dash" });
+  const ph = phase(v, w);
+  PP.path(ph.map(([q, p]) => [q, p / PI]), { cls: "s1" });
+  PP.vline(k, { cls: "s2 thin", layer: "top" });
+  let i = Math.round((k + PI) / TAU * (ph.length - 1)); i = LX.clamp(i, 0, ph.length - 1);
+  PP.dot(k, ph[i][1] / PI, { r: 5, cls: "f2" });
+  const W = Math.abs(v - w) < 0.005 ? NaN : winding(v, w);
+  rWw.set(fmt(w));
+  rW.set(isNaN(W) ? "undefined: the loop passes through the origin" : String(W));
+}
+views.push(patch => { if ("v" in patch || "w" in patch) wDraw(); });
+
+/* ================= Widget 4: the left end state ================= */
+const wE = LX.widget($("w-edge"), { layout: "split", title: "The end states, up close", badge: "computed" });
+const eFig1 = LX.fig(wE, "\\(|\\psi|^2\\) on A (blue) and B (orange) sites, averaged over the two states nearest \\(E = 0\\), for the same open chain as the first widget.");
+const PE = LX.plot(eFig1, { xlim: [0.4, S.N + 0.6], ylim: [0, 1], xlabel: "\\text{cell } n", ylabel: "|\\psi|^2", width: 420, height: 300 });
+const eFig2 = LX.fig(wE, "The left end state alone: its density on A sites on a log scale (dots), and the exact envelope \\eqref{eq:xi} (dashed).");
+const PE2 = LX.plot(eFig2, { xlim: [0.5, S.N + 0.5], ylim: [-8, 0.4], xlabel: "\\text{cell } n", ylabel: "\\log_{10}|\\psi_{n,A}|^2", width: 420, height: 300 });
+const ec = LX.controls(wE); ec.classList.add("lx-span2");
+const eS = sharedSlider(ec, "v", { id: "e-v", label: "intracell hopping \\(v\\)", min: 0, max: VM, step: 0.005, fmt: x => x.toFixed(3) });
+const er = LX.h("div", { class: "lx-readouts" }, ec);
+const rRatio = LX.readout(er, "\\(v/w\\) =");
+const rXi = LX.readout(er, "decay length \\(\\xi = 1/\\ln(w/v)\\) =");
+LX.guide(wE, [
+  ["Densities", "Where the two states nearest zero live, averaged over the pair (the average does not depend on how the two nearly degenerate states mix). For \\(v \\lt w\\): a blue peak at the left end, an orange one at the right end. For \\(v \\gt w\\): bulk standing waves."],
+  ["Log plot", "\\(\\log_{10}|\\psi_{n,A}|^2\\) of the left end state, which is twice the blue bar (the left state carries half of the pair's weight). A straight line means exponential decay, with slope \\(-2/(\\xi \\ln 10)\\) per cell. Points below \\(10^{-8}\\) are not drawn."],
+  ["Slider", "The shared \\(v\\); \\(w\\) and \\(N\\) are the values set in the first widget. Watch the slope of the line and the far end of the chain as \\(v \\to w\\)."]
+]);
+function eDraw(patch) {
+  const { v, w, N } = S, r = v / w, C = chain(v, w, N);
+  if ("N" in patch) { PE.setLim([0.4, N + 0.6], null); PE2.setLim([0.5, N + 0.5], null); }
+  const a = C.rho.filter((_, i) => i % 2 === 0), b = C.rho.filter((_, i) => i % 2 === 1);
+  PE.setLim(null, [0, Math.max(...C.rho) * 1.15]); PE.clearAll();
+  drawBars(PE, a, b, N);
+  PE2.clearAll();
+  if (r > 0 && r < 1) PE2.path(LX.linspace(1, N, 60).map(n => [n, Math.log10(1 - r * r) + 2 * (n - 1) * Math.log10(r)]), { cls: "sm dash" });
+  a.forEach((x, i) => { const y = Math.log10(2 * x); if (y > -8) PE2.dot(i + 1, y, { r: 3.5, cls: "f1", layer: "main" }); });
+  rRatio.set(r.toFixed(3));
+  rXi.set(r < 1 ? fmt(xi(r)) + " cells" : "no end state (v ≥ w)");
+}
+views.push(eDraw);
+
+setS({ v: S.v, w: S.w, N: S.N });                   // first frame: every view drawn from S
+
+/* ================= Questions ================= */
+const hookOpts = [
+  "No. All atoms are identical, so every state belongs to the two bulk bands; the ends only shift them slightly.",
+  "Yes, always: any end of a gapped chain binds a state inside the gap.",
+  "It depends on which bond is cut: one way of ending the chain gives a state in the middle of the gap, the other gives none.",
+  "Only if the end atoms are made different, for example by an extra on-site potential."
+];
+LX.ask($("q-hook"), {
+  type: "choice", kicker: "Predict",
+  prompt: "Can the ends of this chain host electronic states with energies inside the bulk gap, states that the infinite chain does not have?",
+  options: hookOpts, answer: 2, grade: false, reveal: [PD.svg.parentNode, PF.svg.parentNode, xr],
+  right: "Noted. Keep your answer in mind: the first widget below shows what an actual chain does, and the section <a href=\"#resolve\">Back to the opening question</a> returns to the reasoning.",
+  onAnswer: (_, k) => { const e = $("echo"); e.textContent = "At the start you chose: “" + hookOpts[k] + "”"; }
+});
+LX.ask($("q-swap"), {
+  type: "choice", kicker: "Check",
+  prompt: "Set \\(v = 0.4\\), \\(w = 1\\), press <b>Keep a copy</b>, then exchange the two values. Before you do it: what will the bands look like?",
+  options: ["Identical to the copy.", "The copy mirrored about \\(E = 0\\).", "Different: the gap moves to \\(k = 0\\)."], answer: 0,
+  right: "By \\eqref{eq:E}, \\(E\\) depends on \\(v\\) and \\(w\\) only through \\(v^2 + w^2\\) and \\(vw\\), which are symmetric under the swap. Yet the open chains of the first widget looked completely different for \\((0.4, 1)\\) and \\((1, 0.4)\\). Whatever distinguishes the two phases is not in \\(E(k)\\).",
+  wrong: "Try it: the new bands land exactly on the copy. By \\eqref{eq:E}, \\(E\\) depends only on \\(v^2 + w^2\\) and \\(vw\\). So whatever distinguished the two open chains in the first widget is not in \\(E(k)\\)."
+});
+LX.ask($("q-wind"), {
+  type: "choice", kicker: "Check",
+  prompt: "Move \\(v/w\\) from 0.5 to 1.5. The winding jumps from 1 to 0. What must happen at the moment of the jump?",
+  options: ["The loop passes through the origin, so \\(|\\mathbf d(k)| = 0\\) for some \\(k\\): the bulk gap closes.", "The loop shrinks to a point.", "Nothing visible in the bulk: the jump is a property of the chain's ends."], answer: 0,
+  right: "Deforming a loop that avoids the origin cannot change how often it winds around it. The only way to change \\(W\\) is to drag the loop across the origin, and there \\(|\\mathbf d(k)| = E_+(k) = 0\\): the gap closes. This is why \\(v = w\\) is a phase transition between two insulators with the same bands, not a crossover.",
+  wrong: "Watch the loop as \\(v/w\\) crosses 1: the circle (radius \\(w\\)) slides sideways across the grey origin without shrinking. At the crossing \\(|\\mathbf d(\\pi)| = 0\\), which is the gap closing at \\(k = \\pi\\)."
+});
+
+/* Practice */
+LX.ask($("q-num"), {
+  type: "number", tol: 0.08, answer: 1 / Math.log(1.25), unit: "unit cells",
+  prompt: "A chain has \\(v = 0.8\\) and \\(w = 1.0\\). How many unit cells is the localisation length \\(\\xi\\) of its end states?",
+  right: "\\(\\xi = 1/\\ln 1.25 \\approx 4.5\\) cells. The density falls by \\(e^2 \\approx 7.4\\) every 4.5 cells, so the state reaches 10–15 cells into the chain. Compare with the end-state widget at \\(v/w = 0.8\\).",
+  wrong: "Use \\(\\xi = 1/\\ln(w/v)\\) with \\(w/v = 1.25\\), so \\(\\ln 1.25 \\approx 0.22\\). The end-state widget at \\(v/w = 0.8\\) shows the same number."
+});
+const skFig = LX.h("div", { class: "lx-fig ask-fig" });
+const PS = LX.plot(skFig, { xlim: [0, 2], ylim: [0, 1.3], xlabel: "v/w", ylabel: "\\min_j |E_j|", height: 280, margin: { b: 62 } });
+PS.vline(1); PS.tex(1.03, 1.25, "v=w", { anchor: "nw" });
+const skAsk = LX.ask($("q-sketch"), {
+  type: "sketch", plot: PS, xs: LX.linspace(0, 2, 9), y0: 0.65, tol: 0.15,
+  truth: v => minAbsE(v, 1, 20),
+  prompt: "Open chain, \\(N = 20\\) cells, \\(w = 1\\). Sketch the smallest \\(|E|\\) among all 40 levels as \\(v/w\\) goes from 0 to 2.",
+  hint: "Drag the pink points, then compare with the computed curve (blue).",
+  right: "The end-state pair stays at \\(E \\approx 0\\) (splitting \\(\\propto (v/w)^N\\)) and lifts off only when \\(\\xi\\) becomes comparable to \\(N\\), just below \\(v = w\\). On the trivial side there is no state in the gap, and the smallest \\(|E|\\) is the band edge, close to \\(|v - w|\\). The bulk gap is symmetric about \\(v = w\\); this curve is not. That asymmetry is the bulk–boundary correspondence.",
+  wrong: "Look at the computed curve: flat at zero for \\(v \\lt w\\) (the end-state pair), a small finite-size value at \\(v = w\\), then the band edge \\(\\approx |v - w|\\) for \\(v \\gt w\\). The bulk gap is symmetric about \\(v = w\\); the open-chain spectrum is not."
+});
+skAsk.el.insertBefore(skFig, skAsk.el.querySelector(".lx-ask-body"));
+LX.ask($("q-set"), {
+  type: "set",
+  prompt: "Use the <a href=\"#edge\">end-state widget</a>: set \\(v/w\\) so that the density of the left end state drops by a factor of 100 between cell 1 and cell 3. The state is then essentially gone within two unit cells.",
+  check: () => {
+    const r = S.v / S.w, ratio = r ** 4;
+    return { pass: r >= 0.29 && r <= 0.345, msg: `At v/w = ${r.toFixed(3)} the density drops by a factor ${(1 / ratio).toFixed(0)} from cell 1 to cell 3.` };
+  },
+  solve: () => { eS.set(0.316 * S.w); $("w-edge").scrollIntoView({ behavior: "smooth", block: "center" }); },
+  right: "Over two cells the density falls by \\((v/w)^4\\), so \\((v/w)^4 = 0.01\\) gives \\(v/w \\approx 0.32\\) and \\(\\xi \\approx 0.87\\) cells.",
+  wrong: "Over two cells the density falls by \\((v/w)^4\\). On the log plot you need a drop of two decades between \\(n = 1\\) and \\(n = 3\\)."
+});
+LX.ask($("q-mis"), {
+  type: "choice", kicker: "Misconception",
+  prompt: "A colleague says: “The SSH transition is topological because the gap closes at \\(v = w\\). So every gap closing in a one-dimensional insulator is a topological transition.” Which reply is right?",
+  options: [
+    "They are right: a gap closing always changes some topological invariant.",
+    "A gap closing is necessary for \\(W\\) to change, not sufficient: tune \\(v/w\\) from 0.5 up to 1 and back to 0.5, and the gap closes once while \\(W\\) ends where it started.",
+    "\\(W\\) can even change without a gap closing, if \\(v\\) and \\(w\\) are changed quickly enough."
+  ], answer: 1,
+  right: "\\(W\\) can change only where the gap closes, but a gap can close and reopen without \\(W\\) changing: here by touching the origin and moving back, in other models by two closings that cancel. Closing is necessary; a change of the invariant on the two sides is what makes the transition topological.",
+  wrong: "\\(W\\) is a property of \\(h(k)\\) at each parameter value, not of how fast the parameters change. And while \\(W\\) can change only where the loop crosses the origin, touching the origin and moving back leaves \\(W\\) unchanged. A gap closing is necessary, not sufficient."
+});
+LX.ask($("q-odd"), {
+  type: "number", kicker: "Transfer", answer: 1, tol: 0.01, unit: "zero-energy states",
+  prompt: "Add one more A site at the right end, so the chain has \\(2N + 1\\) sites and starts and ends on A. For arbitrary \\(v, w \\gt 0\\), how many eigenstates have exactly \\(E = 0\\)?",
+  right: "Exactly one, for every \\(v\\) and \\(w\\). \\(H\\) only connects A to B, so it maps the \\((N+1)\\)-dimensional A space into the \\(N\\)-dimensional B space, and some combination of A sites is annihilated. That zero mode lives on A only, at the left end for \\(v \\lt w\\) and at the right end for \\(v \\gt w\\). The same counting is behind the zero mode bound to a domain wall between the two dimerisations, the soliton of the original SSH paper.",
+  wrong: "Count dimensions. \\(H\\) only connects A to B. With \\(N + 1\\) A sites and \\(N\\) B sites, \\(H\\) maps an \\((N+1)\\)-dimensional space into an \\(N\\)-dimensional one, so it annihilates at least one vector. Here it is exactly one, whatever \\(v\\) and \\(w\\)."
+});
+LX.ask($("q-explain"), {
+  type: "explain",
+  prompt: "Why is the end state pinned to exactly \\(E = 0\\) as long as the gap is open? And what does a staggered on-site potential \\(m\\,(n_A - n_B)\\) do to the two end states?",
+  model: "<p>\\(H\\) only hops between A and B, so \\(\\Gamma H \\Gamma = -H\\) and the spectrum is symmetric: each state at \\(E\\) has a partner \\(\\Gamma\\psi\\) at \\(-E\\). The left end state lives on A only, so \\(\\Gamma\\psi = \\psi\\): it is its own partner. To move to \\(\\varepsilon \\neq 0\\) it would need a distinct partner at \\(-\\varepsilon\\), that is, it would have to mix with a B state at the same end and the same energy. Inside the gap there is none: bulk states have \\(|E| \\ge |v - w|\\), and the right end state is \\(N\\) cells away, which gives only the splitting \\(\\propto (v/w)^N\\). So the state stays at zero until the gap closes.</p><p>The potential adds \\(m\\Gamma\\) to \\(H\\), which commutes with \\(\\Gamma\\): chiral symmetry is broken. The A-only left state is still an eigenstate of the semi-infinite chain, now at \\(E = +m\\); the B-only right state moves to \\(-m\\). For \\(|m|\\) smaller than the gap they stay inside it, but they are no longer pinned. \\(W\\) loses its meaning too: \\(\\mathbf d(k)\\) gets \\(d_z = m\\), so the loop no longer lies in a plane through the origin and can be slid past the origin without touching it.</p>"
+});
+
+/* ================= Self-tests ================= */
+LX.check("gap from bands = 2|v−w| (min of |v + w e^{ik}| at k = π)", () => {
+  const bad = [[0.4, 1], [1.3, 0.7], [0.9, 0.9]].filter(([v, w]) => !LX.near(2 * Math.min(...LX.linspace(-PI, PI, 2001).map(k => band(k, v, w))), 2 * Math.abs(v - w), 1e-9));
+  return { pass: !bad.length, detail: JSON.stringify(bad) };
+});
+LX.check("bands symmetric under v ↔ w", () => LX.linspace(-PI, PI, 50).every(k => LX.near(band(k, 0.4, 1), band(k, 1, 0.4), 1e-12)));
+LX.check("winding W = 1 for v < w, 0 for v > w", () => {
+  const r = [winding(0.5, 1), winding(0, 1), winding(1.5, 1), winding(1, 0), winding(0.99, 1), winding(1.01, 1)];
+  return { pass: r.join() === "1,1,0,0,1,0", detail: r.join() };
+});
+LX.check("unwrapped phase changes by 2πW over the zone", () => {
+  const t = (v) => { const p = phase(v, 1); return (p[p.length - 1][1] - p[0][1]) / TAU; };
+  return { pass: Math.abs(t(0.5) - 1) < 1e-3 && Math.abs(t(1.5)) < 1e-3, detail: `${t(0.5)}, ${t(1.5)}` };
+});
+LX.check("open chain at v = 0 has exactly two zero modes, the rest at ±w", () => {
+  const E = chain(0, 1, 10).E, z = E.filter(e => Math.abs(e) < 1e-12).length;
+  return { pass: z === 2 && E.every(e => Math.abs(e) < 1e-12 || LX.near(Math.abs(e), 1, 1e-10)), detail: z };
+});
+LX.check("end-state decay length = 1/ln(w/v) (v = 0.5, w = 1, N = 20)", () => {
+  const { rho } = chain(0.5, 1, 20), fit = -2 / Math.log(rho[4] / rho[2]);
+  return { pass: LX.near(fit, 1 / Math.log(2), 1e-6) && rho[1] < 1e-10, detail: fit };
+});
+LX.check("end-state pair splitting ∝ (v/w)^N", () => {
+  const e = N => Math.abs(chain(0.5, 1, N).pairE[1]), q = e(11) / e(10);
+  return { pass: Math.abs(q - 0.5) < 0.01, detail: q };
+});
+LX.check("chiral symmetry: open-chain spectrum symmetric about 0", () => {
+  const E = chain(0.7, 1.1, 15).E;
+  return E.every((e, i) => Math.abs(e + E[E.length - 1 - i]) < 1e-10);
+});
+LX.check("Sturm bisection agrees with eigSym", () => {
+  const a = sturmEig(offdiag(0.8, 1.2, 24)), b = chain(0.8, 1.2, 12).E;
+  return { pass: a.every((e, i) => Math.abs(e - b[i]) < 1e-9), detail: Math.max(...a.map((e, i) => Math.abs(e - b[i]))) };
+});
+LX.check("sketch truth: min|E| ≈ 0 for v/w = 0.5, ≈ |v − w| for v/w = 2 (N = 20)", () => {
+  const a = minAbsE(0.5, 1, 20), b = minAbsE(2, 1, 20);
+  return { pass: a < 1e-4 && Math.abs(b - 1) < 0.03, detail: `${a}, ${b}` };
+});
+LX.check("odd chain (2N+1 sites): exactly one zero mode, on A, at the end with the weak bond", () => {
+  const one = (v, w) => {
+    const { values, vectors } = LX.eigSym(hamiltonian(v, w, 21)), z = values.map((e, j) => [e, j]).filter(([e]) => Math.abs(e) < 1e-9);
+    if (z.length !== 1) return null;
+    const u = vectors[z[0][1]], onB = u.filter((_, i) => i % 2).reduce((s, c) => s + c * c, 0), left = u.slice(0, 6).reduce((s, c) => s + c * c, 0);
+    return { onB, left };
+  };
+  const a = one(0.5, 1), b = one(1, 0.5);
+  return { pass: !!a && !!b && a.onB < 1e-12 && b.onB < 1e-12 && a.left > 0.95 && b.left < 0.05, detail: JSON.stringify([a, b]) };
+});
+LX.check("staggered potential m moves the end states to ±m", () => {
+  const E = LX.eigSym(hamiltonian(0.3, 1, 40, 0.2)).values, inGap = E.filter(e => Math.abs(e) < 0.5);
+  return { pass: inGap.length === 2 && Math.abs(inGap[0] + 0.2) < 1e-6 && Math.abs(inGap[1] - 0.2) < 1e-6, detail: inGap.join() };
+});
+LX.check("practice number: ξ(v/w = 0.8) ≈ 4.48 cells", () => Math.abs(xi(0.8) - 4.4814) < 1e-3);
+</script>

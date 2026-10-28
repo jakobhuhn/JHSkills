@@ -1,0 +1,245 @@
+<!-- GENERATED from patterns/20-entanglement.html by tests/sync-base.mjs; edit that file, then run the script. -->
+<title>Entanglement Across a Cut</title>
+<!--
+PATTERN 20 · BIPARTITE ENTANGLEMENT / REDUCED STATES
+Concept shape   Cut a system in two and ask what one half knows. A pure global state can have a mixed part;
+                the Schmidt spectrum (singular values² of the coefficient matrix) is the invariant of the cut,
+                and local operations reshuffle the amplitudes but never change it.
+Use it for      Schmidt decomposition, reduced density matrices, purity, entanglement entropy, Bell states,
+                monogamy intuition ("a maximally mixed half has nothing left to share"), local-unitary
+                invariance, and (see Adapt by) entanglement across a cut in a chain: area vs volume law,
+                bond dimension of an MPS.
+Widget anatomy  (1) the coefficient matrix Ψ_ij = ⟨i_A j_B|ψ⟩ as a 2×2 Hinton diagram (rows: qubit A, columns:
+                    qubit B; square side ∝ |Ψ_ij|, blue positive, orange negative, value printed in the cell),
+                    with det Ψ, rank Ψ and the state in Dirac notation underneath. Rank 1 = rows proportional
+                    = product state;
+                (2) the Schmidt spectrum: for each k a green bar (eigenvalue of ρ_A) next to a pink bar
+                    (eigenvalue of ρ_B), always equal; a dashed line at ½ marks the maximally entangled
+                    spectrum; floating "Keep a copy" / "Clear copy" draw a dashed outline of an earlier
+                    spectrum; readouts S (bits) and Tr ρ_A²;
+                (3) the reduced states as Bloch vectors in the x–z disk (real amplitudes keep them there):
+                    r_A green, r_B pink dashed, a dashed circle of radius |r| shared by both, readouts |r_A|,
+                    |r_B| and |λ₁ − λ₂|;
+                (4) controls: θ (entangling angle), α and β (local y-rotations on A and on B), four named
+                    states ("Product state", "Bell state", "Local rotations only", "Bell + local rotations").
+                The payoff: α and β visibly change (1) and the directions in (3) but never (2) or the lengths
+                in (3).
+Layout          grid2: matrix, spectrum and Bloch disk in three cells, controls in the fourth so no quadrant is
+                empty. The matrix (what the learner manipulates) sits top left, the invariant top right.
+                One column on phones.
+Teaching moments  Suggestions for the chapter around the widget:
+                  - "In a Bell state, what does qubit A alone look like?" (choice: maximally mixed, ρ_A = 𝟙/2,
+                    r_A = 0; not "|0⟩ or |1⟩ with a definite but unknown value");
+                  - "Does a rotation on B change S?" (choice: no; β moves Ψ and r_B but not the bars);
+                  - "What is S at θ = π/8?" (number: λ = cos²(π/8) = 0.854, sin²(π/8) = 0.146,
+                    S = 0.601 bits; Tr ρ_A² = 0.75);
+                  - "Why is the Schmidt rank the rank of Ψ?" (explain: Ψ = U diag(√λ) Vᵀ is an SVD, the number
+                    of nonzero singular values is the rank; rank 1 means Ψ = a bᵀ, i.e. |ψ⟩ = |a⟩|b⟩);
+                  - "Which half is more mixed?" (choice: neither, ρ_A = ΨΨᵀ and ρ_B = ΨᵀΨ have the same
+                    nonzero spectrum, so |r_A| = |r_B| always).
+Adapt by        Everything plotted comes from the generic routine schmidt(Ψ), which works for any real dA×dB
+                matrix. For a chain of N qubits, reshape ψ into a 2^ℓ × 2^(N−ℓ) matrix, run eigSym on ΨΨᵀ
+                (choose the smaller side; ≤ 64×64 is cheap on every slider move) and plot S against the cut ℓ:
+                a ground state of a gapped chain saturates (area law), a random state grows linearly (volume
+                law); the number of nonzero λ is the bond dimension an exact MPS needs at that cut. Complex
+                amplitudes: use the real 2n×2n embedding [[Re, −Im], [Im, Re]] of ΨΨ†, whose eigenvalues
+                come in equal pairs. Replace the Bloch disk by a bar of the largest λ if the halves are bigger
+                than a qubit.
+Physics         |ψ⟩ = (R_A(α) ⊗ R_B(β))(cos θ|00⟩ + sin θ|11⟩), R(φ) = [[cos φ/2, −sin φ/2], [sin φ/2, cos φ/2]]
+                (a real y-rotation; it turns the Bloch vector by φ in the x–z plane). Basis |i_A j_B⟩.
+                Ψ = R_A diag(cos θ, sin θ) R_Bᵀ; ρ_A = ΨΨᵀ, ρ_B = ΨᵀΨ; λ_k = eigenvalues of ρ_A (computed with
+                LX.eigSym, not from θ); S = −Σ λ log₂ λ; Tr ρ_A² = Σ λ² = (1 + |r|²)/2; r = (2ρ₀₁, 0, ρ₀₀ − ρ₁₁),
+                |r| = |λ₁ − λ₂| = |cos 2θ|; |det Ψ| = √(λ₁λ₂) = ½|sin 2θ|. θ = π/4 is a Bell state (S = 1).
+-->
+<!-- LX:HEAD -->
+<style>
+/* LX:STYLE */
+
+.sq-pos { fill: var(--accent); fill-opacity: .78; stroke: var(--accent); stroke-width: 1.2; }
+.sq-neg { fill: var(--c2); fill-opacity: .78; stroke: var(--c2); stroke-width: 1.2; }
+.cell { fill: none; stroke: var(--line); stroke-width: 1; }
+.lx-plot text.amp { font: 500 calc(13px * var(--lx-k, 1)) var(--f-mono); fill: var(--fg); }
+.lx-plot text.ctr { font: 500 calc(12px * var(--lx-k, 1)) var(--f-ui); fill: var(--muted); }
+.a4 { fill: var(--c4); fill-opacity: .18; stroke: none; }
+.kept { fill: none; stroke: var(--fg); stroke-width: 1.6; stroke-dasharray: 5 4; }
+.state-line { margin: 0; font-size: 13.5px; color: var(--muted); }
+.state-line b { font-family: var(--f-mono); font-weight: 500; color: var(--fg); }
+</style>
+
+<main class="lx-page">
+  <header class="lx-head">
+    <p class="lx-eyebrow">Quantum information · Entanglement</p>
+    <h1>What does one half of an entangled pair know?</h1>
+    <p class="lx-lede">Two qubits in a pure state. Turn up the entangling angle and watch the coefficient matrix, the Schmidt spectrum and the state of each half. Then rotate each qubit on its own and see what does not move.</p>
+    <div class="lx-meta">
+      <span>\(\ket\psi = \big(R_A(\alpha)\otimes R_B(\beta)\big)\big(\cos\theta\ket{00} + \sin\theta\ket{11}\big)\), \(R(\varphi) = \ee^{-\ii\varphi\sigma_y/2}\) (real); basis \(\ket{i_A j_B}\); \(\rho_A = \Tr_B\ket\psi\bra\psi = \Psi\Psi^{\mathsf T}\); entropy in bits</span>
+    </div>
+  </header>
+  <div class="lx-stage" id="stage"></div>
+  <footer class="lx-foot">
+    <span>Source: model knowledge. Standard treatment: Nielsen &amp; Chuang, <i>Quantum Computation and Quantum Information</i>, sections 2.4–2.5 (reduced density operator, Schmidt decomposition) and 11.3; Preskill, <i>Lecture Notes for Physics 219</i>, ch. 2 and 10.</span>
+  </footer>
+</main>
+
+<script>
+/* LX:LIB */
+</script>
+
+<script>
+/* PATTERN */
+const PI = Math.PI;
+const S = { th: 0.17 * PI, al: 0.25 * PI, be: -0.1 * PI, kept: null };
+
+/* ---- model: real amplitudes, Ψ_ij = ⟨i_A j_B|ψ⟩ ---- */
+const rot = p => [[Math.cos(p / 2), -Math.sin(p / 2)], [Math.sin(p / 2), Math.cos(p / 2)]];   // e^{-iφσy/2}
+const mul = (A, B) => A.map(r => B[0].map((_, j) => r.reduce((s, a, k) => s + a * B[k][j], 0)));
+const tr = A => A[0].map((_, j) => A.map(r => r[j]));
+function coeffs(th = S.th, al = S.al, be = S.be) {
+  return mul(mul(rot(al), [[Math.cos(th), 0], [0, Math.sin(th)]]), tr(rot(be)));   // R_A Ψ0 R_Bᵀ
+}
+/* Generic for any real dA×dB Ψ: reduced states and their spectra (descending), entropy in bits, purity. */
+const H2 = ls => ls.reduce((s, l) => s - (l > 1e-15 ? l * Math.log2(l) : 0), 0);
+function schmidt(Psi) {
+  const rhoA = mul(Psi, tr(Psi)), rhoB = mul(tr(Psi), Psi);
+  const spec = M => LX.eigSym(M).values.map(v => LX.clamp(v, 0, 1)).sort((a, b) => b - a);
+  const lam = spec(rhoA);
+  return { rhoA, rhoB, lam, lamB: spec(rhoB), S: H2(lam), pur: lam.reduce((s, l) => s + l * l, 0),
+           rank: lam.filter(l => l > 1e-9).length };
+}
+const bloch = r => [2 * r[0][1], r[0][0] - r[1][1]];   // (x, z); y = 0 for real states
+
+/* ---- widget ---- */
+const W = LX.widget(document.getElementById("stage"), { layout: "grid2", title: "Two qubits, cut between A and B", badge: "computed" });
+
+/* (1) coefficient matrix */
+const figM = LX.fig(W, "Coefficient matrix \\(\\Psi_{ij} = \\braket{i_A j_B}{\\psi}\\): square side \\(\\propto |\\Psi_{ij}|\\). Rank 1 (rows proportional) means a product state.", { below: true });
+const PM = LX.plot(figM, { xlim: [-0.62, 2.04], ylim: [-0.04, 2.3], ticks: false, frame: false, width: 340, height: 300, margin: { l: 4, r: 4, t: 4, b: 4 }, aria: "coefficient matrix" });
+[0, 1].forEach(i => PM.tex(-0.08, 1.5 - i, `\\ket{${i}}_A`, { anchor: "e", keep: true }));
+[0, 1].forEach(j => PM.tex(0.5 + j, 2.06, `\\ket{${j}}_B`, { anchor: "s", keep: true }));
+LX.legend(figM, [["\\(\\Psi_{ij} > 0\\)", "--accent", "dot"], ["\\(\\Psi_{ij} < 0\\)", "--c2", "dot"]]);
+const mLine = LX.h("p", { class: "state-line" }, figM);
+const stLine = LX.h("p", { class: "state-line" }, figM);
+
+/* (2) Schmidt spectrum */
+const figS = LX.fig(W, "Schmidt spectrum: eigenvalues of \\(\\rho_A\\) (green) and \\(\\rho_B\\) (pink), found by diagonalising each reduced density matrix.", { below: true });
+const PS = LX.plot(figS, { xlim: [0.35, 2.65], ylim: [0, 1.12], width: 360, height: 300, margin: { b: 40, t: 40 }, yticks: 4, ylabel: "\\lambda_k" });
+[...PS.g.axes.querySelectorAll("text")].filter(t => t.getAttribute("text-anchor") === "middle").forEach(t => t.remove());
+[...PS.g.grid.querySelectorAll("line")].filter(l => l.getAttribute("x1") === l.getAttribute("x2")).forEach(l => l.remove());
+const flt = LX.h("div", { class: "lx-float" }, figS);
+LX.button(flt, "Keep a copy", () => { S.kept = schmidt(coeffs()).lam; update(); }, { id: "keep", cls: "lx-primary", title: "Freeze the current spectrum as a dashed outline" });
+const bClear = LX.button(flt, "Clear copy", () => { S.kept = null; update(); }, { id: "clear-copy" });
+LX.legend(figS, [["\\(\\rho_A\\)", "--c3", "line"], ["\\(\\rho_B\\)", "--c4", "line"], ["maximally entangled", "--muted", "dash"], ["copy", "--fg", "dash"]]);
+const roS = LX.h("div", { class: "lx-readouts" }, figS);
+const rEnt = LX.readout(roS, "\\(S = -\\sum_k \\lambda_k \\log_2 \\lambda_k =\\)");
+const rPur = LX.readout(roS, "\\(\\Tr\\rho_A^2 =\\)");
+
+/* (3) reduced states as Bloch vectors */
+const figB = LX.fig(W, "Reduced states as Bloch vectors in the \\(x\\)–\\(z\\) plane. Length 1 = pure, centre = maximally mixed.", { below: true });
+const PB = LX.plot(figB, { xlim: [-1.4, 1.4], ylim: [-1.32, 1.32], ticks: false, frame: false, width: 340, height: 320, margin: { l: 4, r: 4, t: 4, b: 4 }, aria: "Bloch disk" });
+PB.tex(1.36, 0.04, "x", { anchor: "se", keep: true });
+PB.tex(0.05, 1.3, "z", { anchor: "nw", keep: true });
+LX.legend(figB, [["\\(\\vec r_A\\)", "--c3", "line"], ["\\(\\vec r_B\\)", "--c4", "dash"], ["\\(|\\vec r| = |\\lambda_1 - \\lambda_2|\\)", "--muted", "dash"]]);
+const roB = LX.h("div", { class: "lx-readouts" }, figB);
+const rRA = LX.readout(roB, "\\(|\\vec r_A| =\\)");
+const rRB = LX.readout(roB, "\\(|\\vec r_B| =\\)");
+const rDL = LX.readout(roB, "\\(|\\lambda_1 - \\lambda_2| =\\)");
+
+/* (4) controls */
+const ctl = LX.controls(W);
+const pifmt = v => (v / PI).toFixed(3).replace("-", "−") + "π";
+const thS = LX.slider(ctl, { id: "th", label: "entangling angle \\(\\theta\\)", min: 0, max: PI / 2, step: 0.0025, value: S.th, fmt: pifmt, onInput: v => { S.th = v; update(); } });
+const alS = LX.slider(ctl, { id: "al", label: "rotation of A alone, \\(\\alpha\\)", min: -PI, max: PI, step: 0.005, value: S.al, fmt: pifmt, onInput: v => { S.al = v; update(); } });
+const beS = LX.slider(ctl, { id: "be", label: "rotation of B alone, \\(\\beta\\)", min: -PI, max: PI, step: 0.005, value: S.be, fmt: pifmt, onInput: v => { S.be = v; update(); } });
+const setAll = (th, al, be) => { thS.set(th, false); alS.set(al, false); beS.set(be, false); Object.assign(S, { th, al, be }); update(); };
+LX.limits(ctl, [
+  { label: "Product state", title: "θ = 0, no rotations: |00⟩", apply: () => setAll(0, 0, 0) },
+  { label: "Bell state", title: "θ = π/4, no rotations: (|00⟩ + |11⟩)/√2", apply: () => setAll(PI / 4, 0, 0) },
+  { label: "Local rotations only", title: "θ = 0 with α, β ≠ 0: still a product state", apply: () => setAll(0, 0.6 * PI, -0.35 * PI) },
+  { label: "Bell + local rotations", title: "θ = π/4 with α, β ≠ 0", apply: () => setAll(PI / 4, 0.5 * PI, -0.25 * PI) }
+], "Jump to a state", { id: "states" });
+
+LX.guide(W, [
+  ["Matrix", "The four amplitudes arranged with A's basis state as the row and B's as the column. Square size is \\(|\\Psi_{ij}|\\), colour its sign. If the two rows are proportional (\\(\\det\\Psi = 0\\), rank 1) the state factorises into \\(\\ket a_A\\ket b_B\\)."],
+  ["Bars", "The eigenvalues \\(\\lambda_1 \\ge \\lambda_2\\) of \\(\\rho_A\\) and of \\(\\rho_B\\): the Schmidt spectrum, i.e. the squared singular values of \\(\\Psi\\). \\((1, 0)\\) is a product state, \\((\\tfrac12, \\tfrac12)\\) on the dashed line a maximally entangled one. Keep a copy draws the current spectrum as a dashed outline to compare against."],
+  ["Disk", "What each qubit looks like on its own. A pure qubit sits on the circle; the more entangled the pair, the shorter both arrows. The dashed circle has radius \\(|\\lambda_1 - \\lambda_2|\\)."],
+  ["\\(\\theta\\)", "Entangling angle of the core state \\(\\cos\\theta\\ket{00} + \\sin\\theta\\ket{11}\\): changes every view."],
+  ["\\(\\alpha, \\beta\\)", "Rotations acting on A only or on B only. Watch the matrix and the arrow directions move while the bars, \\(S\\) and the arrow lengths stay put."],
+  ["Buttons", "Jump to a product state, a Bell state, or either one dressed with local rotations."]
+]);
+
+const f = (v, d = 3) => (Math.abs(v) < 0.5 * 10 ** -d ? 0 : v).toFixed(d).replace("-", "−");
+
+function drawMatrix(Psi, sch) {
+  PM.clearAll();
+  for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) {
+    const v = Psi[i][j], cx = 0.5 + j, cy = 1.5 - i, h = 0.36 * Math.abs(v), qy = cy + 0.07;
+    PM.path([[cx - 0.5, cy - 0.5], [cx + 0.5, cy - 0.5], [cx + 0.5, cy + 0.5], [cx - 0.5, cy + 0.5]], { cls: "cell", close: true, layer: "fill" });
+    if (h > 0.004) PM.path([[cx - h, qy - h], [cx + h, qy - h], [cx + h, qy + h], [cx - h, qy + h]], { cls: v > 0 ? "sq-pos" : "sq-neg", close: true });
+    PM.text(cx, cy - 0.44, f(v), { dy: -2, cls: "amp" });
+  }
+  const det = Psi[0][0] * Psi[1][1] - Psi[0][1] * Psi[1][0];
+  mLine.innerHTML = `det Ψ = <b>${f(det)}</b> · rank Ψ = <b>${sch.rank}</b> · ${sch.rank === 1 ? "product state" : Math.abs(sch.lam[0] - 0.5) < 1e-6 ? "maximally entangled" : "entangled"}`;
+  const terms = [];
+  [[0, 0], [0, 1], [1, 0], [1, 1]].forEach(([i, j]) => {
+    const v = Psi[i][j]; if (Math.abs(v) < 5e-4) return;
+    terms.push((terms.length ? (v < 0 ? " − " : " + ") : v < 0 ? "−" : "") + Math.abs(v).toFixed(3) + `|${i}${j}⟩`);
+  });
+  stLine.innerHTML = `|ψ⟩ = <b>${terms.join("")}</b>`;
+}
+
+function drawSpectrum(sch) {
+  PS.clearAll();
+  PS.hline(0.5, { cls: "sm dash" });
+  sch.lam.forEach((l, k) => {
+    const x = 1 + k;
+    [[x - 0.36, x - 0.02, l, "a3", "s3"], [x + 0.02, x + 0.36, sch.lamB[k], "a4", "s4"]].forEach(([a, b, v, fill, line]) => {
+      const pts = [[a, 0], [a, v], [b, v], [b, 0]];
+      PS.path(pts, { cls: fill, layer: "fill", close: true }); PS.path(pts, { cls: line + " thin" });
+    });
+    PS.text(x, 0, `λ${k ? "₂" : "₁"}`, { dy: 16 });
+    PS.text(x, Math.max(l, sch.lamB[k]), f(l), { dy: -6 });
+    if (S.kept) PS.path([[x - 0.42, 0], [x - 0.42, S.kept[k]], [x + 0.42, S.kept[k]], [x + 0.42, 0]], { cls: "kept", layer: "top" });
+  });
+}
+
+const ring = (r, n = 121) => LX.linspace(0, 2 * PI, n).map(a => [r * Math.cos(a), r * Math.sin(a)]);
+function drawBloch(rA, rB) {
+  PB.clearAll();
+  PB.path(ring(1), { cls: "sm" });
+  PB.line(-1.3, 0, 1.3, 0, { cls: "sm thin" }); PB.line(0, -1.24, 0, 1.24, { cls: "sm thin" });
+  for (const [x, z, name, dx, dy] of [[0, 1, "|0⟩", 18, -2], [0, -1, "|1⟩", 18, 14], [1, 0, "|+⟩", 2, 16], [-1, 0, "|−⟩", -2, 16]])
+    PB.text(x, z, name, { dx, dy, anchor: dx > 2 ? "start" : dx < -1 ? "end" : "start" });
+  const len = Math.hypot(...rA);
+  if (len > 0.02) PB.path(ring(len), { cls: "sm dash" });
+  [[rB, "s4 dash", "f4"], [rA, "s3", "f3"]].forEach(([r, cls, dot]) => {
+    if (Math.hypot(...r) > 0.04) PB.arrow(0, 0, r[0], r[1], { cls });
+    PB.dot(r[0], r[1], { r: 4, cls: dot });
+  });
+  if (len < 0.02) PB.text(0, 0, "maximally mixed", { dy: 22, dx: 8, anchor: "start", cls: "ctr" });
+}
+
+function update() {
+  const Psi = coeffs(), sch = schmidt(Psi), rA = bloch(sch.rhoA), rB = bloch(sch.rhoB);
+  drawMatrix(Psi, sch); drawSpectrum(sch); drawBloch(rA, rB);
+  rEnt.set(f(sch.S) + " bit"); rPur.set(f(sch.pur));
+  rRA.set(f(Math.hypot(...rA))); rRB.set(f(Math.hypot(...rB))); rDL.set(f(sch.lam[0] - sch.lam[1]));
+  bClear.disabled = !S.kept;
+}
+update();
+
+/* ---- self-tests ---- */
+const rnd = LX.rng(20), rand = (a, b) => a + (b - a) * rnd();
+const samples = Array.from({ length: 12 }, () => [rand(0, PI / 2), rand(-PI, PI), rand(-PI, PI)]);
+LX.check("Tr ρ_A = 1 (normalised state)", () => samples.every(p => { const r = schmidt(coeffs(...p)).rhoA; return LX.near(r[0][0] + r[1][1], 1, 1e-12); }));
+LX.check("ρ_A and ρ_B have the same spectrum", () => samples.every(p => { const s = schmidt(coeffs(...p)); return s.lam.every((l, k) => Math.abs(l - s.lamB[k]) < 1e-10); }));
+LX.check("S invariant under local rotations α, β", () => [0.1, 0.3, 0.6, 1.2].every(th => {
+  const S0 = schmidt(coeffs(th, 0, 0)).S;
+  return samples.every(([, a, b]) => Math.abs(schmidt(coeffs(th, a, b)).S - S0) < 1e-10);
+}));
+LX.check("S(θ = π/4) = 1 bit, S(θ = 0) = 0", () => LX.near(schmidt(coeffs(PI / 4, 0.7, -1.9)).S, 1, 1e-10) && Math.abs(schmidt(coeffs(0, 0.7, -1.9)).S) < 1e-10);
+LX.check("|r_A| = |r_B| = |λ₁ − λ₂|", () => samples.every(p => { const s = schmidt(coeffs(...p)), d = s.lam[0] - s.lam[1]; return Math.abs(Math.hypot(...bloch(s.rhoA)) - d) < 1e-10 && Math.abs(Math.hypot(...bloch(s.rhoB)) - d) < 1e-10; }));
+LX.check("Tr ρ_A² = (1 + |r|²)/2", () => samples.every(p => { const s = schmidt(coeffs(...p)), r = Math.hypot(...bloch(s.rhoA)); return Math.abs(s.pur - (1 + r * r) / 2) < 1e-10; }));
+LX.check("S matches closed form −c² log₂ c² − s² log₂ s²", () => samples.every(([th, a, b]) => { const c2 = Math.cos(th) ** 2; return Math.abs(schmidt(coeffs(th, a, b)).S - H2([c2, 1 - c2])) < 1e-10; }));
+LX.check("S(π/8) = 0.601 bit, purity 0.75 (value quoted in the header)", () => { const s = schmidt(coeffs(PI / 8, 0, 0)); return { pass: Math.abs(s.S - 0.6009) < 1e-4 && LX.near(s.pur, 0.75, 1e-10), detail: s.S }; });
+LX.check("|det Ψ| = √(λ₁λ₂); Schmidt rank 1 at θ = 0, 2 otherwise", () => samples.every(p => { const P = coeffs(...p), s = schmidt(P); return Math.abs(Math.abs(P[0][0] * P[1][1] - P[0][1] * P[1][0]) - Math.sqrt(s.lam[0] * s.lam[1])) < 1e-8; }) && schmidt(coeffs(0, 1, 2)).rank === 1 && schmidt(coeffs(0.3, 1, 2)).rank === 2);
+</script>

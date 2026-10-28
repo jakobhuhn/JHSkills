@@ -1,0 +1,186 @@
+<!-- GENERATED from assets/layouts.html by tests/sync-base.mjs; edit that file, then run the script. -->
+<title>Widget Layouts</title>
+<!--
+  layouts.html — gallery of widget layout recipes, built on a copy of base.html.
+  Five recipes, each with a small dummy widget (exact, simple functions) and the lines that set it up:
+    1. aside          hero figure + controls column on the right
+    2. grid2          2×2: three figures and the controls in the fourth cell
+    3. stack          wide figure with a controls strip below
+    4. aside + left   figure with floating buttons (.lx-float), controls column on the left
+    5. split          text beside a figure, inside an article
+  Copy the recipe that fits, then replace the dummy plots. Every layout collapses to one column
+  below ~620 px card width. The LX:HEAD, LX:STYLE and LX:LIB blocks are the shared ones from
+  base.html (kept in sync by tests/sync-base.mjs); do not edit them here.
+-->
+<!-- LX:HEAD -->
+<style>
+/* LX:STYLE */
+/* page-specific styles go below */
+.lx-code { margin: 0; font: 12.5px/1.5 var(--f-mono); color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; overflow-x: auto; white-space: pre; }
+</style>
+
+<main class="lx-page">
+  <header class="lx-head">
+    <p class="lx-eyebrow">Interactive learning · Reference</p>
+    <h1>Five ways to lay out a widget</h1>
+    <p class="lx-lede">Pick the arrangement that matches how the figures are read: one main figure, several linked ones, a wide trace, a figure with its own buttons, or a figure beside the text that explains it.</p>
+    <div class="lx-meta">
+      <span>Dummy plots: \(\sin\), \(\cos\) and Gaussians. All layouts fall back to one column on narrow screens.</span>
+    </div>
+  </header>
+  <article class="lx-article" id="article">
+    <h2>1. Hero figure with a controls column (<code>aside</code>)</h2>
+    <p>Use it when one figure carries the idea and a handful of sliders drive it: the figure gets most of the width, the controls stay in view beside it.</p>
+    <pre class="lx-code">const W = LX.widget(mount, { layout: "aside", title: "…", badge: "exact" });
+const P = LX.plot(LX.fig(W, "caption"), { xlim, ylim, xlabel, ylabel });
+const ctl = LX.controls(W);            // second child = the column
+LX.slider(ctl, { label: "…", min, max, value, onInput: draw });
+LX.guide(W, [["Figure", "…"], ["Slider", "…"]]);</pre>
+    <div class="lx-wide" id="w1"></div>
+
+    <h2>2. Three linked figures, controls in the fourth cell (<code>grid2</code>)</h2>
+    <p>Use it for three views of one state (for example a function, its transform and a derived quantity), so that no quadrant is left empty.</p>
+    <pre class="lx-code">const W = LX.widget(mount, { layout: "grid2" });
+const A = LX.plot(LX.fig(W, "…"), o), B = LX.plot(LX.fig(W, "…"), o);
+const C = LX.plot(LX.fig(W, "…"), o);
+const ctl = LX.controls(W);            // fourth cell: stacks vertically
+LX.slider(ctl, { … }); LX.readout(ctl, "…");</pre>
+    <div class="lx-wide" id="w2"></div>
+
+    <h2>3. Wide figure with a controls strip below (<code>stack</code>)</h2>
+    <p>Use it for time traces, spectra and other figures that need width more than height; the controls sit in one row underneath.</p>
+    <pre class="lx-code">const W = LX.widget(mount, { layout: "stack" });
+const P = LX.plot(LX.fig(W, "…"), { width: 900, height: 280, … });
+const ctl = LX.controls(W);            // a wrapping row
+LX.slider(ctl, { … }); LX.slider(ctl, { … });
+LX.legend(W, [["sum", "--accent", "line"], ["parts", "--muted", "dash"]]);</pre>
+    <div class="lx-wide" id="w3"></div>
+
+    <h2>4. Floating buttons on the figure, controls on the left (<code>aside</code> + <code>left</code>)</h2>
+    <p>Use it when an action belongs to the figure itself (keep a copy, reset, best fit): the buttons sit in its top-right corner where the eye already is.</p>
+    <pre class="lx-code">const W = LX.widget(mount, { layout: "aside", left: true });
+const ctl = LX.controls(W);            // first child = left column
+const fig = LX.fig(W), P = LX.plot(fig, { … });   // caption below
+LX.h("figcaption", { text: "…" }, fig);
+const flt = LX.h("div", { class: "lx-float" }, fig);
+LX.button(flt, "Keep a copy", keep, { cls: "lx-primary" });</pre>
+    <div class="lx-wide" id="w4"></div>
+
+    <h2>5. Text beside the figure (<code>split</code>)</h2>
+    <p>Use it inside a chapter when a short paragraph and the figure it describes should be read together.</p>
+    <pre class="lx-code">const W = LX.widget(mount, { layout: "split" });
+const txt = LX.h("div", { class: "lx-prose", html: "&lt;p&gt;…&lt;/p&gt;" }, W);
+LX.typeset(txt);
+const col = LX.h("div", { class: "lx-col" }, W);   // figure + slider in one cell
+const P = LX.plot(LX.fig(col, "…"), { … }); LX.slider(LX.controls(col), { … });</pre>
+    <div class="lx-wide" id="w5"></div>
+  </article>
+  <footer class="lx-foot">
+    <span>Source: none needed; the plots are elementary functions used as placeholders.</span>
+  </footer>
+</main>
+
+<script>
+/* LX:LIB */
+</script>
+
+<script>
+/* PATTERN — layout gallery. Each recipe builds a small widget with exact dummy functions. */
+const $ = id => document.getElementById(id);
+const gauss = (x, m, s) => Math.exp(-((x - m) ** 2) / (2 * s * s));
+
+/* 1. aside: hero figure + controls column */
+{
+  const W = LX.widget($("w1"), { layout: "aside", title: "Hero figure, controls beside it", badge: "exact" });
+  const P = LX.plot(LX.fig(W, "\\(y = \\sin(kx)\\) on one period"), { xlim: [0, 2 * Math.PI], ylim: [-1.2, 1.2], xlabel: "x", ylabel: "y", height: 300 });
+  const ctl = LX.controls(W);
+  const k = LX.slider(ctl, { id: "k1", label: "wavenumber \\(k\\)", min: 0.5, max: 4, step: 0.05, value: 1, onInput: draw });
+  const z = LX.readout(ctl, "zeros in \\([0, 2\\pi]\\):");
+  LX.guide(W, [["Figure", "\\(\\sin(kx)\\); its zeros sit at \\(x = n\\pi/k\\)."], ["Slider", "Changes \\(k\\); the readout counts the zeros."]]);
+  function draw() { P.clearAll(); P.hline(0, { cls: "gr" }); P.fn(x => Math.sin(k.get() * x)); z.set(String(Math.floor(2 * k.get() + 1e-9) + 1)); }
+  draw();
+}
+
+/* 2. grid2: three linked figures + controls in the fourth cell */
+{
+  const W = LX.widget($("w2"), { layout: "grid2", title: "Three views, controls in the fourth cell", badge: "exact" });
+  const o = { xlim: [0, 2 * Math.PI], ylim: [-1.2, 1.2], height: 240 };
+  const A = LX.plot(LX.fig(W, "\\(\\sin(x - \\phi)\\)"), o);
+  const B = LX.plot(LX.fig(W, "\\(\\cos(x - \\phi)\\)"), o);
+  const C = LX.plot(LX.fig(W, "\\(\\sin^2 + \\cos^2 = 1\\)"), Object.assign({}, o, { ylim: [0, 1.2] }));
+  const ctl = LX.controls(W);
+  const ph = LX.slider(ctl, { id: "ph2", label: "phase \\(\\phi\\)", min: 0, max: 2 * Math.PI, step: 0.01, value: 0.6, onInput: draw });
+  const r = LX.readout(ctl, "\\(\\sin\\phi\\) =");
+  LX.guide(W, [["Top row", "Sine and cosine, both shifted by \\(\\phi\\)."], ["Bottom left", "Their squares (filled) and the constant sum."], ["Slider", "Moves \\(\\phi\\) in all three views."]]);
+  function draw() {
+    const p = ph.get();
+    for (const P of [A, B, C]) P.clearAll();
+    A.fn(x => Math.sin(x - p)); B.fn(x => Math.cos(x - p), { cls: "s2" });
+    C.area(LX.sample(x => Math.sin(x - p) ** 2, 0, 2 * Math.PI, 200)); C.fn(x => Math.sin(x - p) ** 2, { cls: "s1 thin" });
+    C.fn(() => 1, { cls: "s3" });
+    r.set(Math.sin(p).toFixed(2).replace("-", "−"));
+  }
+  draw();
+}
+
+/* 3. stack: wide figure + controls strip below */
+{
+  const W = LX.widget($("w3"), { layout: "stack", title: "Wide figure, controls strip below", badge: "exact" });
+  const P = LX.plot(LX.fig(W, "Two Gaussian peaks and their sum"), { xlim: [-5, 5], ylim: [0, 2.2], width: 900, height: 260, xlabel: "x" });
+  LX.legend(W, [["sum", "--accent", "line"], ["single peaks", "--muted", "dash"]]);
+  const ctl = LX.controls(W);
+  const d = LX.slider(ctl, { id: "d3", label: "separation \\(d\\)", min: 0, max: 6, step: 0.05, value: 2.5, onInput: draw });
+  const s = LX.slider(ctl, { id: "s3", label: "width \\(\\sigma\\)", min: 0.3, max: 1.5, step: 0.01, value: 0.7, onInput: draw });
+  LX.guide(W, [["Figure", "Two Gaussians of width \\(\\sigma\\) at \\(\\pm d/2\\) and their sum."], ["Sliders", "When \\(d < 2\\sigma\\) the sum has one maximum instead of two."]]);
+  function draw() {
+    const a = d.get() / 2, w = s.get();
+    P.clearAll();
+    P.fn(x => gauss(x, -a, w), { cls: "sm dash" }); P.fn(x => gauss(x, a, w), { cls: "sm dash" });
+    P.fn(x => gauss(x, -a, w) + gauss(x, a, w));
+  }
+  draw();
+}
+
+/* 4. aside + left: floating buttons on the figure, controls on the left */
+{
+  const W = LX.widget($("w4"), { layout: "aside", left: true, title: "Floating buttons, controls on the left", badge: "exact" });
+  const ctl = LX.controls(W);
+  const fig = LX.fig(W);   // caption goes below the plot so the floating buttons cover nothing
+  const P = LX.plot(fig, { xlim: [-4, 4], ylim: [0, 1.35], xlabel: "x", height: 280 });
+  LX.typeset(LX.h("figcaption", { html: "A Gaussian of width \\(\\sigma\\); the copy is faded and dashed." }, fig));
+  const flt = LX.h("div", { class: "lx-float" }, fig);
+  LX.button(flt, "Keep a copy", () => { P.ghost(); clr.disabled = false; }, { id: "keep4", cls: "lx-primary" });
+  const clr = LX.button(flt, "Clear copy", () => { P.clearGhost(); clr.disabled = true; }, { id: "clear4" });
+  clr.disabled = true;
+  const s = LX.slider(ctl, { id: "s4", label: "width \\(\\sigma\\)", min: 0.3, max: 2, step: 0.01, value: 1, onInput: draw });
+  const c = LX.slider(ctl, { id: "c4", label: "centre \\(x_0\\)", min: -2, max: 2, step: 0.01, value: 0, onInput: draw });
+  LX.guide(W, [["Figure", "\\(e^{-(x-x_0)^2/2\\sigma^2}\\)."], ["Keep a copy", "Freezes the current curve so you can compare after moving the sliders."]]);
+  function draw() { P.clearAll(); P.fn(x => gauss(x, c.get(), s.get())); }
+  draw();
+}
+
+/* 5. split: text beside a figure inside the article */
+{
+  const W = LX.widget($("w5"), { layout: "split" });
+  const txt = LX.h("div", { class: "lx-prose", html:
+    "<p>A damped oscillation \\(y = e^{-\\gamma x}\\cos x\\) decays inside the envelope \\(\\pm e^{-\\gamma x}\\).</p>" +
+    "<p>Increase \\(\\gamma\\): the oscillation keeps its period, only the envelope closes faster. The text stays next to the figure it describes.</p>" }, W);
+  LX.typeset(txt);
+  const col = LX.h("div", { class: "lx-col" }, W);
+  const P = LX.plot(LX.fig(col, "Damped cosine and its envelope"), { xlim: [0, 12], ylim: [-1.1, 1.1], xlabel: "x", height: 240 });
+  const g = LX.slider(LX.controls(col), { id: "g5", label: "damping \\(\\gamma\\)", min: 0, max: 0.6, step: 0.01, value: 0.15, onInput: draw });
+  LX.guide(W, [["Figure", "Blue: the oscillation. Grey dashed: the envelope."], ["Slider", "Sets \\(\\gamma\\)."]]);
+  function draw() {
+    const k = g.get(); P.clearAll();
+    P.fn(x => Math.exp(-k * x), { cls: "sm dash" }); P.fn(x => -Math.exp(-k * x), { cls: "sm dash" });
+    P.fn(x => Math.exp(-k * x) * Math.cos(x));
+  }
+  draw();
+}
+
+LX.check("zeros of sin(kx) sit at x = nπ/k (readout of recipe 1)", () => [0.5, 1, 2.5, 4].every(k => [0, 1, 2, 3].every(n => Math.abs(Math.sin(k * n * Math.PI / k)) < 1e-12)));
+LX.check("two equal Gaussians merge into one peak when d < 2σ", () => {
+  const curv = (d, s) => { const h = 1e-4, f = x => gauss(x, -d / 2, s) + gauss(x, d / 2, s); return (f(h) - 2 * f(0) + f(-h)) / (h * h); };
+  return curv(1.9, 1) < 0 && curv(2.1, 1) > 0;
+});
+</script>

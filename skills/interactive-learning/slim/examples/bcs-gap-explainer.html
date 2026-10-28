@@ -1,0 +1,212 @@
+<!-- GENERATED from examples/bcs-gap-explainer.html by tests/sync-base.mjs; edit that file, then run the script. -->
+<title>BCS Gap Square Root</title>
+<!--
+  EXAMPLE · EXPLAINER · Why does the BCS gap open like a square root below T_c?
+  An Explainer (references/writing.md): one confusion, about one screen of text, ONE widget.
+  Compressed arc: hook (choice; reveals the gap curve) → short exploration of the gap equation
+  read as a crossing I(Δ,T) = 1 → resolution (parabolic top + linear rise ⇒ square root) →
+  two checks: number (Δ(0)/T_c from the widget) and a transfer choice (what if I(0,T) touched 1
+  quadratically?).
+
+  Physics       Weak-coupling BCS: constant N(0), attraction for |ξ| < ω_D, λ = N(0)V = 0.3,
+                ω_D = 1, k_B = ħ = 1. I(Δ,T) = λ ∫_0^{ω_D} dξ tanh(E/2T)/E, E = √(ξ² + Δ²).
+                Gap equation (Δ ≠ 0): I(Δ,T) = 1. T_c from I(0,T_c) = 1 (bisection), Δ(T) by bisection
+                (I decreases monotonically in Δ), integrals by Simpson in ξ = c sinh u.
+                Near T_c: I ≈ I(0,T) − λ 7ζ(3)Δ²/(8π²T²), I(0,T) − 1 = λ ln(T_c/T), so
+                Δ ≈ 3.06 T_c √(1 − T/T_c). Δ(0)/T_c = π e^{−γ} ≈ 1.764. Ratios in units of T_c are
+                λ-independent at weak coupling.
+-->
+<!-- LX:HEAD -->
+<style>
+/* LX:STYLE */
+/* page-specific styles go below */
+.lx-hook p { margin: 0 0 .5em; } .lx-hook p:last-child { margin: 0; }
+.lx-page a { color: var(--accent); }
+mjx-container[jax="SVG"] > svg a { fill: var(--accent); stroke: var(--accent); }
+.fp-open { fill: var(--surface); stroke: var(--c2); stroke-width: 2; }
+</style>
+
+<main class="lx-page">
+  <header class="lx-head">
+    <p class="lx-eyebrow">Condensed matter · BCS theory · Explainer</p>
+    <h1>Why does the BCS gap open like a square root?</h1>
+    <p class="lx-lede">The critical temperature depends on the coupling in a wildly non-analytic way. The gap below it does not. One picture of the gap equation shows why.</p>
+    <div class="lx-meta">
+      <span>Weak-coupling BCS: constant density of states \(N(0)\), attraction for \(|\xi| \lt \omega_D\), \(\lambda = N(0)V = 0.3\); \(k_B = \hbar = 1\). Energies in units of \(T_c\), where the results do not depend on \(\lambda\).</span>
+    </div>
+  </header>
+
+  <article class="lx-article" id="article">
+    <div class="lx-hook">
+      <p>The BCS critical temperature, \(T_c \approx 1.13\,\omega_D\,e^{-1/\lambda}\), is not even analytic in the coupling: no power series in \(\lambda\) reaches it. So how does the gap \(\Delta(T)\) appear as the metal is cooled through \(T_c\)?</p>
+    </div>
+    <div id="q-hook"></div>
+
+    <p>Dividing the BCS gap equation by \(\Delta\) leaves a condition on a single function of \(\Delta\) and \(T\):</p>
+    <p>\begin{equation}
+      \begin{aligned}
+        1 &= I(\Delta, T), \\
+        I(\Delta, T) &= \lambda \int_0^{\omega_D} \! \dd\xi\, \frac{\tanh(E/2T)}{E},
+      \end{aligned}
+      \label{eq:gap}
+    \end{equation}</p>
+    <p>with quasiparticle energy \(E = \sqrt{\xi^2 + \Delta^2}\). The equilibrium gap is where the curve \(I(\Delta, T)\) crosses the level 1. A gap raises every \(E\), and \(\tanh(E/2T)/E\) falls with \(E\), so \(I\) is largest at \(\Delta = 0\). As \(T\) falls, \(I(0, T)\) grows and passes 1 exactly at \(T_c\).</p>
+    <div class="lx-wide" id="w-gap"></div>
+    <ul>
+      <li>Start at \(T = 1.2\,T_c\): the curve stays below 1 everywhere, so only \(\Delta = 0\) solves the gap equation.</li>
+      <li>Lower \(T\) slowly through \(T_c\) and watch the top of the curve near \(\Delta = 0\), and how far out it crosses 1.</li>
+      <li>Go to low \(T\) and compare the curve with the dashed parabola.</li>
+    </ul>
+
+    <h2>Where the square root comes from</h2>
+    <p>Near \(T_c\) only the top of the curve matters, and the top is a parabola. \(I\) depends on \(\Delta\) only through \(\Delta^2\) and is smooth there for \(T \gt 0\), so to leading order</p>
+    <p>\begin{equation}
+      I(\Delta, T) \approx I(0, T) - \frac{7\zeta(3)\,\lambda}{8\pi^2}\,\frac{\Delta^2}{T^2} .
+      \label{eq:top}
+    \end{equation}</p>
+    <p>Meanwhile the height of the top above 1 grows <i>linearly</i>: \(I(0, T) - 1 = \lambda \ln(T_c/T) \approx \lambda\,(1 - T/T_c)\). A parabola raised by \(\varepsilon\) crosses the level at \(\Delta \propto \sqrt{\varepsilon}\). Setting \eqref{eq:top} equal to 1:</p>
+    <p>\begin{equation}
+      \begin{aligned}
+        \Delta^2 &\approx \frac{8\pi^2}{7\zeta(3)}\, T_c^2 \Big(1 - \frac{T}{T_c}\Big), \\
+        \Delta &\approx 3.06\, T_c \sqrt{1 - T/T_c} .
+      \end{aligned}
+      \label{eq:sqrt}
+    \end{equation}</p>
+    <p>The coupling \(\lambda\) cancels. Its essential singularity sits entirely in the scale \(T_c\); measured in units of \(T_c\), the gap equation near \(T_c\) is a smooth function of \(\Delta^2\) and \(T\), and \(\Delta^2\) comes out linear in \(T_c - T\). Switch the gap plot to \((\Delta/T_c)^2\) to see the straight line. This is the mean-field exponent \(\beta = 1/2\), the same mechanism as in Landau theory. At low \(T\) the expansion \eqref{eq:top} fails (the dashed parabola leaves the curve): at \(T = 0\), \(I\) has a \(\ln\Delta\) term instead of a \(\Delta^2\) term.</p>
+    <div id="q-num"></div>
+    <div id="q-transfer"></div>
+  </article>
+
+  <footer class="lx-foot">
+    <span>Source: model knowledge. Standard results as in J. Bardeen, L. N. Cooper, J. R. Schrieffer, Phys. Rev. <b>108</b>, 1175 (1957), and M. Tinkham, <i>Introduction to Superconductivity</i>, 2nd ed. (McGraw-Hill, 1996), ch. 3.</span>
+    <span>Widget: computed. \(I(\Delta, T)\) by Simpson quadrature, \(T_c\) and \(\Delta(T)\) by bisection; self-tests check \(T_c\), \(\Delta(0)/T_c\), the near-\(T_c\) law and the curvature in \eqref{eq:top}.</span>
+  </footer>
+</main>
+
+<script>
+/* LX:LIB */
+</script>
+
+<script>
+/* EXPLAINER — BCS gap equation read as the crossing I(Δ,T) = 1. */
+/* Model: constant N(0), pairing V for |ξ| < ω_D, λ = N(0)V = 0.3, ω_D = 1, k_B = ħ = 1. */
+const LAM = 0.3, WD = 1, ZETA3 = 1.2020569031595942;
+const $ = id => document.getElementById(id);
+const fmt = (v, d = 3) => v.toFixed(d).replace("-", "−");
+
+/* I(Δ,T) = λ ∫_0^{ω_D} dξ tanh(E/2T)/E, Simpson in ξ = c·sinh(u): smooth integrand for any Δ, T. */
+function I(D, T) {
+  const c = Math.max(D, T, 1e-12), U = Math.asinh(WD / c), N = 200, h = U / N;
+  let s = 0;
+  for (let i = 0; i <= N; i++) {
+    const u = i * h, xi = c * Math.sinh(u), E = Math.hypot(xi, D);
+    const g = (E < 1e-300 ? 1 / (2 * T) : Math.tanh(E / (2 * T)) / E) * c * Math.cosh(u);
+    s += g * (i === 0 || i === N ? 1 : i % 2 ? 4 : 2);
+  }
+  return LAM * s * h / 3;
+}
+/* T_c from I(0, T_c) = 1 (bisection; I(0,T) decreases with T). */
+const Tc = (() => { let a = 1e-4, b = 0.5; for (let k = 0; k < 70; k++) { const m = (a + b) / 2; if (I(0, m) > 1) a = m; else b = m; } return (a + b) / 2; })();
+/* Everything below in units of T_c: d = Δ/T_c, t = T/T_c. */
+const Id = (d, t) => I(d * Tc, t * Tc);
+/* Equilibrium gap: the unique root of I(Δ,T) = 1 for t < 1 (I decreases in Δ), else 0. */
+function gap(t) {
+  if (Id(0, t) <= 1) return 0;
+  let a = 0, b = 4; for (let k = 0; k < 40; k++) { const m = (a + b) / 2; if (Id(m, t) > 1) a = m; else b = m; }
+  return (a + b) / 2;
+}
+const B2 = 7 * ZETA3 / (8 * Math.PI ** 2);                 // I ≈ I(0,T) − λ B2 Δ²/T²
+const AGL = Math.sqrt(1 / B2);                              // 3.063: Δ ≈ AGL·T_c·√(1 − T/T_c)
+const D0 = gap(0.01);                                       // ≈ 1.764
+const branch = LX.linspace(0.02, 1.3, 130).map(t => [t, gap(t)]);
+
+/* ---------- widget ---------- */
+const S = { t: 0.9, view: "d" };
+const W = LX.widget($("w-gap"), { layout: "split", title: "The gap equation as a crossing", badge: "computed" });
+const PI_ = LX.plot(LX.fig(W, "\\(I(\\Delta, T)\\) at the current temperature (blue), the level 1 (orange) and the crossing (dot). Faint: the same curve at \\(T/T_c = 0.25, 0.5, 0.75, 1\\). Dashed: the parabola \\eqref{eq:top}."),
+  { xlim: [0, 2.4], ylim: [0.75, 1.45], xlabel: "\\Delta/T_c", ylabel: "I(\\Delta, T)", width: 420, height: 320 });
+const fB = LX.fig(W, "Equilibrium gap against temperature (blue); dashed: the near-\\(T_c\\) law \\eqref{eq:sqrt}; dot: the current \\(T\\).");
+const PB = LX.plot(fB, { xlim: [0, 1.3], ylim: [0, 2], xlabel: "T/T_c", ylabel: "\\Delta/T_c", width: 420, height: 320 });
+const ctl = LX.controls(W); ctl.classList.add("lx-span2");
+LX.slider(ctl, { id: "T", label: "temperature \\(T/T_c\\)", min: 0.05, max: 1.3, step: 0.005, value: S.t, onInput: v => { S.t = v; update(); } });
+LX.segmented(ctl, { id: "view", label: "Gap plot shows", value: "d",
+  options: [{ value: "d", label: "\\(\\Delta/T_c\\)" }, { value: "d2", label: "\\((\\Delta/T_c)^2\\)" }],
+  onChange: v => { S.view = v; drawBranch(); update(); } });
+const ro = LX.h("div", { class: "lx-readouts" }, ctl);
+const rI = LX.readout(ro, "\\(I(0,T) - 1\\) =");
+const rD = LX.readout(ro, "\\(\\Delta/T_c\\) =");
+const rR = LX.readout(ro, "\\((\\Delta/T_c)^2/(1 - T/T_c)\\) =");
+LX.guide(W, [
+  ["\\(I\\) plot", "The function in the gap equation \\eqref{eq:gap} against a trial gap \\(\\Delta\\). Where it crosses the orange level 1 is the equilibrium gap. Its maximum is always at \\(\\Delta = 0\\)."],
+  ["Gap plot", "The crossing point, followed as a function of temperature: the BCS gap \\(\\Delta(T)\\). The toggle plots \\(\\Delta^2\\) instead."],
+  ["Slider", "Temperature. Near \\(T_c\\), watch how little the top of the blue curve rises above 1, and how far out it still crosses."],
+  ["Readouts", "Height of the top above 1; the gap; and \\(\\Delta^2/(1 - T/T_c)\\), which tends to \\(8\\pi^2/7\\zeta(3) \\approx 9.4\\) as \\(T \\to T_c\\)."]
+]);
+
+/* reference curves (independent of the controls) */
+[0.25, 0.5, 0.75, 1].forEach(t => PI_.path(LX.linspace(0, 2.4, 61).map(d => [d, Id(d, t)]), { cls: "s1 thin faint", layer: "ghost" }));
+PI_.g.ghost.classList.remove("g-ghost");
+
+function drawBranch() {
+  const sq = S.view === "d2", top = sq ? 3.6 : 2;
+  PB.setLim(null, [0, top]); PB.setLabels(null, sq ? "(\\Delta/T_c)^2" : "\\Delta/T_c");
+  PB.clear("fill");
+  PB.fn(t => (sq ? AGL * AGL * (1 - t) : AGL * Math.sqrt(Math.max(0, 1 - t))), { a: sq ? 0.6 : 0.55, b: 1, cls: "sm dash", layer: "fill" });
+  PB.path(branch.map(([t, d]) => [t, sq ? d * d : d]), { cls: "s1", layer: "fill" });
+  PB.line(1, 0, 1, top, { cls: "sm thin", layer: "fill" });
+}
+function update() {
+  const t = S.t, I0 = Id(0, t), d = gap(t), sq = S.view === "d2";
+  PI_.clearAll();
+  PI_.hline(1, { cls: "s2 dash" });
+  PI_.fn(x => I0 - LAM * B2 * x * x / (t * t), { cls: "s3 dash thin", n: 200 });
+  PI_.path(LX.linspace(0, 2.4, 97).map(x => [x, Id(x, t)]), { cls: "s1" });
+  if (d > 0) { PI_.vline(d, { cls: "sm thin dash" }); PI_.dot(d, 1, { r: 5.5, cls: "f2" }); }
+  else PI_.dot(0, I0, { r: 5.5, cls: "f2" });
+  PB.clear("main");
+  PB.dot(t, sq ? d * d : d, { r: 6, cls: "f2", layer: "main" });
+  rI.set(fmt(I0 - 1, 4));
+  rD.set(fmt(d, 3));
+  rR.set(t < 0.999 && d > 0 ? fmt(d * d / (1 - t), 2) : "—");
+}
+drawBranch();
+update();
+LX.gate(PB.svg.parentNode, "Answer the question above to see Δ(T)");
+
+/* ---------- questions ---------- */
+LX.ask($("q-hook"), {
+  type: "choice", kicker: "Predict",
+  prompt: "Just below \\(T_c\\), how does the gap grow?",
+  options: [
+    "Linearly: \\(\\Delta \\propto T_c - T\\).",
+    "As a square root: \\(\\Delta \\propto \\sqrt{T_c - T}\\).",
+    "Essentially singular, like \\(T_c\\) itself: \\(\\Delta \\propto e^{-c/(T_c - T)}\\).",
+    "Discontinuously: \\(\\Delta\\) jumps to a finite value at \\(T_c\\)."
+  ], answer: 1, reveal: [PB.svg.parentNode],
+  right: "That is what the gap equation gives. The point of this page is why a non-analytic \\(T_c\\) still produces such a simple law.",
+  wrong: "The gap plot in the widget below now shows the computed \\(\\Delta(T)\\): it leaves \\(T_c\\) vertically, like a square root. The rest of the page shows where that shape comes from."
+});
+LX.ask($("q-num"), {
+  type: "number", kicker: "Check", answer: D0, tol: 0.02,
+  prompt: "Use the widget at the lowest temperature: what is \\(\\Delta(0)/k_B T_c\\)?",
+  right: "\\(\\Delta(0)/k_BT_c = \\pi e^{-\\gamma} \\approx 1.764\\), the universal weak-coupling BCS ratio. Like the square-root law, it does not depend on \\(\\lambda\\).",
+  wrong: "Set \\(T/T_c = 0.05\\) and read the \\(\\Delta/T_c\\) readout. The weak-coupling value is \\(\\pi e^{-\\gamma} \\approx 1.764\\), independent of \\(\\lambda\\)."
+});
+LX.ask($("q-transfer"), {
+  type: "choice", kicker: "Transfer",
+  prompt: "Suppose a model had the same parabolic top \\eqref{eq:top}, but its height rose only quadratically below \\(T_c\\): \\(I(0,T) - 1 \\propto (T_c - T)^2\\). How would its gap open?",
+  options: ["Still as \\(\\sqrt{T_c - T}\\).", "Linearly, \\(\\Delta \\propto T_c - T\\).", "As \\((T_c - T)^2\\)."], answer: 1,
+  right: "The crossing of a parabola raised by \\(\\varepsilon\\) sits at \\(\\Delta \\propto \\sqrt{\\varepsilon}\\). With \\(\\varepsilon \\propto (T_c - T)^2\\) that gives \\(\\Delta \\propto T_c - T\\). The exponent \\(1/2\\) needs both ingredients: a parabolic top and a linear rise.",
+  wrong: "Use the same argument: \\(\\Delta^2 \\propto I(0,T) - 1\\). If that is \\(\\propto (T_c - T)^2\\), then \\(\\Delta \\propto T_c - T\\)."
+});
+
+/* ---------- self-tests ---------- */
+LX.check("T_c ≈ 1.134 ω_D e^{−1/λ} (weak coupling)", () => { const p = 1.13387 * WD * Math.exp(-1 / LAM); return { pass: Math.abs(Tc - p) / p < 1e-3, detail: `${Tc} vs ${p}` }; });
+LX.check("Δ(0)/T_c ≈ 1.764 and Δ(0) = ω_D/sinh(1/λ)", () => { const ex = WD / Math.sinh(1 / LAM) / Tc; return { pass: Math.abs(D0 - ex) / ex < 2e-3 && Math.abs(D0 - 1.764) < 0.01, detail: `${D0} vs ${ex}` }; });
+LX.check("near T_c: Δ ≈ 3.063 T_c √(1 − T/T_c)", () => { const d = gap(0.98), e = AGL * Math.sqrt(0.02); return { pass: Math.abs(d - e) / e < 0.02, detail: `${d} vs ${e}` }; });
+LX.check("Δ²/(1 − T/T_c) → 8π²/7ζ(3) ≈ 9.38 as T → T_c", () => { const r = gap(0.995) ** 2 / 0.005; return { pass: Math.abs(r - AGL * AGL) / (AGL * AGL) < 0.01, detail: `${r}` }; });
+LX.check("curvature at the top: ∂I/∂(Δ²) = −λ 7ζ(3)/(8π² T²) at T = T_c", () => { const e = 0.02, c = (Id(e, 1) - Id(0, 1)) / (e * e); return { pass: Math.abs(c + LAM * B2) / (LAM * B2) < 0.01, detail: `${c} vs ${-LAM * B2}` }; });
+LX.check("I(0,T) − 1 = λ ln(T_c/T) for T ≪ ω_D", () => [0.1, 0.5, 0.9].every(t => Math.abs(Id(0, t) - 1 - LAM * Math.log(1 / t)) < 2e-4));
+LX.check("I(Δ,T) decreases monotonically in Δ", () => [0.3, 0.9, 1.2].every(t => LX.linspace(0, 2.4, 25).every((d, i, a) => i === 0 || Id(d, t) < Id(a[i - 1], t))));
+LX.check("no nonzero solution above T_c", () => gap(1.05) === 0 && Id(0, 1.05) < 1 && Id(0, 0.95) > 1);
+</script>

@@ -1,0 +1,303 @@
+<!-- GENERATED from patterns/15-circuits.html by tests/sync-base.mjs; edit that file, then run the script. -->
+<title>Two-Qubit Bell Circuit</title>
+<!--
+PATTERN 15 · COMPOSITION / CIRCUITS
+Concept shape   A result is built by applying operations one after another; what matters is the state after
+                each step, which steps commute, and which kinds of operation can change which property.
+Use it for      Quantum circuits (Bell/GHZ preparation, teleportation, phase kickback, Deutsch), pulse
+                sequences (spin echo, Ramsey), Trotter steps, sequences of symmetry operations, any
+                ordered product of operators acting on a small state.
+Widget anatomy  (1) circuit diagram (SVG wires, gate boxes, CNOT dots) with 4 time slots; applied gates are
+                    filled, an orange dashed line marks how far the circuit has run;
+                (2) state table, one row per basis state, with explicit column headers: amplitude |c| (bar
+                    and number), phase arg c (small dial with an arrow, and degrees), probability |c|²;
+                    below it the state in Dirac notation and the concurrence C;
+                (3) controls: Back / Forward / Reset (the only way to move in time; no step slider), a
+                    "Circuit" switch between three prepared circuits and "Your own", and an Edit palette
+                    (pick a gate, then click a box on the circuit).
+Layout          aside: circuit and state table stacked on the left, where the eye follows time and its
+                result; all controls in one column on the right.
+Teaching moments  Suggestions for the chapter around the widget:
+                  - "What is the state after the H?" (choice: (|00⟩ + |10⟩)/√2; a product state, C = 0);
+                  - "Does the CNOT entangle?" (choice: yes, C = 1, because its control is in superposition);
+                  - "Reversed order: what is C at the end?" (choice: 0, CNOT on |00⟩ does nothing);
+                  - "Build a circuit that makes (|01⟩ + |10⟩)/√2" (set: check the amplitudes);
+                  - "Why can local gates not change C?" (explain).
+Adapt by        Change NQ and the gate set (matrices in GATES; two-qubit gates as functions on the state
+                vector). For 3 qubits the table has 8 rows; replace concurrence by the purity of a chosen
+                subsystem (reducedPurity generalises directly). For pulse sequences, use a single qubit and
+                add a Bloch-sphere view.
+Physics         Basis |q0 q1⟩ ordered |00⟩, |01⟩, |10⟩, |11⟩ (q0 is the left bit). H = (X + Z)/√2, S = diag(1, i).
+                CNOT(c→t) flips t when c = 1. For a pure state a|00⟩ + b|01⟩ + c|10⟩ + d|11⟩:
+                concurrence C = 2|ad − bc|, Tr ρ_A² = 1 − C²/2. All exact (4-dim complex state vector).
+-->
+<!-- LX:HEAD -->
+<style>
+/* LX:STYLE */
+.svgbox svg { display: block; width: 100%; height: auto; }
+.svgbox text { font: calc(13px * var(--k, 1)) var(--f-mono); fill: var(--fg); }
+.svgbox text.gt { font: 600 calc(17px * var(--k, 1)) var(--f-ui); }
+.svgbox text.mut { fill: var(--muted); font-size: calc(12px * var(--k, 1)); }
+.wire { stroke: var(--muted); stroke-width: 1.5; }
+.gate { fill: var(--surface); stroke: var(--accent); stroke-width: 1.8; }
+.gate-done { fill: var(--accent-soft); }
+.cellhit { fill: transparent; stroke: var(--muted); stroke-opacity: .45; stroke-dasharray: 3 3; cursor: pointer; }
+.cellhit:hover, .cellhit:focus-visible { stroke: var(--accent); stroke-opacity: 1; outline: none; }
+.cursor { stroke: var(--c2); stroke-width: 2; stroke-dasharray: 6 4; }
+.ctrl { fill: var(--accent); }
+.targ { fill: var(--surface); stroke: var(--accent); stroke-width: 1.8; }
+.amps { width: 100%; border-collapse: collapse; font-size: 14px; color: var(--fg); }
+.amps th { text-align: left; font-weight: 600; padding: 4px 6px 6px; border-bottom: 1px solid var(--line); vertical-align: bottom; }
+.amps td { padding: 6px; border-bottom: 1px solid var(--grid); vertical-align: middle; }
+.amps .num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.amps .cellflex { display: flex; align-items: center; gap: 8px; }
+.abar { flex: 1 1 auto; min-width: 40px; height: 10px; border-radius: 5px; background: var(--grid); overflow: hidden; }
+.abar > i { display: block; height: 100%; background: var(--accent); }
+.dial circle { fill: none; stroke: var(--muted); stroke-width: 1; }
+.dial line.ax0 { stroke: var(--grid); stroke-width: 1; }
+.dial line.arr { stroke: var(--c2); stroke-width: 2.4; stroke-linecap: round; }
+.dial circle.hub { fill: var(--c2); stroke: none; }
+.state-line { margin: 0; font-size: 14px; }
+.state-line b { font-family: var(--f-mono); font-weight: 500; }
+.hint { margin: 0; font-size: 13px; color: var(--fg); }
+#tool .lx-seg { flex-wrap: wrap; }
+#circ .lx-seg { display: grid; }
+</style>
+
+<main class="lx-page">
+  <header class="lx-head">
+    <p class="lx-eyebrow">Quantum information · Circuits</p>
+    <h1>How does a circuit build entanglement one gate at a time?</h1>
+    <p class="lx-lede">Two qubits start in \(\ket{00}\). Step through the gates with Forward and Back and watch the four amplitudes and their phases change. Only some steps create entanglement.</p>
+    <div class="lx-meta">
+      <span>Basis \(\ket{q_0 q_1}\); \(H = (X+Z)/\sqrt2\), \(S = \mathrm{diag}(1, \ii)\); CNOT flips the target when the control is 1</span>
+    </div>
+  </header>
+  <div class="lx-stage" id="stage"></div>
+  <footer class="lx-foot">
+    <span>Source: model knowledge. Standard treatment: Nielsen &amp; Chuang, <i>Quantum Computation and Quantum Information</i>, ch. 1, 2 and 4; Preskill, <i>Lecture Notes for Physics 219</i>, ch. 4.</span>
+  </footer>
+</main>
+
+<script>
+/* LX:LIB */
+</script>
+
+<script>
+/* PATTERN */
+const C = LX.C, R2 = Math.SQRT1_2, NCOL = 4;
+const re = x => C.of(x), I_ = C.of(0, 1);
+const GATES = {
+  H: [[re(R2), re(R2)], [re(R2), re(-R2)]],
+  X: [[re(0), re(1)], [re(1), re(0)]],
+  Z: [[re(1), re(0)], [re(0), re(-1)]],
+  S: [[re(1), re(0)], [re(0), I_]]
+};
+/* index k = 2*q0 + q1 */
+function apply1(psi, U, q) {
+  const out = psi.slice(), bit = q === 0 ? 2 : 1;
+  for (let k = 0; k < 4; k++) if (!(k & bit)) {
+    const a = psi[k], b = psi[k | bit];
+    out[k] = C.add(C.mul(U[0][0], a), C.mul(U[0][1], b));
+    out[k | bit] = C.add(C.mul(U[1][0], a), C.mul(U[1][1], b));
+  }
+  return out;
+}
+function cnot(psi, c) {
+  const cb = c === 0 ? 2 : 1, tb = c === 0 ? 1 : 2, out = psi.slice();
+  for (let k = 0; k < 4; k++) if (k & cb) out[k] = psi[k ^ tb];
+  return out;
+}
+function applyCol(psi, col) {
+  if (col.type === "cnot") return cnot(psi, col.c);
+  col.g.forEach((g, q) => { if (g !== "I") psi = apply1(psi, GATES[g], q); });
+  return psi;
+}
+const ket00 = () => [re(1), re(0), re(0), re(0)];
+function run(circ, k) { let psi = ket00(); for (let j = 0; j < k; j++) psi = applyCol(psi, circ[j]); return psi; }
+const concurrence = p => 2 * C.abs(C.sub(C.mul(p[0], p[3]), C.mul(p[1], p[2])));
+const purity = p => 1 - concurrence(p) ** 2 / 2;
+/* Reduced density matrix of q0 (traces out q1); its purity equals 1 − C²/2 for pure states. */
+function reducedPurity(p) {
+  const r00 = C.abs2(p[0]) + C.abs2(p[1]), r11 = C.abs2(p[2]) + C.abs2(p[3]);
+  const r01 = C.add(C.mul(p[0], C.conj(p[2])), C.mul(p[1], C.conj(p[3])));
+  return r00 * r00 + r11 * r11 + 2 * C.abs2(r01);
+}
+function dirac(p) {
+  const n = v => (Math.abs(v) < 1e-9 ? "0" : Math.abs(v).toFixed(3).replace(/0+$/, "").replace(/\.$/, ""));
+  const terms = [];
+  ["00", "01", "10", "11"].forEach((b, k) => {
+    const a = p[k]; if (C.abs(a) < 1e-9) return;
+    let coef, sign = "+";
+    if (Math.abs(a.im) < 1e-9) { coef = n(a.re); sign = a.re < 0 ? "−" : "+"; }
+    else if (Math.abs(a.re) < 1e-9) { coef = n(a.im) + "i"; sign = a.im < 0 ? "−" : "+"; }
+    else { coef = `(${a.re.toFixed(3)}${a.im < 0 ? "−" : "+"}${Math.abs(a.im).toFixed(3)}i)`.replace("-", "−"); sign = "+"; }
+    if (coef === "1") coef = "";
+    terms.push({ sign, s: `${coef}|${b}⟩` });
+  });
+  return terms.map((t, i) => (i === 0 ? (t.sign === "−" ? "−" : "") : ` ${t.sign} `) + t.s).join("");
+}
+
+const empty = () => ({ type: "single", g: ["I", "I"] });
+const PRESETS = {
+  bell:  [{ type: "single", g: ["H", "I"] }, { type: "cnot", c: 0 }, empty(), empty()],
+  swap:  [{ type: "cnot", c: 0 }, { type: "single", g: ["H", "I"] }, empty(), empty()],
+  undo:  [{ type: "single", g: ["H", "I"] }, { type: "cnot", c: 0 }, { type: "cnot", c: 0 }, { type: "single", g: ["H", "I"] }],
+  local: [{ type: "single", g: ["H", "I"] }, { type: "cnot", c: 0 }, { type: "single", g: ["Z", "X"] }, { type: "single", g: ["S", "H"] }],
+  own:   [empty(), empty(), empty(), empty()]
+};
+const clone = c => c.map(col => JSON.parse(JSON.stringify(col)));
+const S = { circ: clone(PRESETS.bell), k: 0, tool: "H" };
+
+/* ---- widget ---- */
+const W = LX.widget(document.getElementById("stage"), { layout: "aside", title: "Two qubits, four time steps", badge: "exact" });
+const left = LX.h("div", { class: "lx-col" }, W);
+
+const cf = LX.fig(left, "Circuit: time runs left to right. Filled gates have been applied; the orange dashed line marks where the circuit has got to.");
+const CW = 600, CHh = 150, WY = [48, 108], COLX = j => 160 + j * 100;
+const csvg = LX.s("svg", { viewBox: `0 0 ${CW} ${CHh}`, role: "img", "aria-label": "two-qubit circuit" }, LX.h("div", { class: "svgbox" }, cf));
+
+const sf = LX.fig(left);
+const tbl = LX.h("table", { class: "amps" }, sf);
+const hr = LX.h("tr", {}, LX.h("thead", {}, tbl));
+["basis state", "amplitude \\(|c|\\)", "phase \\(\\arg c\\)", "probability \\(|c|^2\\)"].forEach(t => LX.h("th", { html: t }, hr));
+const tb = LX.h("tbody", {}, tbl);
+const ROWS = ["00", "01", "10", "11"].map(b => {
+  const tr = LX.h("tr", {}, tb);
+  LX.h("td", { html: `\\(\\ket{${b}}\\)` }, tr);
+  const ampTd = LX.h("div", { class: "cellflex" }, LX.h("td", {}, tr));
+  const bar = LX.h("i", {}, LX.h("div", { class: "abar" }, ampTd));
+  const ampN = LX.h("span", { class: "num" }, ampTd);
+  const phTd = LX.h("div", { class: "cellflex" }, LX.h("td", {}, tr));
+  const dial = LX.s("svg", { class: "dial", viewBox: "-15 -15 30 30", width: 28, height: 28, "aria-hidden": "true" }, phTd);
+  LX.s("circle", { r: 13 }, dial); LX.s("line", { class: "ax0", x1: 0, y1: 0, x2: 13, y2: 0 }, dial);
+  const arr = LX.s("line", { class: "arr", x1: 0, y1: 0, x2: 11, y2: 0 }, dial);
+  LX.s("circle", { class: "hub", r: 2 }, dial);
+  const phN = LX.h("span", { class: "num" }, phTd);
+  const prN = LX.h("td", { class: "num" }, tr);
+  return { bar, ampN, arr, phN, prN };
+});
+LX.typeset(tbl);
+const stLine = LX.h("p", { class: "state-line" }, sf);
+const cLine = LX.h("p", { class: "state-line" }, sf);
+
+const ctl = LX.controls(W);
+const runG = LX.h("div", { class: "lx-group" }, ctl);
+LX.h("span", { text: "Run the circuit" }, runG);
+const rr = LX.h("div", { class: "lx-row" }, runG);
+const bBack = LX.button(rr, "◀ Back", () => setK(S.k - 1), { id: "back", title: "undo the last applied step" });
+const bFwd = LX.button(rr, "Forward ▶", () => setK(S.k + 1), { id: "fwd", cls: "lx-primary", title: "apply the next step" });
+const bReset = LX.button(rr, "Reset", () => setK(0), { id: "reset", title: "back to |00⟩, no gates applied" });
+const stepTxt = LX.h("p", { class: "hint" }, runG);
+
+const circSeg = LX.segmented(ctl, { id: "circ", label: "Circuit", value: "bell",
+  options: [{ value: "bell", label: "Bell: H, then CNOT" }, { value: "swap", label: "Same gates, reversed" }, { value: "undo", label: "Bell, then undo" },
+            { value: "local", label: "Bell + local gates" }, { value: "own", label: "Your own" }],
+  onChange: v => { S.circ = clone(PRESETS[v]); setK(0); } });
+const tool = LX.segmented(ctl, { id: "tool", label: "Edit: choose a gate", value: "H",
+  options: ["H", "X", "Z", "S"].map(g => ({ value: g, label: g })).concat([{ value: "C0", label: "CNOT ↓" }, { value: "C1", label: "CNOT ↑" }, { value: "E", label: "erase" }]),
+  onChange: v => { S.tool = v; } });
+LX.h("p", { class: "hint", text: "then click a dashed box on the circuit to put it there. CNOT ↓: control on the top qubit, target below; CNOT ↑: the reverse." }, ctl);
+
+LX.guide(W, [
+  ["Circuit", "Two wires, one per qubit, both starting in \\(\\ket0\\). Each column is one time step. A CNOT is drawn as a dot (control) joined to \\(\\oplus\\) (target)."],
+  ["Basis state", "The four possible results of measuring both qubits, \\(\\ket{q_0 q_1}\\)."],
+  ["Amplitude \\(|c|\\)", "The size of the complex coefficient \\(c\\) of that basis state: the bar and the number."],
+  ["Phase \\(\\arg c\\)", "The angle of \\(c\\) in the complex plane. The arrow points right for \\(0^\\circ\\) (positive real), up for \\(90^\\circ\\) (\\(+\\ii\\)), left for \\(180^\\circ\\) (negative). No arrow when \\(c = 0\\): the phase is undefined."],
+  ["Probability", "\\(|c|^2\\), the chance of that measurement outcome. The four add up to 1."],
+  ["Concurrence \\(C\\)", "Entanglement between the qubits: 0 for a product state, 1 for a Bell state."],
+  ["Buttons", "Forward applies the next column, Back removes the last one, Reset returns to \\(\\ket{00}\\). Circuit loads a prepared example; Edit changes the circuit yourself."]
+]);
+
+function setK(k) { S.k = LX.clamp(k, 0, NCOL); update(); }
+function place(j, q) {
+  const col = S.circ[j], t = S.tool;
+  if (t === "C0" || t === "C1") S.circ[j] = { type: "cnot", c: t === "C0" ? 0 : 1 };
+  else {
+    if (col.type === "cnot") S.circ[j] = empty();
+    S.circ[j].g[q] = t === "E" ? "I" : t;
+  }
+  circSeg.set("own", false);
+  update();
+}
+
+function drawCircuit() {
+  csvg.replaceChildren();
+  const s = (tag, a) => LX.s(tag, a, csvg);
+  WY.forEach((y, q) => {
+    s("line", { x1: 84, x2: CW - 20, y1: y, y2: y, class: "wire" });
+    const lab = s("text", { x: 4, y: y + 5 }); lab.textContent = "q";
+    LX.s("tspan", { dy: 4, "font-size": "0.8em", text: String(q) }, lab); LX.s("tspan", { dy: -4, text: " |0⟩" }, lab);
+  });
+  for (let j = 0; j < NCOL; j++) {
+    const x = COLX(j), col = S.circ[j], done = j < S.k;
+    s("text", { x, y: 142, "text-anchor": "middle", class: "mut", text: `step ${j + 1}` });
+    WY.forEach((y, q) => {
+      const hit = s("rect", { x: x - 24, y: y - 24, width: 48, height: 48, rx: 6, class: "cellhit", tabindex: 0, role: "button", "aria-label": `place the chosen gate at step ${j + 1}, qubit ${q}` });
+      hit.addEventListener("click", () => place(j, q));
+      hit.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); place(j, q); } });
+    });
+    const deco = { "pointer-events": "none" };
+    if (col.type === "cnot") {
+      const yc = WY[col.c], yt = WY[1 - col.c];
+      s("line", Object.assign({ x1: x, x2: x, y1: yc, y2: yt + (yt > yc ? 14 : -14), class: "wire" }, deco));
+      s("circle", Object.assign({ cx: x, cy: yc, r: 6, class: "ctrl" }, deco));
+      s("circle", Object.assign({ cx: x, cy: yt, r: 14, class: "targ" + (done ? " gate-done" : "") }, deco));
+      s("line", Object.assign({ x1: x - 14, x2: x + 14, y1: yt, y2: yt, class: "wire" }, deco));
+      s("line", Object.assign({ x1: x, x2: x, y1: yt - 14, y2: yt + 14, class: "wire" }, deco));
+    } else col.g.forEach((g, q) => {
+      if (g === "I") return;
+      s("rect", Object.assign({ x: x - 18, y: WY[q] - 18, width: 36, height: 36, rx: 5, class: "gate" + (done ? " gate-done" : "") }, deco));
+      s("text", Object.assign({ x, y: WY[q] + 6, "text-anchor": "middle", class: "gt", text: g }, deco));
+    });
+  }
+  const cx = COLX(S.k) - 50;
+  s("line", { x1: cx, x2: cx, y1: 16, y2: 128, class: "cursor" });
+}
+
+function update() {
+  drawCircuit();
+  const psi = run(S.circ, S.k);
+  psi.forEach((a, k) => {
+    const r = ROWS[k], m = C.abs(a);
+    r.bar.style.width = (100 * m).toFixed(1) + "%";
+    r.ampN.textContent = m.toFixed(3);
+    if (m < 1e-9) { r.arr.style.display = "none"; r.phN.textContent = "—"; }
+    else {
+      const ph = C.arg(a); r.arr.style.display = "";
+      r.arr.setAttribute("x2", (11 * Math.cos(ph)).toFixed(2)); r.arr.setAttribute("y2", (-11 * Math.sin(ph)).toFixed(2));
+      let deg = Math.round(ph * 180 / Math.PI); if (deg === -180) deg = 180;
+      r.phN.textContent = String(deg).replace("-", "−") + "°";
+    }
+    r.prN.textContent = C.abs2(a).toFixed(3);
+  });
+  stLine.innerHTML = `state: <b>${dirac(psi)}</b>`;
+  const c = concurrence(psi);
+  cLine.innerHTML = `concurrence <b>C = ${c.toFixed(3)}</b> · ${c < 1e-9 ? "product state, not entangled" : c > 1 - 1e-9 ? "maximally entangled" : "partly entangled"}`;
+  stepTxt.textContent = `${S.k} of ${NCOL} steps applied`;
+  bBack.disabled = S.k === 0; bReset.disabled = S.k === 0; bFwd.disabled = S.k === NCOL;
+}
+/* keep SVG text readable when the 600-unit-wide circuit shrinks on phones (capped so labels still fit) */
+document.querySelectorAll(".svgbox").forEach(el => { if (window.ResizeObserver) new ResizeObserver(() => { const w = el.clientWidth; if (w) el.style.setProperty("--k", Math.min(1.45, 600 / w).toFixed(3)); }).observe(el); });
+update();
+
+/* ---- self-tests ---- */
+const nearC = (a, b) => Math.abs(a.re - b.re) < 1e-12 && Math.abs(a.im - b.im) < 1e-12;
+LX.check("Bell circuit gives (|00⟩+|11⟩)/√2 with C = 1, Tr ρ_A² = 1/2", () => {
+  const p = run(PRESETS.bell, 2);
+  return nearC(p[0], re(R2)) && nearC(p[3], re(R2)) && C.abs(p[1]) < 1e-12 && LX.near(concurrence(p), 1, 1e-12) && LX.near(reducedPurity(p), 0.5, 1e-12);
+});
+LX.check("purity from ρ_A equals 1 − C²/2 and norm is 1 (random seeded circuits)", () => {
+  const rnd = LX.rng(3), opts = ["H", "X", "Z", "S", "I"];
+  for (let n = 0; n < 50; n++) {
+    const circ = [0, 1, 2, 3].map(() => rnd() < 0.3 ? { type: "cnot", c: rnd() < 0.5 ? 0 : 1 } : { type: "single", g: [opts[Math.floor(rnd() * 5)], opts[Math.floor(rnd() * 5)]] });
+    const p = run(circ, 4), norm = p.reduce((s, a) => s + C.abs2(a), 0);
+    if (Math.abs(norm - 1) > 1e-12 || Math.abs(reducedPurity(p) - purity(p)) > 1e-12) return false;
+  }
+  return true;
+});
+LX.check("local gates leave the concurrence of a Bell state at 1", () => { const p = run(PRESETS.local, 4); return { pass: LX.near(concurrence(p), 1, 1e-12), detail: concurrence(p) }; });
+LX.check("H Z H = X", () => { const p = [re(0.6), C.of(0, 0.8), re(0), re(0)]; const a = apply1(apply1(apply1(p, GATES.H, 1), GATES.Z, 1), GATES.H, 1), b = apply1(p, GATES.X, 1); return a.every((v, k) => nearC(v, b[k])); });
+LX.check("CNOT and H⊗I do not commute; reversed Bell circuit returns |00⟩", () => concurrence(run(PRESETS.swap, 2)) < 1e-12 && nearC(run(PRESETS.undo, 4)[0], re(1)));
+LX.check("S gives |1⟩ the phase +90°", () => { const p = apply1(apply1(ket00(), GATES.X, 1), GATES.S, 1); return LX.near(C.arg(p[1]), Math.PI / 2, 1e-12); });
+</script>

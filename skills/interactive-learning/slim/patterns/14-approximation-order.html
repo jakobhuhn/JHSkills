@@ -1,0 +1,148 @@
+<!-- GENERATED from patterns/14-approximation-order.html by tests/sync-base.mjs; edit that file, then run the script. -->
+<title>Perturbation Series</title>
+<!--
+PATTERN 14 · APPROXIMATION ORDER
+Concept shape   A quantity is approximated by a series in a small parameter; adding orders helps inside
+                a radius of convergence and hurts outside it, and the radius is set by singularities that
+                may be invisible on the physical axis.
+Use it for      Rayleigh–Schrödinger and Brillouin–Wigner perturbation theory, high-temperature and
+                virial expansions, Taylor/Padé approximants, asymptotic series (anharmonic oscillator,
+                QED), Magnus and cumulant expansions, Born series, strong- vs weak-coupling expansions.
+Widget anatomy  (1) exact E₋(λ) vs the series truncated at order λᴺ, with a cursor at the chosen λ;
+                (2) the size of every term of the series at that λ, as bars on a log scale (included terms
+                    solid, omitted ones faint) and the actual error as a dashed line: inside the radius the
+                    bars fall off and the error sits below the last bar; outside they grow;
+                (3) the complex-λ plane: disk of convergence, the two branch points that bound it, the cursor;
+                (4) controls in the fourth cell: order N, coupling λ, unperturbed half-gap a, readouts and a
+                    one-line verdict (inside / outside the radius).
+Layout          grid2 with the controls in the fourth cell: three figures of equal weight, no empty quadrant.
+Teaching moments  Suggestions for the chapter around the widget:
+                  - "At λ = 0.5, what does raising N from 2 to 20 do to the error?" (choice: shrinks by about
+                    (λ/a)² per order; panel 2 shows why);
+                  - "At λ = 1.3, same question" (choice: the error grows; the terms grow);
+                  - "Lower a to 0.5: where does the series stop converging?" (number: λ = a = 0.5);
+                  - "Why can a singularity at imaginary λ ruin a series at real λ?" (explain);
+                  - transfer: Dyson's argument for zero radius of convergence in gx⁴ (explain).
+Adapt by        Replace coef(n) and exact(λ) with your series (any list of Taylor coefficients) and mark its
+                nearest complex singularities in panel 3. For an asymptotic series, panel 2 shows terms that
+                first fall and then grow (factorial coefficients): the optimal truncation is at the smallest
+                bar.
+Physics         H = a σ_z + λ σ_x (unperturbed levels ±a, coupling λ). Ground energy
+                E₋(λ) = −√(a² + λ²) = −a Σₙ C(1/2, n) (λ/a)^{2n} = −a − λ²/2a + λ⁴/8a³ − …
+                The second-order term is the Rayleigh–Schrödinger result |⟨+|V|−⟩|²/(E₋ − E₊) = −λ²/2a.
+                Branch points where E₊ = E₋ at λ = ±ia ⇒ radius of convergence |λ| = a. All exact.
+-->
+<!-- LX:HEAD -->
+<style>
+/* LX:STYLE */
+.bar-on { fill: var(--accent); fill-opacity: .85; stroke: none; }
+.bar-off { fill: var(--muted); fill-opacity: .28; stroke: none; }
+</style>
+
+<main class="lx-page">
+  <header class="lx-head">
+    <p class="lx-eyebrow">Quantum mechanics · Perturbation theory</p>
+    <h1>Does adding more orders of perturbation theory always help?</h1>
+    <p class="lx-lede">The ground energy of a two-level system has an exact formula and a perturbation series in the coupling \(\lambda\). Raise the order and see where the series converges and where it falls apart.</p>
+    <div class="lx-meta">
+      <span>\(H = a\,\sigma_z + \lambda\,\sigma_x\), \(E_-(\lambda) = -\sqrt{a^2+\lambda^2}\); energies in arbitrary units</span>
+    </div>
+  </header>
+  <div class="lx-stage" id="stage"></div>
+  <footer class="lx-foot">
+    <span>Source: model knowledge. Standard treatment: Sakurai &amp; Napolitano, <i>Modern Quantum Mechanics</i>, ch. 5; Bender &amp; Orszag, <i>Advanced Mathematical Methods for Scientists and Engineers</i>, ch. 7–8.</span>
+  </footer>
+</main>
+
+<script>
+/* LX:LIB */
+</script>
+
+<script>
+/* PATTERN */
+const NMAX = 20, YB = -14;                       // highest order shown; floor of the log-scale term plot
+const S = { N: 4, lam: 0.6, a: 1 };
+/* Taylor coefficients of √(1+x): C(1/2, n), by recursion. E₋ = −a Σ coef(n) (λ/a)^{2n}. */
+const COEF = [1]; for (let n = 0; n < 400; n++) COEF.push(COEF[n] * (0.5 - n) / (n + 1));
+const exact = (l, a = S.a) => -Math.sqrt(a * a + l * l);
+function series(l, N = S.N, a = S.a) { let s = 0, x = (l / a) ** 2, p = 1; for (let n = 0; 2 * n <= N; n++) { s += COEF[n] * p; p *= x; } return -a * s; }
+const err = (l, N = S.N, a = S.a) => Math.abs(series(l, N, a) - exact(l, a));
+const term = (n, l = S.lam, a = S.a) => a * Math.abs(COEF[n]) * Math.pow(l / a, 2 * n);   // size of the λ^{2n} term
+const fmt = (v, d = 4) => v.toFixed(d).replace("-", "−");
+const fmtE = v => (v === 0 ? "0" : v.toExponential(1).replace("-", "−"));
+
+/* ---- widget ---- */
+const W = LX.widget(document.getElementById("stage"), { layout: "grid2", title: "Exact energy vs its perturbation series", badge: "exact" });
+
+const fE = LX.fig(W, "Ground energy: exact (orange) and the series up to \\(\\lambda^N\\) (blue)");
+const PE = LX.plot(fE, { xlim: [0, 2], ylim: [-2.6, -0.3], xlabel: "\\lambda", ylabel: "E_-", height: 340, aria: "exact and truncated energy" });
+const texA = PE.tex(1, -0.36, "\\lambda = a", { anchor: "nw" });
+
+const fT = LX.fig(W, "Size of each term at the chosen \\(\\lambda\\): solid = kept, faint = dropped; dashed: the actual error");
+const PT = LX.plot(fT, { xlim: [-1, 21], ylim: [YB, 4], xlabel: "\\text{power of }\\lambda", ylabel: "\\log_{10}|\\text{term}|", height: 340, xticks: 11, aria: "size of each term" });
+const texErr = PT.tex(20.6, 0, "\\text{error}", { anchor: "se" });
+
+const fC = LX.fig(W, "Complex \\(\\lambda\\) plane: the series converges inside the shaded disk; pink: where the two levels meet");
+const PC = LX.plot(fC, { xlim: [-3.38, 3.38], ylim: [-1.8, 1.8], xlabel: "\\mathrm{Re}\\,\\lambda", ylabel: "\\mathrm{Im}\\,\\lambda", height: 340, aria: "complex coupling plane" });
+const texP = PC.tex(0.3, 1, "+\\ii a", { anchor: "w" }), texM = PC.tex(0.3, -1, "-\\ii a", { anchor: "w" });
+
+const ctl = LX.controls(W);
+const nS = LX.slider(ctl, { id: "order", label: "order \\(N\\) (highest power \\(\\lambda^N\\))", min: 0, max: NMAX, step: 2, value: S.N, fmt: v => String(v), onInput: v => { S.N = v; update(); } });
+const lS = LX.slider(ctl, { id: "lam", label: "coupling \\(\\lambda\\)", min: 0, max: 2, step: 0.01, value: S.lam, onInput: v => { S.lam = v; update(); } });
+const aS = LX.slider(ctl, { id: "a", label: "unperturbed half-gap \\(a\\)", min: 0.5, max: 1.5, step: 0.01, value: S.a, onInput: v => { S.a = v; update(); } });
+const ro = LX.h("div", { class: "lx-readouts" }, ctl);
+const rEx = LX.readout(ro, "exact \\(E_-\\) =");
+const rSe = LX.readout(ro, "series \\(E_N\\) =");
+const rEr = LX.readout(ro, "error =");
+const rR = LX.readout(ro, "\\(|\\lambda|/a\\) =");
+const verdict = LX.h("p", { style: "margin:0;font-size:14px" }, ctl);
+
+LX.guide(W, [
+  ["Energy", "The exact ground energy and the series cut off at \\(\\lambda^N\\). The dots mark the chosen \\(\\lambda\\); the dashed line is \\(\\lambda = a\\)."],
+  ["Term sizes", "How big each term of the series is at the chosen \\(\\lambda\\), on a log scale. Each term is about \\((\\lambda/a)^2\\) times the previous one. Below \\(\\lambda = a\\) the bars fall and the error (dashed) is about the size of the first omitted bar; above it the bars grow and every extra order adds a larger error."],
+  ["Complex plane", "Coupling \\(\\lambda\\) as a complex number. The two levels \\(\\pm\\sqrt{a^2+\\lambda^2}\\) meet at \\(\\lambda = \\pm\\ii a\\) (pink). A power series converges in the largest disk around 0 that avoids them, so the radius is \\(a\\)."],
+  ["Sliders", "\\(N\\): how many orders are kept. \\(\\lambda\\): where the series is evaluated (orange dot). \\(a\\): the unperturbed half-gap, which sets the radius."]
+]);
+
+function update() {
+  const { N, lam, a } = S;
+  /* energy */
+  PE.clear(); PE.clear("top");   /* not clearAll: the TeX labels are created once and moved */
+  PE.vline(a, { cls: "sm dash" }); PE.placeTex(texA, Math.min(a, 1.62) + 0.03, -0.36, "nw");
+  PE.fn(l => exact(l), { cls: "s2" });
+  PE.fn(l => series(l), { cls: "s1", n: 500 });
+  PE.vline(lam, { cls: "sm thin" });
+  PE.dot(lam, exact(lam), { cls: "f2" }); PE.dot(lam, LX.clamp(series(lam), -2.7, -0.2), { cls: "f1" });
+  /* terms */
+  PT.clear();
+  for (let n = 0; 2 * n <= NMAX; n++) {
+    const v = Math.log10(term(n)); if (!isFinite(v)) continue;
+    const x = 2 * n, top = Math.min(4.5, v);
+    if (top > YB) PT.path([[x - 0.65, YB], [x - 0.65, top], [x + 0.65, top], [x + 0.65, YB]], { cls: 2 * n <= N ? "bar-on" : "bar-off", close: true });
+  }
+  const e = err(lam), le = Math.log10(e);
+  if (isFinite(le) && le > YB) { PT.hline(le, { cls: "s2 dash" }); PT.placeTex(texErr, 20.6, Math.min(le, 3.6), "se"); }
+  else PT.placeTex(texErr, NaN, NaN);
+  /* complex plane */
+  PC.clear(); PC.clear("fill"); PC.clear("top");
+  PC.hline(0, { cls: "gr" }); PC.vline(0, { cls: "gr" });
+  const circ = LX.linspace(0, 2 * Math.PI, 200).map(t => [a * Math.cos(t), a * Math.sin(t)]);
+  PC.path(circ, { cls: "a1", layer: "fill", close: true }); PC.path(circ, { cls: "s1 dash" });
+  PC.dot(0, a, { r: 6, cls: "f4" }); PC.dot(0, -a, { r: 6, cls: "f4" });
+  PC.placeTex(texP, 0.3, a, "w"); PC.placeTex(texM, 0.3, -a, "w");
+  PC.dot(lam, 0, { r: 6, cls: "f2" });
+  /* readouts */
+  rEx.set(fmt(exact(lam))); rSe.set(Math.abs(series(lam)) < 1e5 ? fmt(series(lam)) : fmtE(series(lam))); rEr.set(fmtE(e)); rR.set(fmt(lam / a, 2));
+  verdict.innerHTML = lam / a < 0.995 ? "<b>Inside the radius:</b> each extra order makes the error smaller."
+    : lam / a > 1.005 ? "<b>Outside the radius:</b> each extra order makes the error larger." : "<b>On the radius:</b> the terms neither shrink nor grow geometrically.";
+}
+update();
+
+/* ---- self-tests ---- */
+LX.check("coefficients of √(1+x): 1, 1/2, −1/8, 1/16, −5/128", () => [1, 0.5, -1 / 8, 1 / 16, -5 / 128].every((c, i) => LX.near(COEF[i], c, 1e-15)));
+LX.check("second-order RS shift −λ²/2a matches the exact energy", () => { const a = 0.7, l = 1e-3; return LX.near((exact(l, a) + a) / (l * l), -1 / (2 * a), 1e-5); });
+LX.check("inside the radius: order 20 at λ = 0.3a is accurate to 1e-11", () => err(0.3, 20, 1) < 1e-11 && err(0.3, 20, 1) < err(0.3, 10, 1));
+LX.check("outside the radius: error grows with order at λ = 1.3a", () => err(1.3, 20, 1) > err(1.3, 10, 1) && err(1.3, 10, 1) > err(1.3, 2, 1));
+LX.check("inside the radius the error is about the first omitted term (within ×3)", () => { const r = err(0.6, 8, 1) / term(5, 0.6, 1); return { pass: r > 1 / 3 && r < 3, detail: r }; });
+LX.check("ratio test: |c_n / c_{n+1}| → 1, so radius in (λ/a)² is 1", () => { const n = 300, r = Math.abs(COEF[n] / COEF[n + 1]); return { pass: Math.abs(r - 1) < 0.01, detail: r }; });
+</script>

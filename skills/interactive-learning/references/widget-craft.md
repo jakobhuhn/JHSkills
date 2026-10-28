@@ -1,6 +1,6 @@
 # Widget craft
 
-Rules for building the widgets inside a page. They apply on top of `assets/base.html`, which already provides the theme, the article layout and the `LX` library. Read the API summary at the top of its `LX:LIB` block before writing code.
+Rules for building the widgets inside a page. They apply on top of `assets/base.html`, which already provides the theme, the article layout and the `LX` library. Read the API summary in `references/lx-api.md` before writing code.
 
 ## Honesty: exact, computed, schematic
 
@@ -46,7 +46,7 @@ When several widgets on a page show the same system, they share one state, so th
 - **Say it once in the text** ("All widgets in this chapter show the same chain") and once in each guide.
 - **Keep widgets separate on purpose** when they show contrasting cases side by side, or a different system (a toy model next to the real one). Then give them visibly different titles.
 
-`examples/ssh-chapter.html` shows the pattern: `S = {v, w, N}`, `sharedSlider()`, `setS()` and one redraw per widget.
+`slim/examples/ssh-chapter.html` shows the pattern: `S = {v, w, N}`, `sharedSlider()`, `setS()` and one redraw per widget.
 
 ## Layout
 
@@ -60,7 +60,7 @@ Arrange each widget freely; there is no fixed figure-and-sidebar grid. `LX.widge
 | `aside` | one main figure (or a column of figures) with controls beside it; `left: true` puts the controls first |
 | `hero` | one large figure plus a column of small figures and controls |
 
-`.lx-col` stacks several items in one cell; `.lx-span2` spans both columns; `.lx-float` puts a small button row over the corner of a figure. `assets/layouts.html` shows each recipe with code.
+`.lx-col` stacks several items in one cell; `.lx-span2` spans both columns; `.lx-float` puts a small button row over the corner of a figure. `slim/assets/layouts.html` shows each recipe with code.
 
 Rules: no empty grid cells; the most important view is the largest; controls sit next to what they change; at most three figures per widget (use a second widget otherwise).
 
@@ -74,12 +74,12 @@ Rules: no empty grid cells; the most important view is the largest; controls sit
 - Draggable handles are created once, in the plot's `handles` layer (which `clearAll` never clears), and moved on redraw. Recreating them breaks pointer capture and leaves copies. Clamp them to the plot range.
 - TeX labels that stay on the plot are created once with `P.tex(..., { keep: true })` and moved with `P.placeTex`; `clearAll` removes only the other labels.
 - The page must work at 400 px width: figures stack, controls wrap. The test harness checks this.
-- **Fields on a grid (heatmaps).** Choose the grid from the physics, not by eye. Find the smallest feature over the whole slider range (a fringe period, a blob width, a healing length) and put at least 10 cells across it; stop at about 2 screen pixels per cell; check that n² × (cost per point) fits the frame budget. Draw the samples into a canvas shown as a scaled SVG `<image>`, not one `<rect>` per cell: rects are slow and show hard edges. Add an `LX.check` for the cells-per-feature rule at the extreme of the slider range. `patterns/17-phase-space-fields.html` shows the rule worked through (a 46-cell grid gave 4.6 cells per fringe and looked blocky; 120 cells give 12).
+- **Fields on a grid (heatmaps).** Choose the grid from the physics, not by eye. Find the smallest feature over the whole slider range (a fringe period, a blob width, a healing length) and put at least 10 cells across it; stop at about 2 screen pixels per cell; check that n² × (cost per point) fits the frame budget. Draw the samples into a canvas shown as a scaled SVG `<image>`, not one `<rect>` per cell: rects are slow and show hard edges. Add an `LX.check` for the cells-per-feature rule at the extreme of the slider range. `slim/patterns/17-phase-space-fields.html` shows the rule worked through (a 46-cell grid gave 4.6 cells per fringe and looked blocky; 120 cells give 12).
 - The page must be complete at rest: the first frame, before any interaction, already shows a meaningful state.
 
 ## Code rules
 
-- Start from `assets/base.html`. Keep the three marked blocks (`LX:HEAD`, `LX:STYLE`, `LX:LIB`) unchanged; add page CSS after `/* LX:STYLE-END */` and code in the `PATTERN` script.
+- Start from `slim/assets/base.html` and write the page in slim form: the three shared blocks are the one-line markers `<!-- LX:HEAD -->`, `/* LX:STYLE */` and `/* LX:LIB */`; keep them exactly as they are, add page CSS after `/* LX:STYLE */` and code in the `PATTERN` script. `node scripts/lx.mjs expand page.html` turns the slim page into the full one (the markers become the blocks from `assets/base.html`); never retype the library by hand.
 - One state object per widget, one `update()` that redraws everything from it (`P.clearAll()` first). Controls only change the state and call `update()`. Widgets that show the same system share one page state (see "Linking widgets").
 - Keep numerics small enough to run on every slider move (aim under ~16 ms). Precompute what does not depend on the control being moved; keep load-time precomputation under ~200 ms.
 - Choose units that make the key scale 1 (energies in units of \(T_c\), hopping \(t = 1\), lengths in lattice constants) and fix dimensionless couplings at a value where the effect is clearly visible; say so in the conventions line.
@@ -91,7 +91,7 @@ Rules: no empty grid cells; the most important view is the largest; controls sit
 
 ## Delivery
 
-- Publish the page as an Artifact when the session can (the file is already an Artifact fragment). Otherwise save it as an `.html` file wrapped in a doctype skeleton, as described at the top of `base.html`.
-- Run `tests/run.mjs` on the page when the repo is available. It answers every question, checks that every gate opens, and checks that every control changes something.
+- Expand first: `node scripts/lx.mjs expand page.html page.full.html`. Publish the full page as an Artifact when the session can (it is already an Artifact fragment). Otherwise save it as an `.html` file wrapped in a doctype skeleton, as described at the top of `base.html`. Without a shell, paste the three blocks from `assets/base.html` over the markers by hand.
+- Run `tests/run.mjs` on the page (slim or full) when the repo is available. It answers every question, checks that every gate opens, and checks that every control changes something.
 - Title: a short name of the thing (e.g. "SSH Edge States"), not a sentence.
 - After delivering, continue in chat: ask for the learner's explanation, answer questions, suggest the next concept.

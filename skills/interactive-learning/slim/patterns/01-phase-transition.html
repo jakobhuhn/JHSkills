@@ -1,0 +1,226 @@
+<!-- GENERATED from patterns/01-phase-transition.html by tests/sync-base.mjs; edit that file, then run the script. -->
+<title>Landau Phase Transition</title>
+<!--
+PATTERN 01 · PHASE TRANSITION
+When to use     Something changes qualitatively when a control parameter crosses a critical value:
+                a minimum splits, a gap closes, a solution appears, a symmetry breaks. Landau theory,
+                mean-field transitions, spontaneous symmetry breaking, first- vs second-order
+                transitions, metastability and hysteresis, (quantum) critical points.
+Widget anatomy  (1) left: the landscape F(m) at the current t and h, with a ball for the state the system
+                    occupies. Drag the ball to displace the state; on release it rolls to the nearest
+                    local minimum (gradient flow), not the global one. The ball is clamped to the plot.
+                (2) right: order parameter vs t. Solid = equilibrium (global minimum), dashed = metastable,
+                    faded orange line = the path the state has taken, orange point = current state.
+                    Drag the point sideways to sweep t; each new drag starts a new path.
+                (3) controls below: t, field h, continuous / first-order switch, Reset path,
+                    Keep a copy / Clear copy of the landscape.
+                Drag handles are created once and moved; the path is one SVG path, cleared on a mode
+                switch, on a new drag and by Reset path.
+Layout          split: the two plots side by side (they share the state and are read together), controls
+                in a full-width strip below (.lx-span2). Collapses to one column on phones.
+Teaching moments  Suggestions for the chapter around the widget:
+                - choice before lowering t: does the minimum shrink, split, or jump?
+                - number: the exponent β in |m*| ∝ (−t)^β (answer 1/2);
+                - set: "make the ball sit in the left well, then switch on h > 0 without it switching";
+                - choice: does a sweep down and back up retrace itself in the first-order case?
+                - explain: why F''(0) alone decides a continuous transition but not a first-order one.
+How to adapt    Swap F for any energy/free energy/effective potential with one control parameter.
+                Keep the "state follows the local minimum" rule: it gives metastability for free.
+                Update MODELS (ranges) and the branch drawing if the minima structure differs.
+Physics         F(m) = t m² + b m⁴ + c m⁶ − h m (dimensionless Landau expansion).
+                Continuous: b = 1, c = 0 → m* = ±√(−t/2b) for t < 0, β = 1/2.
+                First order: b = −2, c = 1 → transition at t₁ = b²/4c = 1,
+                spinodals t = 0 (m = 0 loses stability) and t = b²/3c = 4/3 (ordered minima vanish).
+-->
+<!-- LX:HEAD -->
+<style>
+/* LX:STYLE */
+</style>
+
+<main class="lx-page">
+  <header class="lx-head">
+    <p class="lx-eyebrow">Statistical mechanics · Landau theory</p>
+    <h1>How does order appear at a phase transition?</h1>
+    <p class="lx-lede">Lower the control parameter \(t\) and watch the free-energy landscape reshape itself. The ball marks the state the system actually occupies; the right plot records where it has been.</p>
+    <div class="lx-meta">
+      <span>\(F(m) = t\,m^2 + b\,m^4 + c\,m^6 - h\,m\), dimensionless; \(t \propto T - T_c\)</span>
+    </div>
+  </header>
+  <div class="lx-stage" id="stage"></div>
+  <footer class="lx-foot">
+    <span>Source: model knowledge. Standard treatment: Landau &amp; Lifshitz, <i>Statistical Physics</i> §§142–150; Chaikin &amp; Lubensky ch. 4.</span>
+  </footer>
+</main>
+
+<script>
+/* LX:LIB */
+</script>
+
+<script>
+/* PATTERN */
+const MODELS = {
+  second: { b: 1, c: 0, tlim: [-1, 1], mlim: [-1.4, 1.4], Flim: [-0.5, 1.0] },
+  first:  { b: -2, c: 1, tlim: [-1, 2], mlim: [-1.7, 1.7], Flim: [-1.0, 1.2] }
+};
+const S = { kind: "second", t: 0.6, h: 0, m: 0, trail: [], held: false, anim: 0, settleTimer: 0 };
+const M = () => MODELS[S.kind];
+const F  = (m, t = S.t, h = S.h) => t * m * m + M().b * m ** 4 + M().c * m ** 6 - h * m;
+const dF = (m, t = S.t, h = S.h) => 2 * t * m + 4 * M().b * m ** 3 + 6 * M().c * m ** 5 - h;
+const d2F = (m, t = S.t) => 2 * t + 12 * M().b * m * m + 30 * M().c * m ** 4;
+
+/* The system relaxes to the nearest local minimum (gradient flow), not the global one.
+   A tiny random kick stands in for thermal fluctuations at an unstable point. */
+const flowStep = m => m + LX.clamp(-0.02 * dF(m), -0.02, 0.02);
+function relax(m) {
+  if (Math.abs(dF(m)) < 1e-12 && d2F(m) < 0) m += (Math.random() < 0.5 ? -1 : 1) * 1e-3;
+  for (let k = 0; k < 4000; k++) { const n = flowStep(m); if (Math.abs(n - m) < 1e-10) return n; m = n; }
+  return m;
+}
+/* All local minima of F on the plotted range (dense scan + Newton refinement). */
+function minima(t, h) {
+  const [a, b] = M().mlim, out = [];
+  const xs = LX.linspace(a, b, 801);
+  for (let i = 1; i < xs.length - 1; i++) {
+    if (F(xs[i], t, h) <= F(xs[i - 1], t, h) && F(xs[i], t, h) < F(xs[i + 1], t, h)) {
+      let m = xs[i];
+      for (let k = 0; k < 60; k++) { const d2 = d2F(m, t); if (d2 <= 0) break; m -= dF(m, t, h) / d2; }
+      out.push(m);
+    }
+  }
+  return out;
+}
+const globalMin = (t, h) => minima(t, h).reduce((best, m) => (best === null || F(m, t, h) < F(best, t, h) ? m : best), null);
+
+/* ---- widget ---- */
+const W = LX.widget(document.getElementById("stage"), { layout: "split", title: "Landau landscape and order parameter", badge: "exact" });
+const figL = LX.fig(W, "Landscape \\(F(m)\\) at the current \\(t\\) and \\(h\\)");
+const PL = LX.plot(figL, { xlim: M().mlim, ylim: M().Flim, xlabel: "m", ylabel: "F(m)", height: 320 });
+const figR = LX.fig(W, "Order parameter \\(m\\) against \\(t\\) (branches at \\(h = 0\\))");
+const PO = LX.plot(figR, { xlim: M().tlim, ylim: [-1.6, 1.6], xlabel: "t", ylabel: "m", height: 320 });
+LX.legend(figR, [["equilibrium", "--accent", "line"], ["metastable", "--accent", "dash"], ["your path", "--c2", "line"], ["state", "--c2", "dot"]]);
+
+/* persistent marks: created once, moved on every redraw */
+const ball = LX.s("circle", { r: 8, class: "f2", "aria-label": "state m; drag sideways or use arrow keys" }, PL.g.top);
+const trailPath = LX.s("path", { class: "s2 thin faint" }, PO.g.fill);
+const handle = LX.s("circle", { r: 7, class: "f2", "aria-label": "current t; drag sideways or use arrow keys" }, PO.g.top);
+
+const ctl = LX.controls(W, "lx-span2");
+const tS = LX.slider(ctl, { id: "t", label: "control parameter \\(t\\)", min: -1, max: 1, step: 0.005, value: S.t, onInput: v => { S.t = v; update(); } });
+const hS = LX.slider(ctl, { id: "h", label: "field \\(h\\)", min: -0.3, max: 0.3, step: 0.005, value: 0, onInput: v => { S.h = v; update(); } });
+const kind = LX.segmented(ctl, { id: "kind", label: "Transition type", value: "second",
+  options: [{ value: "second", label: "Continuous \\((b>0)\\)" }, { value: "first", label: "First order \\((b<0,\\ c>0)\\)" }],
+  onChange: v => setKind(v) });
+const grp = LX.h("div", { class: "lx-group" }, ctl);
+LX.h("span", { text: "Path and copy" }, grp);
+const btns = LX.h("div", { class: "lx-row" }, grp);
+const bReset = LX.button(btns, "Reset path", () => { resetTrail(); draw(); }, { id: "reset" });
+LX.button(btns, "Keep a copy", () => { PL.ghost(); bClear.disabled = false; }, { id: "keep", title: "Keep the current landscape as a faded copy" });
+const bClear = LX.button(btns, "Clear copy", () => { PL.clearGhost(); bClear.disabled = true; }, { id: "clear-copy" });
+bClear.disabled = true;
+const ro = LX.h("div", { class: "lx-readouts lx-span2" }, W);
+const rM = LX.readout(ro, "state \\(m\\) =");
+const rF = LX.readout(ro, "curvature \\(F''(0)\\) =");
+const rN = LX.readout(ro, "local minima:");
+
+LX.guide(W, [
+  ["Left plot", "The free energy \\(F(m)\\) for the current \\(t\\) and \\(h\\). The orange ball is the state the system is in. It only rolls downhill, so it can sit in a well that is not the lowest one (a metastable state)."],
+  ["Drag the ball", "Push the state sideways; when you let go it rolls into the nearest well."],
+  ["Right plot", "Where the minima are for every \\(t\\): solid blue = lowest well, dashed = a well that exists but is not the lowest. The faded orange line is the path your state has taken; it shows hysteresis."],
+  ["Drag the point", "The orange point on the right sweeps \\(t\\). Each new drag starts a new path."],
+  ["\\(t\\), \\(h\\)", "\\(t\\) is the distance from the transition (\\(t \\propto T - T_c\\)); \\(h\\) tilts the landscape and favours one sign of \\(m\\)."],
+  ["Transition type", "Continuous: the two wells grow out of \\(m = 0\\). First order: they appear far from zero while \\(m = 0\\) is still a well, so the state jumps. Switching clears the path."],
+  ["Reset path, copy", "Reset path clears the orange line. Keep a copy freezes the current landscape as a faded dashed curve for comparison."]
+]);
+
+/* ---- state changes ---- */
+function setT(v) { tS.set(LX.clamp(v, +tS.input.min, +tS.input.max)); }
+function resetTrail() { S.trail = []; record(); }
+function record() {
+  const last = S.trail[S.trail.length - 1];
+  if (!last || last[0] !== S.t || Math.abs(last[1] - S.m) > 1e-9) S.trail.push([S.t, S.m]);
+  if (S.trail.length > 800) S.trail.shift();
+}
+function stopAnim() { cancelAnimationFrame(S.anim); S.anim = 0; clearTimeout(S.settleTimer); }
+function setKind(v) {
+  stopAnim();
+  S.kind = v; PL.clearGhost(); bClear.disabled = true;
+  const [a, b] = M().tlim; tS.input.min = a; tS.input.max = b;
+  PL.setLim(M().mlim, M().Flim); PO.setLim(M().tlim, null);
+  S.t = LX.clamp(S.t, a, b); tS.set(S.t, false);
+  S.m = globalMin(S.t, S.h);
+  drawBranches(); resetTrail(); draw();
+}
+/* t or h changed: the state relaxes at once and the path grows */
+function update() { stopAnim(); S.m = relax(S.m); record(); draw(); }
+/* After the ball is released: roll it downhill, animated unless reduced motion is set. */
+function settle() {
+  stopAnim();
+  if (LX.reduceMotion) { S.m = relax(S.m); record(); draw(); return; }
+  if (Math.abs(dF(S.m)) < 1e-12 && d2F(S.m) < 0) S.m += (Math.random() < 0.5 ? -1 : 1) * 1e-3;
+  const frame = () => {
+    let moved = 0;
+    for (let k = 0; k < 6; k++) { const n = flowStep(S.m); moved = Math.abs(n - S.m); S.m = n; }
+    draw();
+    if (moved > 1e-6) S.anim = requestAnimationFrame(frame); else { S.anim = 0; S.m = relax(S.m); record(); draw(); }
+  };
+  S.anim = requestAnimationFrame(frame);
+}
+
+/* ---- dragging ---- */
+LX.drag(PL, ball, {
+  get: () => [S.m, F(S.m)], step: [0.02, 0],
+  set: x => {
+    stopAnim();
+    S.m = LX.clamp(x, M().mlim[0] * 0.98, M().mlim[1] * 0.98); draw();
+    if (!S.held) S.settleTimer = setTimeout(settle, 350);   // keyboard nudges settle after a pause
+  },
+  end: () => { S.held = false; settle(); }
+});
+ball.addEventListener("pointerdown", () => { S.held = true; stopAnim(); });
+LX.drag(PO, handle, { get: () => [S.t, S.m], step: [0.01, 0], set: x => setT(x) });
+handle.addEventListener("pointerdown", () => { resetTrail(); draw(); });
+
+/* ---- drawing ---- */
+function drawBranches() {
+  PO.clear(); PO.clear("tex");
+  PO.hline(0); if (S.kind === "second") PO.vline(0); else { PO.vline(1); PO.vline(0, { cls: "sm thin dash" }); PO.vline(4 / 3, { cls: "sm thin dash" }); }
+  /* sample the minima on a t grid; split into equilibrium (global) and metastable (local only) */
+  const ts = LX.linspace(M().tlim[0], M().tlim[1], 360);
+  const eq = [[], []], meta = [[], []], zero = [];
+  for (const t of ts) {
+    const mins = minima(t, 0), g = globalMin(t, 0);
+    for (const m of mins) {
+      const isG = Math.abs(F(m, t, 0) - F(g, t, 0)) < 1e-9;
+      if (Math.abs(m) < 1e-6) zero.push([t, 0, isG]);
+      else (isG ? eq : meta)[m > 0 ? 0 : 1].push([t, m]);
+    }
+  }
+  const runs = (pts, cls) => { let seg = []; pts.forEach((p, i) => { if (i && p[0] - pts[i - 1][0] > 0.02) { PO.path(seg, { cls }); seg = []; } seg.push(p); }); if (seg.length) PO.path(seg, { cls }); };
+  eq.forEach(b => runs(b, "s1")); meta.forEach(b => runs(b, "s1 dash thin"));
+  runs(zero.filter(z => z[2]).map(z => [z[0], 0]), "s1"); runs(zero.filter(z => !z[2]).map(z => [z[0], 0]), "s1 dash thin");
+  if (S.kind === "first") { PO.tex(1, 1.55, "t_1", { anchor: "nw", px: false }); PO.tex(4 / 3, -1.55, "t_s", { anchor: "sw" }); }
+}
+const yIn = (P, y) => LX.clamp(y, P.ylim[0] + 0.02 * (P.ylim[1] - P.ylim[0]), P.ylim[1] - 0.02 * (P.ylim[1] - P.ylim[0]));
+function draw() {
+  PL.clear();
+  PL.hline(0, { cls: "gr" });
+  PL.fn(m => F(m), { n: 500 });
+  ball.setAttribute("cx", PL.X(S.m)); ball.setAttribute("cy", PL.Y(yIn(PL, F(S.m))));
+  trailPath.setAttribute("d", S.trail.map(([t, m], i) => (i ? "L" : "M") + PO.X(t).toFixed(1) + "," + PO.Y(yIn(PO, m)).toFixed(1)).join(""));
+  handle.setAttribute("cx", PO.X(S.t)); handle.setAttribute("cy", PO.Y(yIn(PO, S.m)));
+  bReset.disabled = S.trail.length < 2;
+  rM.set(S.m.toFixed(3).replace("-", "−"));
+  rF.set((2 * S.t).toFixed(2).replace("-", "−") + (S.t < 0 ? " (m = 0 unstable)" : ""));
+  rN.set(String(minima(S.t, S.h).length));
+}
+setKind("second");
+
+/* ---- self-tests ---- */
+LX.check("continuous: m* = sqrt(-t/2b) at t = -0.5", () => { S.kind = "second"; const m = Math.abs(globalMin(-0.5, 0)); return { pass: LX.near(m, Math.sqrt(0.25), 1e-6), detail: m }; });
+LX.check("continuous: single minimum at 0 for t > 0", () => { S.kind = "second"; const ms = minima(0.3, 0); return ms.length === 1 && Math.abs(ms[0]) < 1e-9; });
+LX.check("first order: degenerate minima at t1 = b²/4c = 1", () => { S.kind = "first"; const ms = minima(1, 0); const g = ms.find(m => m > 0.1); return { pass: ms.length === 3 && Math.abs(F(g, 1, 0)) < 1e-6, detail: ms.map(m => m.toFixed(4)).join(",") }; });
+LX.check("first order: ordered minima vanish above t_s = 4/3", () => { S.kind = "first"; return minima(1.32, 0).length === 3 && minima(1.35, 0).length === 1; });
+LX.check("first order: m = 0 unstable below t = 0", () => { S.kind = "first"; return minima(-0.02, 0).every(m => Math.abs(m) > 0.1); });
+LX.check("relaxation from a displaced state ends in a local minimum", () => { S.kind = "second"; const save = [S.t, S.h]; S.t = -0.5; S.h = 0; const m = relax(-1.2); [S.t, S.h] = save; return { pass: LX.near(m, -0.5, 1e-5), detail: m }; });
+S.kind = kind.get();
+</script>

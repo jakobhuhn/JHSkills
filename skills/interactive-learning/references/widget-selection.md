@@ -16,27 +16,27 @@ Then ask for each relationship: *what kind of change is it?* That is its concept
 
 | # | Concept shape | Recognise it when… | Widget type | Pattern file |
 |---|---|---|---|---|
-| 01 | Phase transition | something changes qualitatively at a parameter value; minima split, a symmetry breaks | landscape with a draggable ball + order-parameter curve with a draggable sweep and its path; first-order vs continuous; hysteresis | `patterns/01-phase-transition.html` |
-| 02 | Dynamics | something evolves in time | choose a pulse length, run exactly that long, see short / right / overshoot; free-drive mode with timeline | `patterns/02-dynamics.html` |
-| 03 | 3D geometry | the object lives in 3D (or a 2D projection hides something) | drag-to-rotate view + linked projections and readouts | `patterns/03-geometry-3d.html` |
-| 04 | Optimisation / extremum | a principle selects a minimum, maximum or saddle | draggable trial point on a landscape, slope arrow, "find the minimum" | `patterns/04-optimisation.html` |
-| 05 | Spectral flow | eigenvalues move with a parameter; levels cross or repel | eigenvalues vs parameter with cursor + eigenvector inspector | `patterns/05-spectral-flow.html` |
-| 06 | Superposition / interference | amplitudes add, then get squared | phasors added head to tail → intensity | `patterns/06-interference.html` |
-| 07 | Dual representations | the same object in two bases or spaces | linked views manipulated directly (drag width and centre in either picture) + the uncertainty plane | `patterns/07-dual-representations.html` |
-| 08 | Topology / invariants | an integer that changes only at singular events | closed curve around a singular point, live invariant counter | `patterns/08-topology-winding.html` |
-| 09 | Measurement / statistics | probabilities emerge from repeated sampling | shot sampler, histogram with ±1σ/±2σ bands, repeated experiments that show how often results fall outside | `patterns/09-measurement-statistics.html` |
-| 10 | Self-consistency / fixed points | a solution feeds back into itself | cobweb diagram + iteration stepper | `patterns/10-self-consistency.html` |
-| 11 | Flows | a vector field drives a state (RG, dynamical systems) | click to drop a ball into the flow; a physical parameter moves the starting point; separatrix | `patterns/11-flows.html` |
-| 12 | Spatial structure / locality | properties vary across a lattice; a length scale matters | clickable lattice, correlation decay, length-scale readout | `patterns/12-spatial-structure.html` |
-| 13 | Scaling / limits | behaviour depends on size or scale; asymptotics matter | choose trial exponents, watch the curves collapse, with a collapse-quality score | `patterns/13-scaling-collapse.html` |
-| 14 | Approximation order | a series or expansion converges, or does not | order slider, truncated vs exact, size of each term, complex-plane singularities | `patterns/14-approximation-order.html` |
-| 15 | Composition / circuits | operations are built step by step and order matters | Back/Forward through gates with an amplitude–phase table per step | `patterns/15-circuits.html` |
-| 16 | Symmetry | an operation leaves something invariant or forces degeneracy | one apply-the-operation button that visibly acts, one parameter slider | `patterns/16-symmetry.html` |
-| 17 | Fields on a plane | the object is a function of two variables (a Wigner function, a 2D density) and its shape changes: blobs move, fringes fade, negative regions open; often two subsystems at once | linked sign-coded heatmaps on a fine grid, line markers for named features, time scrub + Play | `patterns/17-phase-space-fields.html` |
-| 18 | Response / spectra | a system is driven or probed at frequency \(\omega\); peaks, linewidths, lifetimes, causality | \(\mathrm{Re}\,\chi\) and \(\mathrm{Im}\,\chi\) with an \(\omega\) cursor, draggable poles in the complex plane, the causal impulse response | `patterns/18-response-spectra.html` |
-| 19 | Thermal occupation | temperature and \(\mu\) spread particles over levels; quantum statistics matter | level ladder filled by occupation, \(f(\varepsilon)\) for FD / BE / Boltzmann, ground-state fraction vs \(T\) | `patterns/19-thermal-occupation.html` |
-| 20 | Entanglement / reduced states | a system is cut in two and one part is looked at alone | coefficient matrix, Schmidt spectrum and entropy, reduced Bloch vector; local rotations change amplitudes but not the spectrum | `patterns/20-entanglement.html` |
-| 21 | Scattering / tunnelling | a wave meets a structure and splits into reflected and transmitted parts | wave drawn on the potential with a draggable energy, \(T(E)\) on a log scale, single and double barrier | `patterns/21-scattering-tunnelling.html` |
+| 01 | Phase transition | something changes qualitatively at a parameter value; minima split, a symmetry breaks | landscape with a draggable ball + order-parameter curve with a draggable sweep and its path; first-order vs continuous; hysteresis | `slim/patterns/01-phase-transition.html` |
+| 02 | Dynamics | something evolves in time | choose a pulse length, run exactly that long, see short / right / overshoot; free-drive mode with timeline | `slim/patterns/02-dynamics.html` |
+| 03 | 3D geometry | the object lives in 3D (or a 2D projection hides something) | drag-to-rotate view + linked projections and readouts | `slim/patterns/03-geometry-3d.html` |
+| 04 | Optimisation / extremum | a principle selects a minimum, maximum or saddle | draggable trial point on a landscape, slope arrow, "find the minimum" | `slim/patterns/04-optimisation.html` |
+| 05 | Spectral flow | eigenvalues move with a parameter; levels cross or repel | eigenvalues vs parameter with cursor + eigenvector inspector | `slim/patterns/05-spectral-flow.html` |
+| 06 | Superposition / interference | amplitudes add, then get squared | phasors added head to tail → intensity | `slim/patterns/06-interference.html` |
+| 07 | Dual representations | the same object in two bases or spaces | linked views manipulated directly (drag width and centre in either picture) + the uncertainty plane | `slim/patterns/07-dual-representations.html` |
+| 08 | Topology / invariants | an integer that changes only at singular events | closed curve around a singular point, live invariant counter | `slim/patterns/08-topology-winding.html` |
+| 09 | Measurement / statistics | probabilities emerge from repeated sampling | shot sampler, histogram with ±1σ/±2σ bands, repeated experiments that show how often results fall outside | `slim/patterns/09-measurement-statistics.html` |
+| 10 | Self-consistency / fixed points | a solution feeds back into itself | cobweb diagram + iteration stepper | `slim/patterns/10-self-consistency.html` |
+| 11 | Flows | a vector field drives a state (RG, dynamical systems) | click to drop a ball into the flow; a physical parameter moves the starting point; separatrix | `slim/patterns/11-flows.html` |
+| 12 | Spatial structure / locality | properties vary across a lattice; a length scale matters | clickable lattice, correlation decay, length-scale readout | `slim/patterns/12-spatial-structure.html` |
+| 13 | Scaling / limits | behaviour depends on size or scale; asymptotics matter | choose trial exponents, watch the curves collapse, with a collapse-quality score | `slim/patterns/13-scaling-collapse.html` |
+| 14 | Approximation order | a series or expansion converges, or does not | order slider, truncated vs exact, size of each term, complex-plane singularities | `slim/patterns/14-approximation-order.html` |
+| 15 | Composition / circuits | operations are built step by step and order matters | Back/Forward through gates with an amplitude–phase table per step | `slim/patterns/15-circuits.html` |
+| 16 | Symmetry | an operation leaves something invariant or forces degeneracy | one apply-the-operation button that visibly acts, one parameter slider | `slim/patterns/16-symmetry.html` |
+| 17 | Fields on a plane | the object is a function of two variables (a Wigner function, a 2D density) and its shape changes: blobs move, fringes fade, negative regions open; often two subsystems at once | linked sign-coded heatmaps on a fine grid, line markers for named features, time scrub + Play | `slim/patterns/17-phase-space-fields.html` |
+| 18 | Response / spectra | a system is driven or probed at frequency \(\omega\); peaks, linewidths, lifetimes, causality | \(\mathrm{Re}\,\chi\) and \(\mathrm{Im}\,\chi\) with an \(\omega\) cursor, draggable poles in the complex plane, the causal impulse response | `slim/patterns/18-response-spectra.html` |
+| 19 | Thermal occupation | temperature and \(\mu\) spread particles over levels; quantum statistics matter | level ladder filled by occupation, \(f(\varepsilon)\) for FD / BE / Boltzmann, ground-state fraction vs \(T\) | `slim/patterns/19-thermal-occupation.html` |
+| 20 | Entanglement / reduced states | a system is cut in two and one part is looked at alone | coefficient matrix, Schmidt spectrum and entropy, reduced Bloch vector; local rotations change amplitudes but not the spectrum | `slim/patterns/20-entanglement.html` |
+| 21 | Scattering / tunnelling | a wave meets a structure and splits into reflected and transmitted parts | wave drawn on the potential with a draggable energy, \(T(E)\) on a log scale, single and double barrier | `slim/patterns/21-scattering-tunnelling.html` |
 
 Each pattern file is a single widget with a "What you are looking at" block, and no questions. Its header comment says when to use it, the widget anatomy, the layout and why, the teaching moments (questions a text could ask around it), how to adapt it and the physics it implements. Read that header first. The widget code is in the `PATTERN` script at the end of the file; the marked `LX:` blocks are the shared library, identical in every file, so skip them. Some patterns also have page-specific CSS after `/* LX:STYLE-END */`; copy it along with the code you reuse.
 
@@ -51,9 +51,9 @@ When a topic needs several shapes, put them on one page as **linked views of one
 - Share colors: a quantity has the same color in every view.
 - When the text moves to a new aspect, it may offer a button or limit that sets the shared state for the next view, but it never takes control away.
 
-`examples/ssh-chapter.html` shows a full Chapter built from several shapes: spectral flow (bands and the finite-chain spectrum), topology (winding of \(d(k)\)), spatial structure (edge-state densities) and a phase transition (gap closing at \(v = w\)), embedded in text with questions, all four widgets linked through one shared state. `examples/bcs-gap-explainer.html` shows the short form: one confusion, one widget.
+`slim/examples/ssh-chapter.html` shows a full Chapter built from several shapes: spectral flow (bands and the finite-chain spectrum), topology (winding of \(d(k)\)), spatial structure (edge-state densities) and a phase transition (gap closing at \(v = w\)), embedded in text with questions, all four widgets linked through one shared state. `slim/examples/bcs-gap-explainer.html` shows the short form: one confusion, one widget.
 
-For arranging a single widget (controls beside a figure, 2×2 with controls in a cell, …) see `assets/layouts.html`. For the question formats see `patterns/00-question-formats.html`.
+For arranging a single widget (controls beside a figure, 2×2 with controls in a cell, …) see `assets/layouts.html`. For the question formats see `slim/patterns/00-question-formats.html`.
 
 ## Topic → shape examples
 
@@ -100,4 +100,4 @@ These are starting points, not rules. Always do Step 1 first.
 
 ## When nothing fits
 
-Build a new widget from `assets/base.html`, following `widget-craft.md`. Reuse the closest pattern's structure: a state object, one `update()`, linked figures, limit buttons, a guide block, self-tests.
+Build a new widget from `slim/assets/base.html`, following `widget-craft.md`. Reuse the closest pattern's structure: a state object, one `update()`, linked figures, limit buttons, a guide block, self-tests.

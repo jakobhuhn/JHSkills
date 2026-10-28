@@ -1,0 +1,362 @@
+<!-- GENERATED from patterns/21-scattering-tunnelling.html by tests/sync-base.mjs; edit that file, then run the script. -->
+<title>Tunnelling and Transmission</title>
+<!--
+PATTERN 21 · SCATTERING / TUNNELLING / TRANSPORT
+When to use     A wave hits a structure and splits into a reflected and a transmitted part; flux is
+                conserved (R + T = 1) and what matters is the transmission T(E). Use it for tunnelling
+                through a barrier, the WKB exponential e^{−2κa}, above-barrier resonances, resonant
+                tunnelling through a double barrier, Fabry–Pérot cavities, Landauer conductance
+                G = (e²/h) Σ T, scattering phase shifts, intuition for Josephson / SIS junctions.
+Widget anatomy  (1) the potential V(x) (grey) with the scattering state at energy E drawn on top of it,
+                    at height E as in textbook figures: Re ψ (blue) and |ψ|² (green, filled from the
+                    energy line). Incident + reflected on the left, decay or oscillation inside,
+                    transmitted on the right. The pink energy line is draggable (anywhere on the line or
+                    its pink handle): E is set by direct manipulation, there is no E slider;
+                (2) T(E) (orange) and R(E) (faint pink) against E/V₀, with the current E as a draggable
+                    pink dot on the T curve, linked to (1). Linear / log₁₀ toggle so the exponential
+                    suppression below the barrier is visible. Single barrier: the WKB estimate e^{−2κa}
+                    dashed (an approximation, labelled as such). "Keep a copy" freezes the T curve to
+                    compare a with 2a, or one barrier with two;
+                (3) controls: barrier mode (single / double), width a, well width d (double mode only;
+                    hidden in single mode), T axis scale, limit buttons named by physics ("Deep
+                    tunnelling", "Barrier top", "First resonance": jumps E to the first T = 1 peak,
+                    analytic k′a = π for one barrier, a root search in double mode);
+                (4) readouts: E/V₀, T, R, R + T, κa (or k′a above the barrier).
+Layout          hero: the scattering state over the potential is the object of study and gets the big
+                cell; T(E) is its one-number summary and sits in the narrow column with the controls,
+                so dragging E in either view and reading T, R in the readouts happen side by side.
+                Collapses to one column (state, T(E), controls) on a phone.
+Teaching moments  Suggestions for the chapter around the widget:
+                  - choice: "E < V₀. Is any of the wave found to the right of the barrier?" (yes: T > 0;
+                    ψ decays inside but does not vanish at the far edge);
+                  - choice: "Double the width a. What happens to T deep below the barrier?" (it is
+                    roughly squared, not halved: T ∼ e^{−2κa}; on the log scale the curve's depth doubles;
+                    use Keep a copy);
+                  - choice: "E > V₀. Is T = 1?" (no: the step reflects; T = 1 only at k′a = nπ, where the
+                    two reflections from the barrier edges cancel; try First resonance);
+                  - set: "Switch to two barriers. Find an energy below V₀ where the wave passes
+                    completely." (the surprise: two barriers each with T ≪ 1 give T = 1; check: T > 0.99
+                    with E < V₀);
+                  - explain: why the peaks sit near the levels of a particle in the well between the
+                    barriers, and why they get narrower as a grows (quasi-bound states; Lorentzian peaks,
+                    width ↔ lifetime: link to pattern 18);
+                  - number: "κa = 3, E = V₀/2. Estimate T." (WKB 16E(V₀−E)/V₀² · e^{−2κa} ≈ 1.0e−2).
+Adapt by        Change structure(): any list of interfaces and region potentials works with the same
+                transfer-matrix code (a step, a well, a superlattice of N barriers, a tilted barrier
+                cut into steps for Fowler–Nordheim). For Landauer conductance plot G = (e²/h)·T(E_F)
+                against a gate voltage that shifts V. For phase shifts, plot arg t or arg r instead
+                of |t|². Keep the energy line draggable in the main view.
+Physics         −ψ″ + V(x)ψ = Eψ with ħ²/2m = 1, V₀ = 10 (lengths in a unit ℓ, energies in ħ²/2mℓ²),
+                so k = √E outside, κ = √(V₀ − E) or k′ = √(E − V₀) inside. Piecewise-constant V:
+                ψ = A e^{iq(x−x_j)} + B e^{−iq(x−x_j)} in region j; matching ψ and ψ′ at each interface
+                is a 2×2 transfer matrix, multiplied from the right (A = t, B = 0) to the left
+                (A = 1, B = r). Exact for the stated model. One barrier:
+                T = [1 + V₀² sinh²(κa) / (4E(V₀ − E))]⁻¹ below, sinh → sin(k′a), E(V₀−E) → E(E−V₀) above,
+                T = [1 + V₀a²/4]⁻¹ at E = V₀ (the code nudges E by 10⁻⁷V₀ there to avoid q = 0).
+                κa ≫ 1: T → 16E(V₀−E)/V₀² · e^{−2κa}. Two identical barriers, well d:
+                T = T₁² / |1 − r₁² e^{2ikd}|², so T = 1 wherever arg r₁ + kd = nπ (resonances, found by
+                bisection on that smooth condition; T is evaluated exactly there).
+-->
+<!-- LX:HEAD -->
+<style>
+/* LX:STYLE */
+.vfill { fill: var(--muted); fill-opacity: .14; stroke: var(--muted); stroke-opacity: .6; stroke-width: 1.2; }
+.hit { fill: none; stroke: transparent; stroke-width: 18; cursor: ns-resize; }
+</style>
+
+<main class="lx-page">
+  <header class="lx-head">
+    <p class="lx-eyebrow">Quantum mechanics · Scattering</p>
+    <h1>How much of a wave gets through a barrier?</h1>
+    <p class="lx-lede">A plane wave of energy \(E\) meets one or two rectangular barriers of height \(V_0\). Part of it is reflected and part transmitted, always with \(R + T = 1\). Drag the energy and watch \(T(E)\): exponentially small below the barrier, not quite one above it, and exactly one at resonances.</p>
+    <div class="lx-meta">
+      <span>\(-\psi'' + V(x)\,\psi = E\,\psi\) with \(\hbar^2/2m = 1\), \(V_0 = 10\); \(k = \sqrt{E}\), \(\kappa = \sqrt{V_0 - E}\); solved exactly with \(2\times 2\) transfer matrices</span>
+    </div>
+  </header>
+  <div class="lx-stage" id="stage"></div>
+  <footer class="lx-foot">
+    <span>Source: model knowledge. Standard treatment: Griffiths &amp; Schroeter, <i>Introduction to Quantum Mechanics</i>, ch. 2 (scattering states; the rectangular barrier is a problem there); Cohen-Tannoudji, Diu &amp; Laloë, <i>Quantum Mechanics</i> vol. 1, complement H<sub>I</sub>; Datta, <i>Electronic Transport in Mesoscopic Systems</i>, ch. 2–3 (transmission and the Landauer formula).</span>
+  </footer>
+</main>
+
+<script>
+/* LX:LIB */
+</script>
+
+<script>
+/* PATTERN */
+const V0 = 10, EMIN = 0.01, EMAX = 3, XL = 8;      // hbar²/2m = 1; on screen energies are E/V0
+const C = LX.C;
+const S = { mode: "single", a: 1, d: 1.5, e: 0.5, log: false, ghost: null };
+
+/* ---- physics: piecewise-constant potential, 2×2 transfer matrices ---- */
+/* Interfaces (edges) and the potential of each region, structure centred on x = 0. */
+function structure(mode = S.mode, a = S.a, d = S.d) {
+  if (mode === "single") return { edges: [-a / 2, a / 2], V: [0, V0, 0] };
+  const L = 2 * a + d, x = -L / 2;
+  return { edges: [x, x + a, x + a + d, x + L], V: [0, V0, 0, V0, 0] };
+}
+/* Scattering state for a wave incident from the left at energy E (absolute units).
+   Region j: ψ = A e^{iq(x−x_j)} + B e^{−iq(x−x_j)}, x_j its left edge (region 0: the first interface).
+   Start on the right with (A, B) = (1, 0), match ψ and ψ′ back to the left, then normalise so A₀ = 1. */
+function solve(E, st) {
+  if (Math.abs(E - V0) < 1e-7 * V0) E = V0 * (1 + 1e-7);      // q = 0 at E = V0: nudge (T is continuous there)
+  const n = st.V.length, q = st.V.map(v => C.sqrt(C.of(E - v, 0)));
+  const ref = st.V.map((_, j) => (j === 0 ? st.edges[0] : st.edges[j - 1]));
+  const co = Array(n); co[n - 1] = [C.of(1), C.of(0)];
+  for (let j = n - 2; j >= 0; j--) {
+    const rho = C.div(q[j + 1], q[j]), [A1, B1] = co[j + 1];
+    const up = C.of(1 + rho.re, rho.im), dn = C.of(1 - rho.re, -rho.im), l = st.edges[j] - ref[j];
+    const pA = C.scale(C.add(C.mul(up, A1), C.mul(dn, B1)), 0.5);   // A_j e^{iqℓ}
+    const pB = C.scale(C.add(C.mul(dn, A1), C.mul(up, B1)), 0.5);   // B_j e^{−iqℓ}
+    co[j] = [C.mul(pA, C.exp({ re: q[j].im * l, im: -q[j].re * l })), C.mul(pB, C.exp({ re: -q[j].im * l, im: q[j].re * l }))];
+  }
+  const inv = C.div(C.of(1), co[0][0]);
+  const cf = co.map(([A, B]) => [C.mul(A, inv), C.mul(B, inv)]);
+  return { E, st, q, ref, cf, t: inv, r: cf[0][1], T: C.abs2(inv), R: C.abs2(cf[0][1]) };
+}
+/* ψ(x) and ψ′(x) from the region coefficients. */
+function psiAt(sol, x) {
+  const j = sol.st.edges.filter(b => b <= x).length, q = sol.q[j], [A, B] = sol.cf[j];
+  const z = C.scale(q, x - sol.ref[j]);
+  const ep = C.exp({ re: -z.im, im: z.re }), em = C.exp({ re: z.im, im: -z.re });
+  const psi = C.add(C.mul(A, ep), C.mul(B, em));
+  const dpsi = C.mul(C.mul(C.of(0, 1), q), C.sub(C.mul(A, ep), C.mul(B, em)));
+  return { psi, dpsi };
+}
+const Tof = (E, mode = S.mode, a = S.a, d = S.d) => solve(E, structure(mode, a, d)).T;
+const wkb = (E, a = S.a) => Math.exp(-2 * Math.sqrt(V0 - E) * a);
+
+/* Resonances (T = 1) in (0, EMAX·V0]. One barrier: k′a = nπ. Two identical barriers: the round trip in the
+   well closes, arg r₁ + kd = nπ, i.e. Im(r₁e^{ikd})/|r₁| = 0, a smooth function of E: bracket and bisect. */
+const resCache = new Map();
+function resonances(mode = S.mode, a = S.a, d = S.d) {
+  const key = `${mode}|${a}|${d}`;
+  if (resCache.has(key)) return resCache.get(key);
+  const out = [];
+  if (mode === "single") {
+    for (let n = 1; V0 + (n * Math.PI / a) ** 2 <= EMAX * V0; n++) out.push(V0 + (n * Math.PI / a) ** 2);
+  } else {
+    const s1 = structure("single", a), st = structure("double", a, d);
+    const f = E => { const r = solve(E, s1).r, k = Math.sqrt(E), z = C.mul(r, C.expi(k * d)); return z.im / Math.hypot(z.re, z.im); };
+    const es = LX.linspace(0.002 * V0, EMAX * V0, 1500);
+    let pe = es[0], pf = f(pe);
+    for (const e of es.slice(1)) {
+      const fe = f(e);
+      if (pf * fe < 0) {
+        let lo = pe, hi = e, flo = pf;
+        for (let k = 0; k < 64; k++) { const m = (lo + hi) / 2, fm = f(m); if (fm * flo <= 0) hi = m; else { lo = m; flo = fm; } }
+        const Er = (lo + hi) / 2;
+        if (solve(Er, st).T > 0.5) out.push(Er);
+      }
+      pe = e; pf = fe;
+    }
+  }
+  resCache.set(key, out); return out;
+}
+/* T(E), R(E) on a grid, refined around each resonance so narrow peaks are drawn at full height. */
+const curveCache = new Map();
+function curve(mode = S.mode, a = S.a, d = S.d) {
+  const key = `${mode}|${a}|${d}`;
+  if (curveCache.has(key)) return curveCache.get(key);
+  const st = structure(mode, a, d), es = LX.linspace(EMIN * V0, EMAX * V0, 700);
+  for (const Er of resonances(mode, a, d)) {
+    es.push(Er);
+    for (let j = 2; j <= 20; j++) { const dE = V0 * 10 ** (-j / 2); es.push(Er - dE, Er + dE); }
+  }
+  const pts = es.filter(E => E >= EMIN * V0 && E <= EMAX * V0).sort((x, y) => x - y)
+    .map(E => { const s = solve(E, st); return [E / V0, s.T, s.R]; });
+  if (curveCache.size > 40) curveCache.clear();
+  curveCache.set(key, pts); return pts;
+}
+
+/* ---- widget: hero = scattering state big; T(E), controls and readouts in the side column ---- */
+const W = LX.widget(document.getElementById("stage"), { layout: "hero", title: "A wave meets a barrier: reflection, tunnelling, transmission", badge: "exact" });
+const figM = LX.fig(W, "Scattering state at energy \\(E\\), drawn at height \\(E\\) over the potential \\(V(x)\\) (grey); the wave comes in from the left. Vertical scale of \\(\\psi\\) arbitrary.");
+const PM = LX.plot(figM, { xlim: [-XL, XL], ylim: [-0.5, 3.5], xlabel: "x", ylabel: "E/V_0", width: 620, height: 440, aria: "scattering state over the potential" });
+LX.legend(figM, [["\\(\\mathrm{Re}\\,\\psi\\)", "--accent", "line"], ["\\(|\\psi|^2\\)", "--c3", "line"], ["energy \\(E\\) (drag)", "--c4", "line"], ["\\(V(x)\\)", "--muted", "line"]]);
+const col = LX.h("div", { class: "lx-col" }, W);
+const figT = LX.fig(col, "Transmission and reflection against energy, from transfer matrices; the pink dot is the current \\(E\\)");
+const PT = LX.plot(figT, { xlim: [0, EMAX], ylim: [0, 1.08], xlabel: "E/V_0", ylabel: "T,\\ R", width: 440, height: 300, aria: "transmission against energy" });
+const legT = LX.legend(figT, [["\\(T\\)", "--c2", "line"], ["\\(R\\)", "--c4", "line"], ["WKB \\(\\ee^{-2\\kappa a}\\) (approx.)", "--muted", "dash"], ["kept copy", "--c2", "dash"]]);
+const [, legR, legWKB, legGhost] = legT.children;
+legR.style.opacity = ".55";
+
+/* handles: created once in the handles layer, moved on redraw */
+const hitM = LX.s("line", { class: "hit", x1: PM.X(-XL), x2: PM.X(XL), "aria-hidden": "true" }, PM.g.handles);
+const hM = LX.s("circle", { r: 8, class: "f4", "aria-label": "energy E; drag up or down or use arrow keys" }, PM.g.handles);
+const hT = LX.s("circle", { r: 7, class: "f4", "aria-label": "energy E on the T(E) curve; drag sideways or use arrow keys" }, PT.g.handles);
+const setE = e => { S.e = LX.clamp(e, EMIN, EMAX); update(); };
+LX.drag(PM, hM, { get: () => [XL - 0.6, S.e], step: [0, 0.01], set: (_, y) => setE(y) });
+LX.drag(PM, hitM, { get: () => [0, S.e], step: [0, 0.01], set: (_, y) => setE(y) });
+hitM.removeAttribute("tabindex");                                   // one keyboard stop: the round handle
+LX.drag(PT, hT, { get: () => [S.e, 0], step: [0.01, 0], set: x => setE(x) });
+
+/* labels: created once, moved with placeTex */
+const labIn = PM.tex(0, 0, "\\ee^{\\ii kx} + r\\,\\ee^{-\\ii kx}", { keep: true, color: "var(--accent)" });
+const labOut = PM.tex(0, 0, "t\\,\\ee^{\\ii kx}", { keep: true, color: "var(--accent)" });
+const labA = [PM.tex(0, 0, "a", { keep: true }), PM.tex(0, 0, "a", { keep: true })];
+const labD = PM.tex(0, 0, "d", { keep: true });
+const labTop = PT.tex(1, 0, "E = V_0", { keep: true, anchor: "s" });
+const scaleNote = LX.s("text", { x: PM.X(-XL) + 8, y: PM.margin.t + 16, "text-anchor": "start" }, PM.g.handles);
+
+const ctl = LX.controls(col, "lx-vert");
+const modeSeg = LX.segmented(ctl, { id: "mode", label: "Barriers", value: S.mode,
+  options: [{ value: "single", label: "one barrier" }, { value: "double", label: "two barriers" }], onChange: v => setMode(v) });
+const aS = LX.slider(ctl, { id: "a", label: "barrier width \\(a\\)", min: 0.75, max: 2.5, step: 0.05, value: S.a, onInput: v => { S.a = v; update(); } });
+const dS = LX.slider(ctl, { id: "d", label: "well width \\(d\\)", min: 0.75, max: 3, step: 0.05, value: S.d, onInput: v => { S.d = v; update(); } });
+const scaleSeg = LX.segmented(ctl, { id: "scale", label: "\\(T\\) axis", value: "lin",
+  options: [{ value: "lin", label: "linear" }, { value: "log", label: "log\\(_{10}\\)" }], onChange: v => setScale(v === "log") });
+const cmp = LX.h("div", { class: "lx-group" }, ctl);
+LX.h("span", { text: "Compare" }, cmp);
+const cmpRow = LX.h("div", { class: "lx-row" }, cmp);
+LX.button(cmpRow, "Keep a copy of \\(T(E)\\)", () => { S.ghost = curve(); update(); }, { id: "ghost" });
+LX.button(cmpRow, "Clear copy", () => { S.ghost = null; update(); }, { id: "unghost" });
+const firstRes = () => resonances()[0];
+LX.limits(ctl, [
+  { label: "Deep tunnelling", id: "deep", title: "E = 0.3 V₀, a = 2: κa ≈ 5, log scale", apply: () => { S.e = 0.3; aS.set(2, false); S.a = 2; scaleSeg.set("log"); } },
+  { label: "Barrier top", id: "top", title: "E = V₀", apply: () => setE(1) },
+  { label: "First resonance", id: "res", title: "E at the lowest T = 1 peak", apply: () => { const E = firstRes(); if (E) setE(E / V0); } }
+]);
+const ro = LX.h("div", { class: "lx-readouts" }, ctl);
+const rE = LX.readout(ro, "\\(E/V_0\\):");
+const rT = LX.readout(ro, "\\(T\\):");
+const rR = LX.readout(ro, "\\(R\\):");
+const rS = LX.readout(ro, "\\(R+T\\):");
+const rK = LX.readout(ro, "per barrier:");
+
+LX.guide(W, [
+  ["Main view", "The grey blocks are the potential \\(V(x)\\), height \\(V_0\\) (one unit on the energy axis). The wave is drawn at the height of its energy \\(E\\): blue is \\(\\mathrm{Re}\\,\\psi\\), green the probability density \\(|\\psi|^2\\) measured up from the energy line. Left of the barrier the incident and reflected waves interfere; inside, \\(\\psi\\) decays (\\(E < V_0\\)) or oscillates (\\(E > V_0\\)); right of it there is only the transmitted wave \\(t\\,\\ee^{\\ii kx}\\), with constant \\(|\\psi|^2 = T\\)."],
+  ["Energy line", "Drag the pink line (or its handle, or use the arrow keys) to change \\(E\\). There is no energy slider: the line, the dot on \\(T(E)\\) and the readouts all move together."],
+  ["\\(T(E)\\) plot", "Orange: transmission probability \\(T = |t|^2\\); faint pink: reflection \\(R = |r|^2\\). The pink dot is the current energy; drag it sideways. The faint vertical line marks the barrier top \\(E = V_0\\)."],
+  ["WKB (dashed)", "One barrier only: the approximation \\(T \\approx \\ee^{-2\\kappa a}\\), \\(\\kappa = \\sqrt{V_0 - E}\\). It gets the slope right deep below the barrier and misses only a prefactor \\(16E(V_0-E)/V_0^2\\)."],
+  ["\\(T\\) axis", "Log scale shows \\(\\log_{10} T\\) (and drops \\(R\\), which sits at 1): exponential suppression becomes a curve you can read, and narrow resonance peaks become visible."],
+  ["Barriers, \\(a\\), \\(d\\)", "One barrier of width \\(a\\), or two of width \\(a\\) separated by a well of width \\(d\\). The \\(d\\) slider appears only with two barriers."],
+  ["Keep a copy", "Freezes the current \\(T(E)\\) as a dashed curve, for example before doubling \\(a\\) or before adding the second barrier."],
+  ["Limits", "<b>Deep tunnelling</b>: \\(\\kappa a \\approx 5\\), log scale. <b>Barrier top</b>: \\(E = V_0\\), where \\(\\psi\\) is linear inside. <b>First resonance</b>: the lowest energy with \\(T = 1\\)."],
+  ["Readouts", "\\(T\\), \\(R\\) and their sum, which is always 1 (probability flux is conserved); the barrier's decay \\(\\kappa a\\) below \\(V_0\\), or its phase \\(k'a\\), \\(k' = \\sqrt{E - V_0}\\), above."],
+  ["What to look for", "<b>Tunnelling:</b> below \\(V_0\\) the wave on the right is small but never zero. <b>Exponential:</b> doubling \\(a\\) roughly squares \\(T\\) (log scale, keep a copy). <b>Above the barrier:</b> \\(T < 1\\) except where \\(k'a = n\\pi\\). <b>Resonant tunnelling:</b> with two barriers, each passing about 1% on its own, there are energies below \\(V_0\\) where \\(T = 1\\): the wave builds up in the well (large \\(|\\psi|^2\\) between the barriers) and leaks out at the far side."]
+]);
+
+function setMode(v) {
+  S.mode = v; modeSeg.set(v, false);
+  dS.el.style.display = v === "single" ? "none" : ""; dS.input.disabled = v === "single";
+  legWKB.style.display = v === "single" ? "" : "none";
+  update();
+}
+function setScale(log) {
+  S.log = log; scaleSeg.set(log ? "log" : "lin", false);
+  PT.setLim(null, log ? [-10, 0.6] : [0, 1.08]);
+  PT.setLabels(null, log ? "\\log_{10} T" : "T,\\ R");
+  update();
+}
+const fy = T => (S.log ? Math.log10(Math.max(T, 1e-300)) : T);
+const fmtP = v => (v >= 1e-3 ? v.toFixed(4) : v.toExponential(2).replace("e-", "e−"));
+
+function update() {
+  const st = structure(), E = S.e * V0, sol = solve(E, st), e = S.e;
+  /* ---- main view ---- */
+  PM.clearAll();
+  const ed = st.edges, vpts = [[-XL, 0]];
+  for (let j = 0; j < ed.length; j++) vpts.push([ed[j], st.V[j]], [ed[j], st.V[j + 1]]);
+  vpts.push([XL, 0]);
+  PM.path([...vpts.map(([x, v]) => [x, v / V0]), [XL, -0.02], [-XL, -0.02]], { cls: "vfill", layer: "fill", close: true });
+  const xs = LX.linspace(-XL, XL, 801), ps = xs.map(x => psiAt(sol, x).psi);
+  /* |ψ| ≤ 2 outside any structure (incident + reflected); a resonance builds up much more in the well:
+     then shrink ψ so its largest value keeps the same height, and say so on the plot */
+  const amax = Math.max(...ps.map(C.abs)), shrink = amax > 2 ? 2 / amax : 1, sA = 0.2 * shrink, sD = 0.1 * shrink * shrink;
+  const dens = xs.map((x, i) => [x, e + sD * C.abs2(ps[i])]);
+  PM.area(dens, { cls: "a3", base: e });
+  PM.path(dens, { cls: "s3 thin" });
+  PM.hline(e, { cls: "s4 thin", layer: "main" });
+  PM.path(xs.map((x, i) => [x, e + sA * ps[i].re]), { cls: "s1" });
+  scaleNote.style.display = shrink < 1 ? "" : "none";
+  if (shrink < 1) scaleNote.textContent = `ψ shown ×${shrink < 0.1 ? shrink.toPrecision(1) : shrink.toFixed(2)} (build-up in the well)`;
+  hitM.setAttribute("y1", PM.Y(e)); hitM.setAttribute("y2", PM.Y(e));
+  hM.setAttribute("cx", PM.X(XL - 0.6)); hM.setAttribute("cy", PM.Y(e));
+  PM.placeTex(labIn, -XL + 0.3, e + 0.4, "sw");
+  PM.placeTex(labOut, XL - 1.4, e + 0.4, "se");
+  const n = ed.length;
+  PM.placeTex(labA[0], (ed[0] + ed[1]) / 2, -0.27, "c");
+  labA[1].style.display = S.mode === "double" ? "" : "none";
+  labD.style.display = S.mode === "double" ? "" : "none";
+  if (S.mode === "double") { PM.placeTex(labA[1], (ed[n - 2] + ed[n - 1]) / 2, -0.27, "c"); PM.placeTex(labD, (ed[1] + ed[2]) / 2, -0.27, "c"); }
+
+  /* ---- T(E) ---- */
+  PT.clearAll(); PT.clear("ghost");
+  const cur = curve(), yl = PT.ylim;
+  if (S.ghost) PT.path(S.ghost.map(([x, T]) => [x, fy(T)]), { cls: "s2", layer: "ghost" });
+  legGhost.style.display = S.ghost ? "" : "none";
+  PT.vline(1, { cls: "sm faint" });
+  if (!S.log) PT.path(cur.map(([x, , R]) => [x, R]), { cls: "s4 thin faint" });
+  legR.style.display = S.log ? "none" : "";
+  if (S.mode === "single") PT.fn(x => fy(wkb(x * V0)), { a: EMIN, b: 1, n: 200, cls: "sm dash" });
+  PT.path(cur.map(([x, T]) => [x, fy(T)]), { cls: "s2" });
+  PT.vline(e, { cls: "s4 thin", layer: "fill" });
+  PT.placeTex(labTop, PT.X(1), PT.Y(yl[1]) - 3, "s", true);
+  hT.setAttribute("cx", PT.X(e)); hT.setAttribute("cy", PT.Y(LX.clamp(fy(sol.T), yl[0], yl[1])));
+
+  /* ---- readouts ---- */
+  rE.set(e.toFixed(3));
+  rT.set(fmtP(sol.T)); rR.set(fmtP(sol.R)); rS.set((sol.R + sol.T).toFixed(6));
+  rK.set(E < V0 ? `κa = ${(Math.sqrt(V0 - E) * S.a).toFixed(2)}` : `k′a = ${(Math.sqrt(E - V0) * S.a / Math.PI).toFixed(2)}π`);
+}
+setMode("single");
+
+/* ---- self-tests ---- */
+const rnd = LX.rng(21);
+LX.check("flux conservation: R + T = 1 at 200 random energies, both modes", () => {
+  for (let i = 0; i < 200; i++) {
+    const mode = i % 2 ? "double" : "single", a = 0.75 + 1.75 * rnd(), d = 0.75 + 2.25 * rnd(), E = V0 * (EMIN + (EMAX - EMIN) * rnd());
+    const s = solve(E, structure(mode, a, d));
+    if (Math.abs(s.R + s.T - 1) > 1e-9) return { pass: false, detail: [mode, a, d, E, s.R + s.T].join(",") };
+  }
+  return true;
+});
+LX.check("one barrier below V₀: T = [1 + V₀² sinh²(κa) / 4E(V₀−E)]⁻¹", () => [[1, 2], [1, 5], [2, 8], [0.75, 0.3]].every(([a, E]) => {
+  const k = Math.sqrt(V0 - E), T = 1 / (1 + V0 * V0 * Math.sinh(k * a) ** 2 / (4 * E * (V0 - E)));
+  return LX.near(Tof(E, "single", a), T, 1e-9);
+}));
+LX.check("one barrier above V₀: T = [1 + V₀² sin²(k′a) / 4E(E−V₀)]⁻¹", () => [[1, 13], [1.6, 22], [2.5, 29]].every(([a, E]) => {
+  const k = Math.sqrt(E - V0), T = 1 / (1 + V0 * V0 * Math.sin(k * a) ** 2 / (4 * E * (E - V0)));
+  return LX.near(Tof(E, "single", a), T, 1e-9);
+}));
+LX.check("E = V₀ handled without NaN: T = [1 + V₀a²/4]⁻¹", () => {
+  const T = Tof(V0, "single", 1.3);
+  return { pass: Math.abs(T - 1 / (1 + V0 * 1.69 / 4)) < 1e-5, detail: T };
+});
+LX.check("T = 1 at k′a = nπ above one barrier (n = 1, 2)", () => [1, 2].every(n => Math.abs(Tof(V0 + (n * Math.PI / 1.5) ** 2, "single", 1.5) - 1) < 1e-12));
+LX.check("κa ≫ 1: T / e^{−2κa} → 16E(V₀−E)/V₀² (to 0.1%); WKB within a factor 4", () => {
+  const a = 2.5, out = [0.3, 0.5, 0.8].map(x => Tof(x * V0, "single", a) / wkb(x * V0, a) / (16 * x * (1 - x)));
+  const raw = [0.3, 0.5, 0.8].map(x => Tof(x * V0, "single", a) / wkb(x * V0, a));
+  return { pass: out.every(r => Math.abs(r - 1) < 1e-3) && raw.every(r => r > 0.25 && r <= 4), detail: out.join(",") };
+});
+LX.check("doubling a roughly squares T deep below the barrier: ln T(2a) ≈ 2 ln T(a) − ln(16E(V₀−E)/V₀²)", () => {
+  const E = 0.4 * V0, p = 16 * 0.4 * 0.6, l1 = Math.log(Tof(E, "single", 1.6)), l2 = Math.log(Tof(E, "single", 3.2));
+  return { pass: Math.abs(l2 - (2 * l1 - Math.log(p))) < 0.01, detail: [l1, l2].join(",") };
+});
+LX.check("two barriers: Fabry–Pérot form T = T₁² / |1 − r₁² e^{2ikd}|²", () => [[1, 1.5, 3], [1.5, 2, 6.4], [2, 0.9, 17]].every(([a, d, E]) => {
+  const s = solve(E, structure("single", a)), k = Math.sqrt(E);
+  const den = C.abs2(C.sub(C.of(1), C.mul(C.mul(s.r, s.r), C.expi(2 * k * d))));
+  return LX.near(Tof(E, "double", a, d), s.T * s.T / den, 1e-8);
+}));
+LX.check("resonant tunnelling: first double-barrier peak below V₀ has T = 1 while one barrier passes < 2%", () => {
+  const Er = resonances("double", 1, 1.5)[0];
+  return { pass: Er < V0 && Tof(Er, "double", 1, 1.5) > 1 - 1e-6 && Tof(Er, "single", 1) < 0.02, detail: [Er, Tof(Er, "double", 1, 1.5), Tof(Er, "single", 1)].join(",") };
+});
+LX.check("resonances found at every slider extreme reach T > 0.999", () => [[0.75, 0.75], [2.5, 3], [2.5, 0.75], [0.75, 3]].every(([a, d]) => {
+  const rs = resonances("double", a, d);
+  return rs.length > 0 && rs.every(E => Tof(E, "double", a, d) > 0.999);
+}));
+LX.check("drawn ψ: ψ and ψ′ continuous at every interface; |ψ|² = T on the right", () => {
+  for (const [mode, E] of [["single", 3], ["single", 17], ["double", 2.1], ["double", 24]]) {
+    const sol = solve(E, structure(mode, 1.2, 1.4));
+    for (const b of sol.st.edges) {
+      const L = psiAt(sol, b - 1e-9), R = psiAt(sol, b);
+      if (C.abs(C.sub(L.psi, R.psi)) > 1e-6 || C.abs(C.sub(L.dpsi, R.dpsi)) > 1e-5) return { pass: false, detail: [mode, E, b].join(",") };
+    }
+    if (Math.abs(C.abs2(psiAt(sol, 7).psi) - sol.T) > 1e-9) return { pass: false, detail: "right density" };
+  }
+  return true;
+});
+</script>

@@ -1,0 +1,188 @@
+<!-- GENERATED from patterns/12-spatial-structure.html by tests/sync-base.mjs; edit that file, then run the script. -->
+<title>Ising Chain Correlations</title>
+<!--
+PATTERN 12 · SPATIAL STRUCTURE / LOCALITY
+Concept shape   A property varies across a lattice, and how fast it varies defines a length scale: correlations
+                decay with distance, a perturbation heals over ξ, domains have a typical size.
+Use it for      Correlation functions and correlation lengths, healing/coherence lengths, localisation
+                lengths, screening lengths, Friedel oscillations, exponential vs power-law decay, domain
+                structure, why low dimensions do not order.
+Widget anatomy  (1) the lattice itself: one exact equilibrium snapshot (row of spins) and the correlation of
+                    every site with a selected site (heat row); click any site to select it;
+                (2) bars C(i, j) against j with the exponential e^{-|i-j|/ξ}, switchable to a log scale where it
+                    becomes a straight line of slope −1/ξ;
+                (3) ξ(T) on a log scale with its low-T asymptote, current T marked;
+                (4) T slider, site slider, linear/log switch, "New snapshot", limits; readouts ξ, tanh(J/T),
+                    domain walls.
+Layout          aside: the lattice row on top and the two plots side by side below it form the figure column;
+                all controls and readouts sit in the narrow column on the right, next to the figures they move.
+Teaching moments  (suggestions for the surrounding chapter)
+                  choice: the shape of C(r) on a log axis (straight line, slope −1/ξ);
+                  choice: how ξ behaves as T → 0 (finite at every T > 0, ~ e^{2J/T}/2, no finite-T divergence);
+                  number: the typical domain length at T = 0.7J (about 2ξ ≈ 17 sites);
+                  explain: the Landau–Peierls free energy of one wall, ΔF = 2J − T ln(N − 1).
+Adapt by        Replace corr(r) and xi(T) by your model's correlator and length (e.g. a tight-binding
+                Green's function, a screened potential e^{-r/λ}/r, Friedel cos(2k_F r)/r^d). Keep the
+                click-to-select lattice row and the log-scale toggle; switch the log toggle to log-log to
+                tell power laws from exponentials. Replace sample() by any exact or Monte Carlo snapshot.
+Physics         Open 1D Ising chain, H = −J Σ s_i s_{i+1}, h = 0, k_B = 1:
+                ⟨s_i s_j⟩ = t^{|i−j|}, t = tanh(J/T), ξ = −1/ln t → e^{2J/T}/2 as T → 0.
+                Bond variables σ_k = s_k s_{k+1} are independent with ⟨σ⟩ = t, so a domain wall sits on each bond
+                with probability (1 − t)/2 = 1/(1 + e^{2J/T}). Sampling them is exact.
+-->
+<!-- LX:HEAD -->
+<style>
+/* LX:STYLE */
+.chain svg { display: block; width: 100%; height: auto; }
+.chain text { font: 11px var(--f-mono); fill: var(--muted); }
+.site { cursor: pointer; }
+.site-up { fill: var(--accent); } .site-dn { fill: var(--c2); }
+.site-sel { fill: none; stroke: var(--fg); stroke-width: 2; }
+.corr-cell { fill: var(--c3); }
+.cell-bg { fill: var(--grid); }
+.bar { fill: var(--c3); }
+.bar-sel { fill: var(--fg); }
+.lx-group > .lx-seg { justify-self: start; }
+/* MathJax SVG already sets its own baseline offset on the svg; an extra shift on the container pushes TeX labels below the text baseline */
+.lx-seg mjx-container, .lx-btn mjx-container { vertical-align: baseline; }
+</style>
+
+<main class="lx-page">
+  <header class="lx-head">
+    <p class="lx-eyebrow">Statistical mechanics · Correlations in one dimension</p>
+    <h1>How far does one spin know about another?</h1>
+    <p class="lx-lede">Pick a site on an Ising chain and see how strongly every other spin is correlated with it. Lower the temperature and watch the length over which spins agree.</p>
+    <div class="lx-meta">
+      <span>\(H = -J\sum_i s_i s_{i+1}\), \(h = 0\), \(k_B = 1\), \(T\) in units of \(J\); open chain of \(N = 40\) sites</span>
+    </div>
+  </header>
+  <div class="lx-stage" id="stage"></div>
+  <footer class="lx-foot">
+    <span>Source: model knowledge. Standard treatment: Chaikin &amp; Lubensky, <i>Principles of Condensed Matter Physics</i>, ch. 3; Yeomans, <i>Statistical Mechanics of Phase Transitions</i>, ch. 5.</span>
+  </footer>
+</main>
+
+<script>
+/* LX:LIB */
+</script>
+
+<script>
+/* PATTERN */
+const N = 40;
+const S = { T: 1.5, i: 12, log: false, seed: 7 };
+const tOf = T => Math.tanh(1 / T);
+const corr = (r, T = S.T) => Math.pow(tOf(T), Math.abs(r));
+const xi = T => -1 / Math.log(tOf(T));
+const fmt = (v, d = 3) => v.toFixed(d).replace("-", "−");
+
+/* seeded PRNG (mulberry32) so snapshots are reproducible */
+function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+/* Exact sample: s_0 = ±1 with prob 1/2, then a wall on each bond independently with prob (1 − t)/2.
+   The same uniforms are reused when T changes, so the snapshot morphs instead of jumping. */
+function sample(T, seed, n = N) {
+  const r = rng(seed), pw = (1 - tOf(T)) / 2, s = [r() < 0.5 ? 1 : -1];
+  for (let k = 1; k < n; k++) s.push(r() < pw ? -s[k - 1] : s[k - 1]);
+  return s;
+}
+
+/* ---- layout: aside (figure column + controls column) ---- */
+const W = LX.widget(document.getElementById("stage"), { layout: "aside", title: "Correlations on an Ising chain", badge: "exact" });
+const col = LX.h("div", { class: "lx-col" }, W);
+const fc = LX.fig(col, "Top: one exact equilibrium snapshot (blue up, orange down). Bottom: correlation \\(\\langle s_i s_j\\rangle\\) with the selected site (outlined). Click any site.");
+const chainWrap = LX.h("div", { class: "chain" }, fc);
+const CW = 640, CH = 104, cell = (CW - 20) / N;
+const csvg = LX.s("svg", { viewBox: `0 0 ${CW} ${CH}`, role: "img", "aria-label": "Ising chain" }, chainWrap);
+const gSpin = LX.s("g", {}, csvg), gCorr = LX.s("g", {}, csvg), gSel = LX.s("g", {}, csvg);
+const spinR = [], corrR = [];
+for (let j = 0; j < N; j++) {
+  const x = 10 + j * cell;
+  spinR.push(LX.s("rect", { x: x + 1, y: 6, width: cell - 2, height: 40, rx: 2, class: "site" }, gSpin));
+  LX.s("rect", { x: x + 1, y: 58, width: cell - 2, height: 40, rx: 2, class: "cell-bg" }, gCorr);
+  corrR.push(LX.s("rect", { x: x + 1, y: 58, width: cell - 2, height: 40, rx: 2, class: "site corr-cell" }, gCorr));
+}
+const selBox = LX.s("rect", { y: 3, width: cell + 2, height: 98, rx: 3, class: "site-sel" }, gSel);
+csvg.addEventListener("click", e => {
+  const pt = csvg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY;
+  const q = pt.matrixTransform(csvg.getScreenCTM().inverse()), j = Math.floor((q.x - 10) / cell);
+  if (j >= 0 && j < N) IS.set(j);
+});
+
+const figs = LX.h("div", { class: "lx-figs" }, col);
+const PB = LX.plot(LX.fig(figs, "Correlation with site \\(i\\): bars exact, dashed \\(\\ee^{-|i-j|/\\xi}\\); the log axis shows \\(\\log_{10}\\)"), { xlim: [-0.5, N - 0.5], ylim: [0, 1.05], xlabel: "j", ylabel: "\\langle s_i s_j\\rangle", height: 320, width: 460 });
+const PX = LX.plot(LX.fig(figs, "Correlation length \\(\\xi(T)\\) (log scale); dashed: \\(\\ee^{2J/T}/2\\)"), { xlim: [0.3, 4], ylim: [-0.5, 3], xlabel: "T/J", ylabel: "\\log_{10}\\xi", height: 320, width: 460 });
+
+const ctl = LX.controls(W);
+const TS = LX.slider(ctl, { id: "T", label: "temperature \\(T/J\\)", min: 0.3, max: 4, step: 0.01, value: S.T, onInput: v => { S.T = v; update(); } });
+const IS = LX.slider(ctl, { id: "site", label: "selected site \\(i\\)", min: 0, max: N - 1, step: 1, value: S.i, fmt: v => String(v), onInput: v => { S.i = v; update(); } });
+const SC = LX.segmented(ctl, { id: "scale", label: "Correlation axis", value: "lin",
+  options: [{ value: "lin", label: "linear" }, { value: "log", label: "log" }], onChange: v => { S.log = v === "log"; PB.setLim(null, S.log ? [-3, 0.1] : [0, 1.05]); update(); } });
+const g2 = LX.h("div", { class: "lx-group" }, ctl);
+LX.h("span", { text: "Snapshot" }, g2);
+LX.button(LX.h("div", { class: "lx-row" }, g2), "New snapshot", () => { S.seed = (S.seed * 7919 + 13) % 100003; update(); }, { id: "resample" });
+LX.limits(ctl, [
+  { label: "Hot \\(T = 4J\\)", title: "nearly independent spins", apply: () => TS.set(4) },
+  { label: "\\(T = J\\)", title: "intermediate", apply: () => TS.set(1) },
+  { label: "Cold \\(T = 0.4J\\)", title: "long domains", apply: () => TS.set(0.4) }
+]);
+const rX = LX.readout(ctl, "\\(\\xi\\) =");
+const box = rX.el.parentNode; box.style.flexDirection = "column";
+const rT = LX.readout(box, "\\(\\tanh(J/T) = \\langle s_i s_{i+1}\\rangle\\) =");
+const rA = LX.readout(box, "\\(\\ee^{2J/T}/2\\) =");
+const rW = LX.readout(box, "domain walls in snapshot:");
+
+LX.guide(W, [
+  ["Spin row", "One equilibrium configuration of the 40 spins, drawn exactly. Runs of one colour are domains; a colour change is a domain wall costing energy \\(2J\\)."],
+  ["Heat row", "How strongly each spin is correlated with the outlined site: dark teal means \\(\\langle s_i s_j\\rangle \\approx 1\\), empty means no correlation. Click a site to move the outline."],
+  ["Bar plot", "The same correlations as bars. The dashed curve is \\(\\ee^{-|i-j|/\\xi}\\) and passes through every bar. On the log axis the bars form two straight lines of slope \\(-1/\\xi\\)."],
+  ["\\(\\xi(T)\\) plot", "Correlation length against temperature on a log axis. The orange dot is the current \\(T\\). The dashed low-\\(T\\) asymptote \\(\\ee^{2J/T}/2\\) is huge but finite at every \\(T > 0\\)."],
+  ["Temperature", "Sets \\(T/J\\). Lower it and the domains grow, the heat row spreads and the bars decay more slowly."],
+  ["Site, axis, snapshot", "Choose the reference site; switch the bar plot to a log axis; draw a new independent snapshot at the same \\(T\\) (the readout compares its wall count with the mean)."]
+]);
+
+function update() {
+  const s = sample(S.T, S.seed), z = xi(S.T);
+  s.forEach((v, j) => {
+    spinR[j].setAttribute("class", "site " + (v > 0 ? "site-up" : "site-dn"));
+    corrR[j].setAttribute("fill-opacity", corr(j - S.i).toFixed(3));
+  });
+  selBox.setAttribute("x", 10 + S.i * cell - 1);
+
+  PB.clear(); PB.clear("top");
+  const yv = c => S.log ? Math.log10(Math.max(c, 1e-6)) : c, base = S.log ? -3.2 : 0;
+  for (let j = 0; j < N; j++) {
+    const y = yv(corr(j - S.i));
+    LX.s("rect", { x: PB.X(j - 0.38), y: PB.Y(y), width: PB.X(0.76) - PB.X(0), height: Math.max(0, PB.Y(base) - PB.Y(y)), class: j === S.i ? "bar-sel" : "bar" }, PB.g.main);
+  }
+  PB.fn(j => yv(Math.exp(-Math.abs(j - S.i) / z)), { cls: "s2 dash thin", n: 600 });
+
+  PX.clear(); PX.clear("top");
+  PX.fn(T => Math.log10(xi(T)), { cls: "s1" });
+  PX.fn(T => Math.log10(Math.exp(2 / T) / 2), { cls: "s4 dash thin" });
+  PX.dot(S.T, Math.log10(z), { r: 6, cls: "f2" });
+
+  rX.set(z < 1e4 ? fmt(z, 2) + " sites" : z.toExponential(2));
+  rT.set(fmt(tOf(S.T), 4));
+  rA.set(fmt(Math.exp(2 / S.T) / 2, 2));
+  let w = 0; for (let k = 1; k < N; k++) if (s[k] !== s[k - 1]) w++;
+  rW.set(`${w} (mean ${fmt((N - 1) * (1 - tOf(S.T)) / 2, 1)})`);
+}
+update();
+
+/* ---- self-tests ---- */
+LX.check("ξ definition: e^{-r/ξ} = tanh(J/T)^r", () => [0.5, 1, 3].every(T => LX.near(Math.exp(-5 / xi(T)), corr(5, T), 1e-12)));
+LX.check("brute force: open 8-site chain gives ⟨s_0 s_r⟩ = tanh^r(J/T)", () => {
+  const T = 1.3, n = 8; let Z = 0; const Cs = new Array(n).fill(0);
+  for (let c = 0; c < 1 << n; c++) {
+    const s = Array.from({ length: n }, (_, k) => (c >> k) & 1 ? 1 : -1); let E = 0;
+    for (let k = 0; k < n - 1; k++) E -= s[k] * s[k + 1];
+    const w = Math.exp(-E / T); Z += w; for (let r = 0; r < n; r++) Cs[r] += w * s[0] * s[r];
+  }
+  return { pass: Cs.every((c, r) => Math.abs(c / Z - corr(r, T)) < 1e-12), detail: Cs.map(c => (c / Z).toFixed(4)).join(",") };
+});
+LX.check("low-T asymptote: ξ ≈ e^{2J/T}/2", () => { const T = 0.3, q = xi(T) / (Math.exp(2 / T) / 2); return { pass: Math.abs(q - 1) < 1e-2, detail: q }; });
+LX.check("sampler: wall fraction = (1 − t)/2 within 4σ", () => {
+  const T = 1, n = 40001, s = sample(T, 12345, n), p = (1 - tOf(T)) / 2; let w = 0;
+  for (let k = 1; k < n; k++) if (s[k] !== s[k - 1]) w++;
+  const f = w / (n - 1), sig = Math.sqrt(p * (1 - p) / (n - 1)); return { pass: Math.abs(f - p) < 4 * sig, detail: `${f} vs ${p}` };
+});
+</script>

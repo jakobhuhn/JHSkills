@@ -1,0 +1,403 @@
+<!-- GENERATED from patterns/18-response-spectra.html by tests/sync-base.mjs; edit that file, then run the script. -->
+<title>Resonance and Causality</title>
+<!--
+PATTERN 18 · RESPONSE AND SPECTRA
+When to use     A system is driven at frequency ω and the question is what it does: a resonance peak, its
+                linewidth, the phase flip across resonance, absorption vs dispersion (Im χ vs Re χ) tied
+                together by causality (Kramers–Kronig), and poles in the lower half of the complex ω
+                plane whose position is the mode energy and whose distance from the real axis is the
+                inverse lifetime. Use it for susceptibilities and response functions, spectral functions
+                A(k,ω) with quasiparticle peaks, Drude and Lorentz optical conductivity, cavity
+                transmission and dispersive readout, NMR/ESR lines, fluctuation–dissipation.
+Widget anatomy  (1) response vs ω: Re χ (blue) and Im χ (orange, absorption shaded for ω > 0), a pink cursor
+                    (drag anywhere on the plot, or arrow keys on the handle), the FWHM of the peak
+                    marked in teal; optional open circles: Re χ rebuilt from Im χ by Kramers–Kronig;
+                (2) complex ω plane, x axis aligned with (1): the two poles as pink draggable handles
+                    (the partner follows, poles come in pairs p, −p*), the forbidden upper half plane
+                    shaded, the circle |ω| = ω₀, the teal distance |Im p| from the real axis, and the
+                    cursor on the real axis joined to both poles (|χ| = 1/(d₊d₋), arg χ = π − θ₊ − θ₋);
+                (3) impulse response χ(t): zero before the kick (shaded t < 0), dashed decay envelope,
+                    teal decay time τ = 1/|Im p|;
+                (4) controls: damping γ at fixed ω₀ (the pole drag sets ω₀ and γ together), a toggle for
+                    the Kramers–Kronig overlay, jumps to weak, critical and overdamped damping; readouts
+                    ω₀, γ, Q; |χ| and arg χ at the cursor; FWHM vs γ; the f-sum integral.
+Layout          split with two columns: left the response over the pole plane with the same ω axis and
+                width, so each peak sits directly above its pole; right χ(t) above the controls, which
+                change all three. On a phone the order is response, poles, χ(t), controls.
+Teaching moments  Suggestions for the chapter around the widget:
+                - choice: drive below, at and above resonance; what is the phase of the response at each?
+                  (0, π/2, π: it flips by π, and the flip is sharper the closer the pole is to the axis)
+                - number: γ = 0.1; estimate the full width at half maximum of Im χ (≈ γ = 0.1).
+                - explain: what would χ(t) do if a pole sat in the upper half plane? (a term e^{+|Im p|t}
+                  for t < 0: response before the kick, acausal; closing the contour above no longer gives 0)
+                - choice: raise γ past 2ω₀; where do the poles go and what happens to the peak? (they
+                  meet at −iω₀ and split along the imaginary axis; no oscillation, no resonance in |χ|,
+                  which already disappears at γ = √2 ω₀; Im χ keeps a broad hump)
+                - choice: is Im χ(ω) ever negative for ω > 0? (no: a passive system absorbs)
+                - number: ∫₀^∞ ω Im χ dω for γ = 0.1 and for γ = 2 (π/2 both times: the f-sum rule)
+Adapt by        Replace chi(ω) and chiT(t) by your response (Lorentz oscillator ε(ω), a cavity, a
+                quasiparticle G(k,ω) = 1/(ω − ε_k + iΓ/2) with one pole) and poles() by its poles. Drude
+                conductivity is the limit ω₀ → 0 (one pole moves to the origin). Keep the shared ω axis
+                between the response and the pole plane: it is what makes "peak above pole" visible.
+Physics         Damped driven oscillator x'' + γx' + ω₀²x = f, χ(ω) = 1/(ω₀² − ω² − iγω) with e^{−iωt}
+                convention, units with the default ω₀ = 1. Poles ω = −iγ/2 ± ω̃, ω̃ = √(ω₀² − γ²/4); for
+                γ ≥ 2ω₀ both on the negative imaginary axis, −i(γ/2 ∓ κ), κ = √(γ²/4 − ω₀²).
+                χ(ω) = −1/((ω − p₊)(ω − p₋)). Impulse response χ(t) = θ(t) e^{−γt/2} sin(ω̃t)/ω̃
+                (critical: t e^{−γt/2}; overdamped: e^{−γt/2} sinh(κt)/κ). Im χ = γω/((ω₀² − ω²)² + γ²ω²)
+                ≥ 0 for ω > 0; FWHM → γ for γ ≪ ω₀; Q = ω₀/γ; f-sum rule ∫₀^∞ ω Im χ dω = π/2 for every
+                γ, ω₀. Kramers–Kronig: Re χ(ω) = (1/π) P∫ Im χ(ω')/(ω' − ω) dω'.
+-->
+<!-- LX:HEAD -->
+<style>
+/* LX:STYLE */
+/* page-specific styles go below */
+.uhp { fill: var(--bad); fill-opacity: .08; stroke: none; }
+.sfg { fill: none; stroke: var(--fg); stroke-width: 2; stroke-linejoin: round; }
+.pole-h { fill: var(--c4); fill-opacity: .16; stroke: var(--c4); stroke-width: 1.6; }
+.kk { fill: var(--surface); stroke: var(--accent); stroke-width: 1.5; }
+.lx-plot text.uhp-t { fill: var(--bad); }
+.lx-legend i.ring { width: 7px; height: 7px; border: 1.6px solid currentColor; border-radius: 50%; background: var(--surface); }
+.lx-legend i.area { width: 14px; height: 10px; border: none; background: currentColor; opacity: .22; }
+.lx-legend i.cross { width: auto; height: auto; border: none; font: 600 15px/1 var(--f-ui); font-style: normal; }
+.lx-legend i.cross::before { content: "×"; }
+</style>
+
+<main class="lx-page">
+  <header class="lx-head">
+    <p class="lx-eyebrow">Linear response · Damped oscillator</p>
+    <h1>Why are the width of a resonance, the position of a pole and the decay of a kicked system the same number?</h1>
+    <p class="lx-lede">Drive a damped oscillator at frequency \(\omega\) and record \(\chi(\omega)\). The absorption peak, the phase flip across it, the dispersive \(\mathrm{Re}\,\chi\) and the ringing after a kick are all fixed by two poles in the lower half of the complex \(\omega\) plane. Causality is the reason they cannot be anywhere else.</p>
+    <div class="lx-meta">
+      <span>\(\chi(\omega) = 1/(\omega_0^2 - \omega^2 - \ii\gamma\omega)\), time dependence \(\ee^{-\ii\omega t}\); unit mass; frequencies in units of the default \(\omega_0 = 1\), times in \(1/\omega_0\)</span>
+    </div>
+  </header>
+  <div class="lx-stage" id="stage"></div>
+  <footer class="lx-foot">
+    <span>Source: model knowledge. Standard treatment: Jackson, <i>Classical Electrodynamics</i>, 3rd ed., §7.5 and §7.10 (Lorentz model, causality and Kramers–Kronig relations); Landau &amp; Lifshitz, <i>Statistical Physics</i> Part 1, ch. XII (generalised susceptibility); Chaikin &amp; Lubensky, <i>Principles of Condensed Matter Physics</i>, ch. 7 (response functions, sum rules).</span>
+  </footer>
+</main>
+
+<script>
+/* LX:LIB */
+</script>
+
+<script>
+/* PATTERN */
+const { C } = LX, PI = Math.PI;
+const GMAX = 2.5, W0MIN = 0.2, W0MAX = 2.45, WLIM = [-2.5, 2.5], TLIM = [-6, 26];
+/* state: natural frequency, damping, cursor frequency, KK overlay; `lead` = which handle holds the
+   first pole (the +ω̃ pole, or the one nearest the axis when overdamped) */
+const S = { w0: 1, g: 0.3, w: 0.6, kk: false, lead: 0 };
+
+/* ---- the model (exact) ---- */
+const den = (w, w0, g) => { const a = w0 * w0 - w * w, b = g * w; return a * a + b * b; };
+const reChi = (w, w0 = S.w0, g = S.g) => (w0 * w0 - w * w) / den(w, w0, g);
+const imChi = (w, w0 = S.w0, g = S.g) => g * w / den(w, w0, g);
+const chi = (w, w0 = S.w0, g = S.g) => C.of(reChi(w, w0, g), imChi(w, w0, g));
+/* poles of χ: ω = −iγ/2 ± ω̃ (under/critical) or −i(γ/2 ∓ κ) (overdamped); p[0] is the "lead" pole */
+function poles(w0 = S.w0, g = S.g) {
+  const disc = w0 * w0 - g * g / 4;
+  if (disc >= 0) {
+    const wt = Math.sqrt(disc);
+    return { kind: disc < 1e-12 ? "critical" : "under", p: [C.of(wt, -g / 2), C.of(-wt, -g / 2)], wt, near: g / 2 };
+  }
+  const k = Math.sqrt(-disc);
+  return { kind: "over", p: [C.of(0, -(g / 2 - k)), C.of(0, -(g / 2 + k))], k, near: g / 2 - k };
+}
+/* impulse response: x'' + γx' + ω0²x = δ(t) */
+function chiT(t, w0 = S.w0, g = S.g) {
+  if (t <= 0) return 0;
+  const disc = w0 * w0 - g * g / 4;
+  if (disc > 1e-12) { const wt = Math.sqrt(disc); return Math.exp(-g * t / 2) * Math.sin(wt * t) / wt; }
+  if (disc < -1e-12) { const k = Math.sqrt(-disc); return (Math.exp(-(g / 2 - k) * t) - Math.exp(-(g / 2 + k) * t)) / (2 * k); }
+  return t * Math.exp(-g * t / 2);
+}
+
+/* ---- small numerics (computed) ---- */
+/* FWHM of Im χ on ω > 0: locate the maximum on a log grid, refine, then bisect both half-maximum crossings */
+function fwhm(w0 = S.w0, g = S.g) {
+  const f = w => imChi(w, w0, g), lo = Math.log(1e-4), hi = Math.log(60), N = 3000;
+  let bi = 0, bv = -1;
+  for (let i = 0; i <= N; i++) { const v = f(Math.exp(lo + (hi - lo) * i / N)); if (v > bv) { bv = v; bi = i; } }
+  let a = Math.exp(lo + (hi - lo) * Math.max(0, bi - 1) / N), b = Math.exp(lo + (hi - lo) * Math.min(N, bi + 1) / N);
+  for (let it = 0; it < 80; it++) { const m1 = a + (b - a) * 0.382, m2 = a + (b - a) * 0.618; if (f(m1) < f(m2)) a = m1; else b = m2; }
+  const wp = (a + b) / 2, fm = f(wp), half = fm / 2;
+  const bis = (x, y) => { for (let it = 0; it < 90; it++) { const m = (x + y) / 2; if ((f(m) - half) * (f(x) - half) > 0) x = m; else y = m; } return (x + y) / 2; };
+  const w1 = bis(0, wp), w2 = bis(wp, 1e4);
+  return { wp, fm, w1, w2, width: w2 - w1 };
+}
+/* f-sum integral ∫0^∞ ω Im χ dω by Simpson in θ with ω = ω0 tan θ (finite integrand at θ = π/2) */
+function fsum(w0 = S.w0, g = S.g, N = 20000) {
+  const F = th => {
+    if (th >= PI / 2 - 1e-12) return g / w0;
+    const t = Math.tan(th), w = w0 * t;
+    return w * imChi(w, w0, g) * w0 * (1 + t * t);
+  };
+  const h = (PI / 2) / N; let s = F(0) + F(PI / 2);
+  for (let i = 1; i < N; i++) s += (i % 2 ? 4 : 2) * F(i * h);
+  return s * h / 3;
+}
+/* Kramers–Kronig: Re χ(ω) = (1/π) P∫ Im χ(ω')/(ω' − ω) dω'. Subtract Im χ(ω) to remove the singularity,
+   midpoint rule on |ω'| < L with a step that resolves the narrowest feature, plus the analytic tail 2γ/(3πL³). */
+function kkRe(ws, w0 = S.w0, g = S.g) {
+  const L = 12, feat = Math.min(g, w0 * w0 / g), n = Math.ceil(2 * L / LX.clamp(feat / 15, 5e-4, 0.01)), h = 2 * L / n;
+  const xs = new Float64Array(n), fs = new Float64Array(n);
+  for (let k = 0; k < n; k++) { xs[k] = -L + (k + 0.5) * h; fs[k] = imChi(xs[k], w0, g); }
+  return ws.map(w => {
+    const fw = imChi(w, w0, g); let s = 0;
+    for (let k = 0; k < n; k++) { const d = xs[k] - w; if (Math.abs(d) > 1e-13) s += (fs[k] - fw) / d; }
+    return (s * h + fw * Math.log((L - w) / (L + w))) / PI + 2 * g / (3 * PI * L ** 3);
+  });
+}
+const f = (v, d = 2) => (Math.abs(v) < 0.5 * 10 ** -d ? 0 : v).toFixed(d).replace("-", "−");
+/* rounded-up plot limits that do not jitter while a slider moves */
+function niceCeil(v) {
+  const m = 10 ** Math.floor(Math.log10(v)), r = v / m;
+  return m * [1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10].find(q => q >= r - 1e-9);
+}
+
+/* ---- layout: split = (response over pole plane, shared ω axis) | (χ(t) over controls) ---- */
+const W0 = LX.widget(document.getElementById("stage"), { layout: "split", title: "Driven damped oscillator: spectrum, poles and impulse response", badge: "computed" });
+const colL = LX.h("div", { class: "lx-col" }, W0), colR = LX.h("div", { class: "lx-col" }, W0);
+const PW = 520, M = { l: 56, r: 16 };
+const figR = LX.fig(colL, "Response \\(\\chi(\\omega)\\); open circles (optional) are computed by Kramers–Kronig");
+const PR = LX.plot(figR, { xlim: WLIM, ylim: [-4, 4], xlabel: "\\omega", ylabel: "\\chi", width: PW, height: 300, margin: M, aria: "response versus frequency" });
+LX.legend(figR, [["\\(\\mathrm{Re}\\,\\chi\\) (dispersion)", "--accent", "line"], ["\\(\\mathrm{Im}\\,\\chi\\) (absorption)", "--c2", "line"],
+  ["FWHM", "--c3", "line"], ["\\(\\mathrm{Re}\\,\\chi\\) from \\(\\mathrm{Im}\\,\\chi\\) (KK)", "--accent", "ring"]]);
+const figP = LX.fig(colL, "Complex frequency plane: poles of \\(\\chi(\\omega)\\), same \\(\\omega\\) axis as above");
+const PP = LX.plot(figP, { xlim: WLIM, ylim: [-2.6, 0.7], xlabel: "\\mathrm{Re}\\,\\omega", ylabel: "\\mathrm{Im}\\,\\omega", width: PW, height: 376, margin: M, aria: "complex frequency plane" });
+LX.legend(figP, [["poles (drag)", "--c4", "cross"], ["\\(|\\mathrm{Im}\\,p|\\), distance from the axis", "--c3", "line"], ["\\(|\\omega| = \\omega_0\\)", "--muted", "dash"], ["forbidden by causality", "--bad", "area"]]);
+const figT = LX.fig(colR, "Impulse response \\(\\chi(t)\\) after a kick \\(f = \\delta(t)\\)");
+const PT = LX.plot(figT, { xlim: TLIM, ylim: [-1.2, 1.2], xlabel: "t", ylabel: "\\chi(t)", width: PW, height: 300, margin: M, xticks: 8, aria: "impulse response" });
+LX.legend(figT, [["\\(\\chi(t)\\)", "--fg", "line"], ["decay envelope", "--muted", "dash"], ["\\(\\tau = 1/|\\mathrm{Im}\\,p|\\)", "--c3", "dash"]]);
+
+/* controls */
+const ctl = LX.controls(colR, "lx-vert");
+const gS = LX.slider(ctl, { id: "gamma", label: "damping \\(\\gamma\\) at fixed \\(\\omega_0\\)", min: 0.02, max: GMAX, step: 0.01, value: S.g, onInput: v => { S.g = v; update(); } });
+const kkRow = LX.h("div", { class: "lx-group" }, ctl);
+LX.h("span", { text: "Causality check" }, kkRow);
+const kkBtn = LX.button(LX.h("div", { class: "lx-row" }, kkRow), "Rebuild Re χ from Im χ", () => { S.kk = !S.kk; update(); }, { id: "kk" });
+kkBtn.setAttribute("aria-pressed", "false");
+const setWG = (w0, g) => { S.w0 = w0; S.g = g; S.lead = 0; update(); };
+LX.limits(ctl, [
+  { label: "Weak damping", title: "ω₀ = 1, γ = 0.1 (Q = 10)", apply: () => setWG(1, 0.1) },
+  { label: "Critical damping", title: "ω₀ = 1, γ = 2: the poles meet at −i", apply: () => setWG(1, 2) },
+  { label: "Overdamped", title: "ω₀ = 1, γ = 2.5: poles at −0.5i and −2i", apply: () => setWG(1, 2.5) }
+]);
+const ro = LX.h("div", { class: "lx-readouts lx-vert" }, ctl);
+const rP = LX.readout(ro, "\\(\\omega_0,\\ \\gamma,\\ Q = \\omega_0/\\gamma\\):");
+const rC = LX.readout(ro, "cursor \\(\\omega,\\ |\\chi|,\\ \\arg\\chi\\):");
+const rF = LX.readout(ro, "FWHM of \\(\\mathrm{Im}\\,\\chi\\) vs \\(\\gamma\\):");
+const rS = LX.readout(ro, "\\(\\int_0^\\infty \\omega\\,\\mathrm{Im}\\,\\chi\\,\\dd\\omega\\) (\\(\\pi/2 = 1.5708\\)):");
+
+LX.guide(W0, [
+  ["Response", "\\(\\chi(\\omega)\\) for real driving frequencies, negative ones included. Blue is \\(\\mathrm{Re}\\,\\chi\\), the in-phase (dispersive) part; orange is \\(\\mathrm{Im}\\,\\chi\\), the out-of-phase part that absorbs energy, shaded where \\(\\omega > 0\\). The teal bar is the full width at half maximum of the absorption peak. Drag anywhere on the plot (or use the arrow keys on the pink handle) to move the cursor."],
+  ["Pole plane", "The complex \\(\\omega\\) plane with the same horizontal axis as the response, so each peak sits right above its pole. The pink crosses are the two poles \\(p_\\pm\\) where \\(\\chi\\) is infinite. Drag either one (or use the arrow keys): its partner mirrors it, \\(p_- = -p_+^*\\), because \\(\\chi(t)\\) is real. Pulled onto the imaginary axis, the poles move along it independently (overdamped). The red upper half is forbidden: a pole there would make the system respond before it is kicked. Grey lines join the cursor on the real axis to both poles; \\(|\\chi| = 1/(d_+ d_-)\\) is one over the product of their lengths, and \\(\\arg\\chi = \\pi - \\theta_+ - \\theta_-\\) comes from their angles. The dashed circle has radius \\(\\omega_0\\)."],
+  ["Impulse response", "The displacement after a sharp kick at \\(t = 0\\): exactly zero before it (shaded), then a ringing at \\(\\tilde\\omega = \\mathrm{Re}\\,p\\) inside the dashed envelope, which falls by \\(1/\\ee\\) at the teal time \\(\\tau = 1/|\\mathrm{Im}\\,p|\\)."],
+  ["\\(\\gamma\\)", "Damping at fixed \\(\\omega_0\\): the poles slide along the dashed circle, meet at \\(-\\ii\\omega_0\\) for \\(\\gamma = 2\\omega_0\\), then split along the imaginary axis. Dragging a pole changes \\(\\omega_0\\) and \\(\\gamma\\) together."],
+  ["Rebuild Re χ", "Computes \\(\\mathrm{Re}\\,\\chi\\) from \\(\\mathrm{Im}\\,\\chi\\) alone with the Kramers–Kronig integral \\(\\mathrm{Re}\\,\\chi(\\omega) = \\frac{1}{\\pi}\\,\\mathrm{P}\\!\\int \\frac{\\mathrm{Im}\\,\\chi(\\omega')}{\\omega' - \\omega}\\,\\dd\\omega'\\) (principal-value quadrature over \\(|\\omega'| < 12\\) plus the analytic tail) and draws it as open circles. They land on the blue curve for every pole position in the lower half plane."],
+  ["Jumps", "Weak damping (\\(Q = 10\\)), critical damping (the poles meet on the axis), overdamped (both poles on the imaginary axis, no ringing)."],
+  ["Readouts", "\\(\\omega_0\\), \\(\\gamma\\) and the quality factor \\(Q\\); \\(|\\chi|\\) and the phase at the cursor; the measured FWHM next to \\(\\gamma\\); the f-sum integral, computed numerically."],
+  ["What to look for", "<b>One number, three places:</b> lower \\(\\gamma\\) and watch the teal marks: the peak narrows (FWHM \\(\\approx \\gamma\\)), the pole rises toward the axis (\\(|\\mathrm{Im}\\,p| = \\gamma/2\\)) and the ringing lasts longer (\\(\\tau = 2/\\gamma\\)). <b>Phase flip:</b> move the cursor across the peak; \\(\\arg\\chi\\) goes from near 0 through \\(\\pi/2\\) to near \\(\\pi\\), and the closer the pole is to the axis, the faster the line from the pole swings round. <b>Overdamped:</b> once the poles reach the imaginary axis \\(\\chi(t)\\) no longer oscillates. <b>Sum rule:</b> however you change \\(\\gamma\\), the f-sum readout stays at \\(\\pi/2\\): damping redistributes absorption but does not change its weighted total."]
+]);
+
+/* ---- handles: created once in the handles layers, moved on redraw ---- */
+const cur = LX.s("circle", { r: 8, class: "f4", "aria-label": "driving frequency cursor; drag or use arrow keys" }, PR.g.handles);
+const setW = w => { S.w = Math.round(LX.clamp(w, WLIM[0], WLIM[1]) * 1000) / 1000; update(); };
+LX.drag(PR, cur, { get: () => [S.w, 0], step: [0.02, 0], set: x => setW(x) });
+let scrub = false;
+PR.svg.addEventListener("pointerdown", e => { if (e.target === cur) return; scrub = true; PR.svg.setPointerCapture(e.pointerId); setW(PR.toData(e)[0]); });
+PR.svg.addEventListener("pointermove", e => { if (scrub) setW(PR.toData(e)[0]); });
+PR.svg.addEventListener("pointerup", () => { scrub = false; });
+PR.svg.style.cursor = "crosshair";
+
+const hPos = [[0, 0], [0, 0]];   /* where each pole handle is drawn (data coordinates) */
+const SNAP = 0.04;
+function movePole(k, x, y) {
+  y = LX.clamp(y, -2.5, -0.01);
+  const P = poles();
+  if (Math.abs(x) > SNAP) {
+    /* off the axis: an oscillating pair p, −p*; keep ω0 in range and γ ≤ GMAX */
+    y = Math.max(y, -GMAX / 2);
+    let r = Math.hypot(x, y);
+    const rc = LX.clamp(r, W0MIN, W0MAX); x *= rc / r; y *= rc / r;
+    S.g = -2 * y; S.w0 = Math.hypot(x, y); S.lead = x > 0 ? k : 1 - k;
+  } else if (P.kind === "under") {
+    /* onto the axis from an oscillating pair: both poles meet there (critical damping) */
+    const d = LX.clamp(-y, W0MIN, GMAX / 2);
+    S.g = 2 * d; S.w0 = d; S.lead = k;
+  } else {
+    /* overdamped: this pole moves along the axis, its partner stays; γ = a + b, ω0² = ab */
+    const other = -hPos[1 - k][1];
+    const d = LX.clamp(-y, Math.max(0.01, W0MIN * W0MIN / other), GMAX - other);
+    S.g = d + other; S.w0 = Math.sqrt(d * other); S.lead = d <= other ? k : 1 - k;
+  }
+  gS.set(Math.round(S.g * 100) / 100, false);
+  update();
+}
+const poleH = [0, 1].map(k => {
+  const c = LX.s("circle", { r: 10, class: "pole-h", "aria-label": `pole ${k + 1} of the response; drag or use arrow keys` }, PP.g.handles);
+  LX.drag(PP, c, { get: () => hPos[k], step: [0.05, 0.02], set: (x, y) => movePole(k, x, y) });
+  return c;
+});
+
+/* labels that stay: created once, moved with placeTex */
+const tFW = PR.tex(0, 0, "\\mathrm{FWHM}", { keep: true, color: "var(--c3)" });
+const tIm = PP.tex(0, 0, "|\\mathrm{Im}\\,p|", { keep: true, color: "var(--c3)" });
+const tW0 = PP.tex(0, 0, "\\omega_0", { keep: true, color: "var(--muted)" });
+const tTau = PT.tex(0, 0, "\\tau", { keep: true, color: "var(--c3)" });
+const tKick = PT.tex(0, 0, "\\delta(t)", { keep: true, color: "var(--muted)" });
+
+/* ---- drawing ---- */
+function drawResponse(P, F) {
+  PR.clearAll();
+  const ws = LX.linspace(WLIM[0], WLIM[1], 2501);
+  const re = ws.map(w => reChi(w)), im = ws.map(w => imChi(w));
+  const top = niceCeil(1.12 * Math.max(F.fm, ...re.map(Math.abs)));
+  PR.setLim(null, [-top, top]);
+  PR.hline(0, { cls: "gr" }); PR.vline(0, { cls: "gr" });
+  PR.area(ws.map((w, i) => [w, im[i]]).filter(p => p[0] >= 0), { cls: "a2" });
+  PR.path(ws.map((w, i) => [w, re[i]]), { cls: "s1" });
+  PR.path(ws.map((w, i) => [w, im[i]]), { cls: "s2" });
+  /* FWHM bar at half the absorption maximum */
+  const showFW = F.w2 <= WLIM[1];
+  if (showFW) {
+    PR.line(F.w1, F.fm / 2, F.w2, F.fm / 2, { cls: "s3", layer: "top" });
+    const tk = top * 0.035;
+    PR.line(F.w1, F.fm / 2 - tk, F.w1, F.fm / 2 + tk, { cls: "s3", layer: "top" });
+    PR.line(F.w2, F.fm / 2 - tk, F.w2, F.fm / 2 + tk, { cls: "s3", layer: "top" });
+    PR.placeTex(tFW, F.w2 + 0.06, F.fm / 2, "w");
+  }
+  tFW.style.display = showFW ? "" : "none";
+  if (S.kk) {
+    const extra = P.kind === "under" ? LX.linspace(-8, 8, 17).flatMap(j => [P.wt + j * S.g / 4, -P.wt - j * S.g / 4]) : [];
+    const kw = LX.linspace(WLIM[0], WLIM[1], 61).concat(extra).filter(w => w > WLIM[0] && w < WLIM[1]);
+    kkRe(kw).forEach((v, i) => { if (Math.abs(v) < top) PR.dot(kw[i], v, { r: 3.2, cls: "kk" }); });
+  }
+  PR.vline(S.w, { cls: "sm", layer: "top" });
+  PR.dot(S.w, reChi(S.w), { r: 4.5, cls: "f1" });
+  PR.dot(S.w, imChi(S.w), { r: 4.5, cls: "f2" });
+  cur.setAttribute("cx", PR.X(S.w)); cur.setAttribute("cy", PR.Y(-top) - 10);
+}
+function drawPlane(P) {
+  PP.clearAll();
+  const [x0, x1] = PP.xlim, [, y1] = PP.ylim;
+  PP.path([[x0, 0], [x1, 0], [x1, y1], [x0, y1]], { cls: "uhp", layer: "fill", close: true });
+  PP.text(0, y1 / 2, "Im ω > 0: forbidden by causality", { cls: "uhp-t", dy: 4 });
+  PP.line(x0, 0, x1, 0, { cls: "ax" });
+  PP.vline(0, { cls: "gr" });
+  /* circle |ω| = ω0 in the lower half plane */
+  PP.path(LX.linspace(PI, 2 * PI, 121).map(t => [S.w0 * Math.cos(t), S.w0 * Math.sin(t)]), { cls: "sm thin dash" });
+  const lw = 1.25 * PI;
+  PP.placeTex(tW0, S.w0 * Math.cos(lw), S.w0 * Math.sin(lw), "ne");
+  tW0.style.display = S.w0 > 0.6 && P.kind === "under" ? "" : "none";
+  /* where each handle sits */
+  const lead = S.lead, pos = [];
+  pos[lead] = [P.p[0].re, P.p[0].im]; pos[1 - lead] = [P.p[1].re, P.p[1].im];
+  /* lines from both poles to the cursor */
+  for (const q of P.p) PP.line(q.re, q.im, S.w, 0, { cls: "sm thin", layer: "main" });
+  PP.dot(S.w, 0, { r: 5, cls: "f4" });
+  /* the distance of the nearest pole from the axis (teal) */
+  const np = P.p[0], bx = np.re + (P.kind === "under" ? 0.14 : 0.12), tk = 0.05;
+  PP.line(bx, np.im, bx, 0, { cls: "s3", layer: "top" });
+  PP.line(bx - tk, np.im, bx + tk, np.im, { cls: "s3", layer: "top" });
+  if (P.near >= 0.4) PP.placeTex(tIm, bx + 0.07, np.im / 2, "w");
+  else PP.placeTex(tIm, np.re + 0.16, np.im - 0.1, "nw");   /* pole close to the axis: label below-right of the handle */
+  /* poles as crosses under the (translucent) handles */
+  const cx = 0.07, cy = 0.07;
+  for (const q of P.p) { PP.line(q.re - cx, q.im - cy, q.re + cx, q.im + cy, { cls: "s4", layer: "top" }); PP.line(q.re - cx, q.im + cy, q.re + cx, q.im - cy, { cls: "s4", layer: "top" }); }
+  pos.forEach((p, k) => { hPos[k] = p; poleH[k].setAttribute("cx", PP.X(p[0])); poleH[k].setAttribute("cy", PP.Y(p[1])); });
+}
+function drawTime(P) {
+  PT.clearAll();
+  const ts = LX.linspace(TLIM[0], TLIM[1], 1601), xs = ts.map(t => chiT(t));
+  const top = niceCeil(1.15 * Math.max(...xs.map(Math.abs), 1e-3));
+  PT.setLim(null, [-top, top]);
+  PT.path([[TLIM[0], -top], [0, -top], [0, top], [TLIM[0], top]], { cls: "uhp", layer: "fill", close: true });
+  PT.hline(0, { cls: "gr" });
+  PT.arrow(0, 0, 0, 0.8 * top, { cls: "sm" });
+  PT.placeTex(tKick, -0.3, 0.8 * top, "e");
+  /* envelope: e^{−γt/2}/ω̃ when it oscillates, the slow mode e^{−at}/(2κ) when overdamped */
+  const env = P.kind === "under" ? (t => Math.exp(-S.g * t / 2) / P.wt) : P.kind === "over" ? (t => Math.exp(-P.near * t) / (2 * P.k)) : null;
+  if (env && env(0) < 3 * top) {
+    PT.fn(env, { a: 0, b: TLIM[1], cls: "sm dash" });
+    if (P.kind === "under") PT.fn(t => -env(t), { a: 0, b: TLIM[1], cls: "sm dash" });
+  }
+  PT.path(ts.map((t, i) => [t, xs[i]]), { cls: "sfg" });
+  const tau = 1 / P.near, showTau = tau < TLIM[1];
+  if (showTau) {
+    PT.line(tau, -top, tau, top, { cls: "s3 thin dash", layer: "top" });
+    PT.placeTex(tTau, tau + 0.35, -0.82 * top, "w");
+    if (env && env(tau) < top) PT.dot(tau, env(tau), { r: 3.5, cls: "f3" });
+  }
+  tTau.style.display = showTau ? "" : "none";
+}
+function update() {
+  const P = poles(), F = fwhm();
+  drawResponse(P, F); drawPlane(P); drawTime(P);
+  kkBtn.setAttribute("aria-pressed", String(S.kk));
+  kkBtn.textContent = S.kk ? "Hide the KK reconstruction" : "Rebuild Re χ from Im χ";
+  const kind = { under: "underdamped", critical: "critical", over: "overdamped" }[P.kind];
+  rP.set(`${f(S.w0)}, ${f(S.g)}, Q = ${f(S.w0 / S.g, 1)} (${kind})`);
+  const z = chi(S.w);
+  rC.set(`${f(S.w)}, ${f(C.abs(z), C.abs(z) < 10 ? 2 : 1)}, ${f(C.arg(z) / PI)}π`);
+  rF.set(`${f(F.width, 3)} (γ = ${f(S.g, 3)})`);
+  rS.set(f(fsum(S.w0, S.g, 4000), 4));
+}
+update();
+
+/* ---- self-tests ---- */
+const cases = [[1, 0.3], [1, 0.05], [0.7, 1.2], [1, 2], [1, 2.5], [0.4, 2.2]];
+LX.check("poles: ω0² − p² − iγp = 0 at the formula's poles, and |1/χ| has its minima there", () => {
+  for (const [w0, g] of cases) {
+    for (const p of poles(w0, g).p) {
+      const inv = C.sub(C.of(w0 * w0), C.add(C.mul(p, p), C.mul(C.of(0, g), p)));
+      if (C.abs(inv) > 1e-10) return { pass: false, detail: `${w0},${g}: ${C.abs(inv)}` };
+    }
+  }
+  /* grid search in the lower half plane: the smallest |1/χ| sits on a pole */
+  const [w0, g] = [1, 0.6], ps = poles(w0, g).p; let best = [Infinity, 0, 0];
+  for (let i = 0; i <= 400; i++) for (let j = 0; j <= 200; j++) {
+    const z = C.of(-2 + 4 * i / 400, -2 * j / 200), v = C.abs(C.sub(C.of(w0 * w0), C.add(C.mul(z, z), C.mul(C.of(0, g), z))));
+    if (v < best[0]) best = [v, z.re, z.im];
+  }
+  const dist = Math.min(...ps.map(p => Math.hypot(p.re - best[1], p.im - best[2])));
+  return { pass: dist < 0.015 && ps.every(p => p.im < 0), detail: dist };
+});
+LX.check("Im χ(ω) ≥ 0 for ω > 0 (a passive system absorbs)", () => cases.every(([w0, g]) => LX.linspace(1e-3, 50, 5000).every(w => imChi(w, w0, g) >= 0)));
+LX.check("f-sum rule ∫0^∞ ω Im χ dω = π/2 for γ = 0.1 and γ = 2 (and ω0 = 0.6, γ = 0.5)", () => {
+  const v = [[1, 0.1], [1, 2], [0.6, 0.5]].map(([w0, g]) => fsum(w0, g));
+  return { pass: v.every(x => Math.abs(x - PI / 2) < 1e-5), detail: v.join(", ") };
+});
+LX.check("FWHM of Im χ → γ for weak damping (and differs at strong damping)", () => {
+  const r = [0.02, 0.05, 0.1].map(g => fwhm(1, g).width / g);
+  return { pass: r.every(x => Math.abs(x - 1) < 2e-3) && Math.abs(fwhm(1, 1.5).width / 1.5 - 1) > 0.05, detail: r.join(", ") };
+});
+LX.check("χ(t) is the inverse Fourier transform of χ(ω); zero for t < 0", () => {
+  /* (1/2π)∫ e^{−iωt} χ(ω) dω = (1/π)∫0^∞ [Re χ cos ωt + Im χ sin ωt] dω, Simpson on [0, 400] */
+  const ft = (t, w0, g) => {
+    const L = 400, N = 200000, h = L / N; let s = 0;
+    for (let i = 0; i <= N; i++) { const w = i * h, v = reChi(w, w0, g) * Math.cos(w * t) + imChi(w, w0, g) * Math.sin(w * t); s += (i === 0 || i === N ? 1 : i % 2 ? 4 : 2) * v; }
+    return s * h / 3 / PI;
+  };
+  const errs = [[1, 1, 0.5], [4, 1, 0.5], [-1.5, 1, 0.5], [2, 1, 2.5], [-0.7, 1, 2.5]].map(([t, w0, g]) => Math.abs(ft(t, w0, g) - chiT(t, w0, g)));
+  return { pass: errs.every(e => e < 2e-3), detail: errs.map(e => e.toExponential(1)).join(", ") };
+});
+LX.check("Kramers–Kronig: Re χ rebuilt from Im χ matches the exact Re χ (weak, moderate, overdamped)", () => {
+  const out = [];
+  for (const [w0, g] of [[1, 0.3], [1, 0.05], [1, 2.5], [0.5, 1.5]]) {
+    const ws = LX.linspace(-2.45, 2.45, 99).concat(LX.linspace(-0.2, 0.2, 21).map(d => Math.sqrt(Math.max(0, w0 * w0 - g * g / 4)) + d * g));
+    const kk = kkRe(ws, w0, g), ex = ws.map(w => reChi(w, w0, g)), scale = Math.max(...ex.map(Math.abs));
+    out.push(Math.max(...kk.map((v, i) => Math.abs(v - ex[i]))) / scale);
+  }
+  return { pass: out.every(e => e < 5e-3), detail: out.map(e => e.toExponential(1)).join(", ") };
+});
+LX.check("phase and modulus from pole geometry: arg χ = π − θ₊ − θ₋, |χ| = 1/(d₊d₋); arg χ(ω0) = π/2", () => {
+  for (const [w0, g] of cases) for (const w of [-1.7, -0.3, 0.2, 0.95, 1.4, 2.2]) {
+    const z = chi(w, w0, g), [a, b] = poles(w0, g).p.map(p => C.sub(C.of(w), p));
+    let ph = PI - C.arg(a) - C.arg(b); ph = Math.atan2(Math.sin(ph), Math.cos(ph));
+    if (!LX.near(ph, C.arg(z), 1e-9) || !LX.near(1 / (C.abs(a) * C.abs(b)), C.abs(z), 1e-9)) return { pass: false, detail: `${w0},${g},${w}` };
+  }
+  return cases.every(([w0, g]) => LX.near(C.arg(chi(w0, w0, g)), PI / 2, 1e-12));
+});
+</script>

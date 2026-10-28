@@ -1,0 +1,178 @@
+<!-- GENERATED from patterns/16-symmetry.html by tests/sync-base.mjs; edit that file, then run the script. -->
+<title>Parity and Tunnelling</title>
+<!--
+PATTERN 16 · SYMMETRY
+Concept shape   An operation leaves the Hamiltonian invariant, so eigenstates carry its quantum number
+                (and may be forced into degeneracies or pairs); breaking the symmetry mixes them.
+Use it for      Parity and the double well, tunnelling splitting, ammonia inversion, chirality
+                (Hund's paradox), translation and Bloch states, rotation and angular momentum,
+                time reversal and Kramers pairs, selection rules.
+Widget anatomy  (1)+(2) one panel per state, ψ₀ and ψ₁, each drawn over the potential (grey) with its
+                    energy level (dashed). "Apply parity P" animates the mirror x → −x (the graph folds
+                    through x = 0) and leaves the original dashed behind; the label then reads
+                    Pψ₀ = +ψ₀ and Pψ₁ = −ψ₁. Pressing again applies P a second time (P² = 1);
+                (3) the tunnelling splitting ΔE = E₁ − E₀ against the barrier height (log scale), with a dot
+                    at the current barrier;
+                (4) controls in the fourth cell: the P button, one barrier slider, readouts of the parity
+                    eigenvalues and ΔE.
+                One thing changes per control: P mirrors the states, the slider moves the barrier (and the
+                dot on the ΔE curve). No tilt, no extra toggles.
+Layout          grid2 with the controls in the fourth cell: the two states side by side so P's effect on
+                each can be compared at a glance.
+Teaching moments  Suggestions for the chapter around the widget:
+                  - "Press P. What happens to each state?" (choice: ψ₀ unchanged, ψ₁ flips sign);
+                  - "Why must a non-degenerate eigenstate be a parity eigenstate?" (explain: [H, P] = 0);
+                  - "Raise the barrier from 2 to 10. What does ΔE do?" (choice: falls roughly exponentially);
+                  - "A particle starts in the left well. How long until it is in the right?" (number: π/ΔE);
+                  - transfer: a small tilt εx localises the states once 2εx₀ ≫ ΔE; chiral molecules
+                    (explain). That is a second widget, not an extra slider here.
+Adapt by        Replace V(x) and the symmetry operation (here i → N−1−i on a symmetric grid). Any operator
+                that permutes grid points works the same way: translation by one well in a periodic chain,
+                reflection in 2D. Keep N ≤ 120: LX.eigSym is a dense Jacobi solver (≈ 50 ms for N = 100).
+Physics         H = −½ d²/dx² + V(x), V(x) = V₀((x/x₀)² − 1)², x₀ = 1.5, ħ = m = 1, hard walls at x = ±3.2,
+                three-point finite differences on N = 100 interior points, diagonalised with LX.eigSym.
+                [H, P] = 0, so ⟨P⟩ = ±1, alternating in energy. The tunnelling splitting ΔE = E₁ − E₀ falls
+                roughly like exp(−∫√(2(V − E)) dx) through the barrier.
+-->
+<!-- LX:HEAD -->
+<style>
+/* LX:STYLE */
+.vfill { fill: var(--muted); fill-opacity: .14; stroke: var(--muted); stroke-opacity: .6; stroke-width: 1.2; }
+</style>
+
+<main class="lx-page">
+  <header class="lx-head">
+    <p class="lx-eyebrow">Quantum mechanics · Symmetry</p>
+    <h1>What does a mirror symmetry tell you about the eigenstates?</h1>
+    <p class="lx-lede">A particle in a symmetric double well. Mirror the two lowest eigenstates and each one comes back as plus or minus itself. Raise the barrier and the two energies squeeze together.</p>
+    <div class="lx-meta">
+      <span>\(H = -\tfrac12\partial_x^2 + V_0\big((x/x_0)^2-1\big)^2\), \(x_0 = 1.5\), \(\hbar = m = 1\), hard walls at \(x = \pm 3.2\); finite differences, 100 points</span>
+    </div>
+  </header>
+  <div class="lx-stage" id="stage"></div>
+  <footer class="lx-foot">
+    <span>Source: model knowledge. Standard treatment: Sakurai &amp; Napolitano, <i>Modern Quantum Mechanics</i>, ch. 4 (symmetry in quantum mechanics); Landau &amp; Lifshitz, <i>Quantum Mechanics</i>, ch. VII (the quasi-classical case).</span>
+  </footer>
+</main>
+
+<script>
+/* LX:LIB */
+</script>
+
+<script>
+/* PATTERN */
+const N = 100, L = 3.2, X0 = 1.5, h = 2 * L / (N + 1);
+const xs = Array.from({ length: N }, (_, i) => -L + (i + 1) * h);   // symmetric grid: x[N-1-i] = -x[i]
+const S = { V0: 4, mirrored: false };
+const Vfun = (x, V0 = S.V0) => V0 * ((x / X0) ** 2 - 1) ** 2;
+function hamiltonian(V = x => Vfun(x)) {
+  const t = 0.5 / (h * h);
+  return xs.map((x, i) => xs.map((_, j) => (i === j ? 2 * t + V(x) : Math.abs(i - j) === 1 ? -t : 0)));
+}
+const parityOf = v => v.reduce((s, c, i) => s + c * v[N - 1 - i], 0);   // <psi|P|psi>, vectors are unit norm
+/* Lowest two states, sign fixed so the largest component in the right half is positive. */
+function solve(V0 = S.V0) {
+  const r = LX.eigSym(hamiltonian(x => Vfun(x, V0)));
+  const vecs = r.vectors.slice(0, 2).map(v => {
+    let k = N / 2; for (let i = N / 2; i < N; i++) if (Math.abs(v[i]) > Math.abs(v[k])) k = i;
+    return v[k] < 0 ? v.map(c => -c) : v;
+  });
+  return { E: r.values.slice(0, 2), vecs, P: vecs.map(parityOf) };
+}
+const sgn = p => (p > 0 ? "+" : "−");
+
+/* ---- widget ---- */
+const W = LX.widget(document.getElementById("stage"), { layout: "grid2", title: "Parity of the two lowest states in a double well", badge: "computed" });
+const VS = 0.2, YB = -1.35;                       // potential drawn as y = YB + VS·V (energy scale), ψ scaled to max 1
+const panels = [0, 1].map(n => {
+  const f = LX.fig(W, n === 0 ? "Ground state \\(\\psi_0\\) (blue) over the potential" : "First excited state \\(\\psi_1\\) (orange) over the potential");
+  const P = LX.plot(f, { xlim: [-L, L], ylim: [YB, 1.35], ticks: false, xlabel: "x", width: 520, height: 300, margin: { t: 34 }, aria: `eigenstate ${n}` });
+  P.vline(0, { cls: "gr", layer: "grid" });
+  return { n, P, lab: P.tex(-L + 0.15, 1.35, `\\psi_${n}(x)`, { anchor: "sw", px: false }), labSrc: `\\psi_${n}(x)` };
+});
+const fD = LX.fig(W, "Tunnelling splitting \\(\\Delta E = E_1 - E_0\\) against barrier height; the dot is the current barrier");
+const PD = LX.plot(fD, { xlim: [0, 10], ylim: [-2.5, -0.3], xlabel: "V_0", ylabel: "\\log_{10}\\Delta E", width: 520, height: 300, aria: "splitting vs barrier" });
+
+const ctl = LX.controls(W);
+const pBtn = LX.button(ctl, "Apply parity \\(P\\)", () => applyP(), { id: "parity", cls: "lx-primary", title: "mirror both states: x → −x" });
+const vS = LX.slider(ctl, { id: "V0", label: "barrier height \\(V_0\\)", min: 0, max: 10, step: 0.1, value: S.V0, fmt: v => v.toFixed(1), onInput: v => { S.V0 = v; recompute(); } });
+const ro = LX.h("div", { class: "lx-readouts" }, ctl);
+const rP0 = LX.readout(ro, "parity of \\(\\psi_0\\):");
+const rP1 = LX.readout(ro, "parity of \\(\\psi_1\\):");
+const rD = LX.readout(ro, "\\(\\Delta E = E_1 - E_0\\) =");
+
+LX.guide(W, [
+  ["State panels", "Each coloured curve is an eigenstate \\(\\psi_n(x)\\) (height in arbitrary units). Behind it, in grey, the potential \\(V(x)\\) and, dashed, the energy \\(E_n\\) of that state on the same energy scale. The thin vertical line is the mirror, \\(x = 0\\)."],
+  ["Apply parity \\(P\\)", "Replaces \\(\\psi(x)\\) by \\(\\psi(-x)\\): the graph folds over through \\(x = 0\\). The dashed curve is the state before. \\(\\psi_0\\) comes back unchanged (eigenvalue \\(+1\\)); \\(\\psi_1\\) comes back upside down (eigenvalue \\(-1\\)). Press again: \\(P^2 = 1\\)."],
+  ["Barrier slider", "Raises the hump between the wells. Both states stay exactly even or odd at any height, but their energies approach each other."],
+  ["Splitting plot", "\\(\\Delta E\\) on a log scale, computed at whole-number barrier heights; the dot is the current one. A straight-ish falling line means exponential suppression of tunnelling."]
+]);
+
+/* static: the splitting curve, computed once (11 diagonalisations) */
+const DCURVE = LX.linspace(0, 10, 11).map(V0 => { const s = solve(V0); return [V0, Math.log10(s.E[1] - s.E[0])]; });
+PD.path(DCURVE, { cls: "s3", layer: "fill" });
+DCURVE.forEach(([x, y]) => PD.dot(x, y, { r: 2.5, cls: "f3", layer: "fill" }));
+const dDot = PD.dot(S.V0, 0, { r: 6.5, cls: "f2" });
+
+let sol = solve(), anim = 0;
+function setLabel(p, src) { if (p.labSrc === src) return; p.labSrc = src; p.lab.innerHTML = `\\(${src}\\)`; LX.typeset(p.lab); }
+/* draw with fold parameter s ∈ [0, 1]: the point (x, ψ(x)) is drawn at (x·cos πs, ψ(x)); s = 1 is the graph of ψ(−x) */
+function draw(s = S.mirrored ? 1 : 0) {
+  const c = Math.cos(Math.PI * s);
+  panels.forEach(p => {
+    const v = sol.vecs[p.n], mx = Math.max(...v.map(Math.abs)), E = sol.E[p.n];
+    p.P.clear(); p.P.clear("fill");
+    const Vpts = LX.linspace(-L, L, 300).map(x => [x, YB + VS * Vfun(x)]);
+    p.P.area(Vpts, { cls: "vfill", base: YB });
+    p.P.hline(YB + VS * E, { cls: "sm dash" });
+    const pts = [[-L, 0], ...xs.map((x, i) => [x, v[i] / mx]), [L, 0]];
+    if (s > 0) p.P.path(pts, { cls: "sm dash" });                             // the state before P
+    p.P.path(pts.map(([x, y]) => [x * c, y]), { cls: p.n === 0 ? "s1" : "s2" });
+    const ev = sgn(sol.P[p.n]);
+    setLabel(p, s === 1 ? `P\\psi_${p.n}(x) = \\psi_${p.n}(-x) = ${ev}\\psi_${p.n}(x)` : `\\psi_${p.n}(x)`);
+  });
+}
+function applyP() {
+  cancelAnimationFrame(anim);
+  const from = S.mirrored ? 1 : 0, to = 1 - from, T = LX.reduceMotion ? 0 : 900, t0 = performance.now();
+  S.mirrored = !S.mirrored;
+  const step = now => {
+    const u = T ? Math.min(1, (now - t0) / T) : 1, e = u * u * (3 - 2 * u);
+    draw(u < 1 ? from + (to - from) * e : to);
+    if (u < 1) anim = requestAnimationFrame(step);
+  };
+  /* return trip (P applied twice) folds back from 1 to 0 */
+  if (to === 0) { S.mirrored = false; }
+  anim = requestAnimationFrame(step);
+  pBtn.innerHTML = S.mirrored ? "Apply \\(P\\) again" : "Apply parity \\(P\\)"; LX.typeset(pBtn);
+}
+function recompute() { cancelAnimationFrame(anim); sol = solve(); draw(); readouts(); }
+function readouts() {
+  rP0.set((sol.P[0] > 0 ? "+" : "−") + Math.abs(sol.P[0]).toFixed(3));
+  rP1.set((sol.P[1] > 0 ? "+" : "−") + Math.abs(sol.P[1]).toFixed(3));
+  const d = sol.E[1] - sol.E[0];
+  rD.set(d.toFixed(4));
+  dDot.setAttribute("cx", PD.X(S.V0)); dDot.setAttribute("cy", PD.Y(Math.log10(d)));
+}
+draw(); readouts();
+
+/* ---- self-tests ---- */
+LX.check("[H, P] = 0: H is symmetric under i → N−1−i", () => {
+  const H = hamiltonian(x => Vfun(x, 5));
+  for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) if (Math.abs(H[i][j] - H[N - 1 - i][N - 1 - j]) > 1e-9) return false;
+  return true;
+});
+LX.check("finite differences reproduce the oscillator: V = 8x² gives E = 2, 6, 10 (to 1%)", () => {
+  const E = LX.eigSym(hamiltonian(x => 8 * x * x)).values;
+  return { pass: [2, 6, 10].every((e, n) => Math.abs(E[n] / e - 1) < 1e-2), detail: E.slice(0, 3).join(",") };
+});
+LX.check("P ψ₀ = +ψ₀ and P ψ₁ = −ψ₁ componentwise (V₀ = 4)", () => {
+  const s = solve(4); const [a, b] = s.vecs;
+  return a.every((c, i) => Math.abs(a[N - 1 - i] - c) < 1e-8) && b.every((c, i) => Math.abs(b[N - 1 - i] + c) < 1e-8);
+});
+LX.check("ε = 0: ⟨P⟩ = +1, −1 at every barrier height tested", () => [0, 3, 8].every(V0 => { const s = solve(V0); return Math.abs(s.P[0] - 1) < 1e-8 && Math.abs(s.P[1] + 1) < 1e-8; }));
+LX.check("tunnelling splitting falls with the barrier, roughly exponentially", () => {
+  const d = V0 => 10 ** DCURVE[V0][1];
+  return { pass: d(2) > 2 * d(4) && d(4) > 2 * d(8) && d(8) > 1.5 * d(10), detail: [2, 4, 8, 10].map(d).join(",") };
+});
+</script>

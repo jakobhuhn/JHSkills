@@ -24,6 +24,7 @@ skills/interactive-learning/
     widget-craft.md           badges, interaction, layouts, visual and code rules
     math-rendering.md         MathJax 3.2.2 (SVG output) conventions
     knowledge-sources.md      using a user knowledge base, or model knowledge without one
+    lx-api.md                 generated: the LX helper API summary
   assets/base.html            page skeleton (article + widgets) + the LX helper library
   assets/layouts.html         five widget layout recipes
   patterns/                   21 widgets, one per concept shape, + 00 question formats
@@ -71,16 +72,20 @@ Copy or symlink `skills/interactive-learning` into your skills directory, e.g. `
 
 ### Development
 
-Every page is an Artifact page fragment that shares three marked blocks (`LX:HEAD`, `LX:STYLE`, `LX:LIB`) with `assets/base.html`.
+Every page is an Artifact page fragment that shares three marked blocks (`LX:HEAD`, `LX:STYLE`, `LX:LIB`) with `assets/base.html`. The full pages under `assets/`, `patterns/` and `examples/` are the source of truth and open directly in a browser (after wrapping in a doctype skeleton). `slim/` holds generated copies in which each block is a one-line marker; the model reads those and writes new pages in the same form, then expands them:
 
 ```sh
 cd tests && npm install            # local MathJax 3.2.2 for offline rendering
-node tests/sync-base.mjs           # copy the shared blocks from base.html into all widgets
-node tests/sync-base.mjs --check   # fail if any widget is out of sync
+node tests/sync-base.mjs           # copy the shared blocks from base.html into all pages, regenerate slim/
+node tests/sync-base.mjs --check   # fail if any page or slim copy is stale
 node tests/run.mjs [filter] [--shots]
+node skills/interactive-learning/scripts/lx.mjs expand page.html [out.html]   # slim → full
+node skills/interactive-learning/scripts/lx.mjs slim   page.html [out.html]   # full → slim
 ```
 
-`run.mjs` renders every page in headless Chromium. It fails on any of these:
+Edit the full files, not `slim/`; the sync script overwrites `slim/`.
+
+`run.mjs` renders every page in headless Chromium (slim pages are expanded in memory first). It fails on any of these:
 - console errors;
 - failing physics self-tests (`LX.check`);
 - missing MathJax output or raw TeX;
